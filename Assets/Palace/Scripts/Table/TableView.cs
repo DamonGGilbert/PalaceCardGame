@@ -78,7 +78,80 @@ namespace Palace
             cardPrefab = card;
         }
 
-        private void Awake() => EnsureBuilt();
+        private RectTransform fxRoot;
+        private TextMeshProUGUI directionText;
+
+        private void Awake()
+        {
+            EnsureBuilt();
+            if (tableTheme != null) tableImage.sprite = tableTheme.CurrentTable; // felt colour chosen in Settings
+        }
+
+        // ------------------------------------------------------------------
+        // Positions and effects used by the game controller's animations
+        // ------------------------------------------------------------------
+
+        /// <summary>Layer above everything on the table, for cards in flight and announcements.</summary>
+        public RectTransform FxRoot
+        {
+            get
+            {
+                if (fxRoot == null)
+                {
+                    fxRoot = UIBuild.Stretch("Effects", transform);
+                    fxRoot.SetAsLastSibling();
+                }
+                return fxRoot;
+            }
+        }
+
+        public Vector2 DeckPoint => tableCenter + DeckPosition;
+        public Vector2 DiscardPoint => tableCenter + DiscardPosition;
+        public float PileCardScale => pileCardScale;
+        public Vector2 HandCenter => handAreaCenter;
+
+        /// <summary>Converts any UI object's position into this table's coordinates (for FxRoot).</summary>
+        public Vector2 ToLocal(Transform t) => transform.InverseTransformPoint(t.position);
+
+        public Vector2 SeatPoint(int seat) => ((RectTransform)seats[seat].transform).anchoredPosition;
+
+        public void SetDirection(int direction)
+        {
+            EnsureBuilt();
+            if (directionText == null)
+            {
+                directionText = UIBuild.Text("Direction", centerRoot, "", 22f,
+                    tableTheme != null ? tableTheme.mutedTextColor : Color.white, new Vector2(320f, 30f),
+                    new Vector2(0f, -150f), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+            }
+            directionText.text = direction >= 0 ? "Play goes clockwise" : "Play goes anticlockwise";
+        }
+
+        /// <summary>Big pop-up text such as "BURN!" or "SKIP". Fire and forget.</summary>
+        public void Announce(string message, Color color, Vector2 position, float size = 64f)
+        {
+            var text = UIBuild.Text("Announce", FxRoot, message, size, color, new Vector2(900f, 120f), position,
+                TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+            text.outlineWidth = 0.18f;
+            text.outlineColor = new Color32(0, 0, 0, 200);
+            StartCoroutine(AnnounceRoutine(text));
+        }
+
+        private System.Collections.IEnumerator AnnounceRoutine(TextMeshProUGUI text)
+        {
+            var rt = text.rectTransform;
+            float pop = Mathf.Max(0.12f, Tween.Scaled(0.18f));
+            yield return Tween.Run(pop, t => rt.localScale = Vector3.one * Mathf.Lerp(0.4f, 1f, t));
+            yield return Tween.Wait(Mathf.Max(0.45f, Tween.Scaled(0.7f)));
+            Color start = text.color;
+            Vector2 p = rt.anchoredPosition;
+            yield return Tween.Run(Mathf.Max(0.15f, Tween.Scaled(0.3f)), t =>
+            {
+                text.color = new Color(start.r, start.g, start.b, 1f - t);
+                rt.anchoredPosition = p + new Vector2(0f, 30f * t);
+            });
+            Destroy(text.gameObject);
+        }
 
         // ------------------------------------------------------------------
         // Seats

@@ -67,6 +67,7 @@ namespace Palace
         private void Awake()
         {
             EnsureBuilt();
+            ApplyTheme(); // picks up the card back chosen in Settings
             Refresh();
         }
 
@@ -188,7 +189,7 @@ namespace Palace
             glow.sprite = theme.glow;
             glow.color = theme.selectedGlow;
             face.sprite = theme.face;
-            back.sprite = theme.back;
+            back.sprite = theme.CurrentBack;
             courtFrame.sprite = theme.outline;
             dim.sprite = theme.face;
 

@@ -19,6 +19,9 @@ namespace Palace
         public Sprite glow;
         public Sprite outline;
 
+        [Tooltip("Card back choices for Settings > Card back (index matches GameSettings.CardBackNames).")]
+        public Sprite[] backVariants;
+
         [Header("Suit sprites (white, tinted in code)")]
         public Sprite clubs;
         public Sprite diamonds;
@@ -33,6 +36,17 @@ namespace Palace
 
         [Header("Font (leave empty to use the TextMeshPro default)")]
         public TMP_FontAsset rankFont;
+
+        /// <summary>The card back chosen in Settings (falls back to the default back).</summary>
+        public Sprite CurrentBack
+        {
+            get
+            {
+                if (backVariants == null || backVariants.Length == 0) return back;
+                Sprite s = backVariants[Mathf.Clamp(GameSettings.CardBack, 0, backVariants.Length - 1)];
+                return s != null ? s : back;
+            }
+        }
 
         public Sprite GetSuitSprite(Suit suit)
         {

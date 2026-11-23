@@ -23,11 +23,26 @@ namespace Palace.EditorTools
         private static readonly Color Ivory = Hex("#FFFDF8");
         private static readonly Color IvoryShade = Hex("#EFE8DA");
         private static readonly Color CardEdge = Hex("#C9BFAC");
-        private static readonly Color Burgundy = Hex("#7E1828");
-        private static readonly Color BurgundyDark = Hex("#4E0C17");
         private static readonly Color Gold = Hex("#D4AF5A");
-        private static readonly Color FeltLight = Hex("#17784F");
-        private static readonly Color FeltDark = Hex("#0A4530");
+
+        // Colour variants (Settings > Table / Card back). Set before each Render call.
+        private static Color Burgundy = Hex("#7E1828");
+        private static Color BurgundyDark = Hex("#4E0C17");
+        private static Color FeltLight = Hex("#17784F");
+        private static Color FeltDark = Hex("#0A4530");
+
+        private static readonly (string file, string light, string dark)[] Felts =
+        {
+            ("table", "#17784F", "#0A4530"),        // green (default)
+            ("table_blue", "#1D5F8C", "#0B2E4A"),
+            ("table_red", "#8C2A2A", "#4A1010")
+        };
+
+        private static readonly (string file, string main, string dark)[] Backs =
+        {
+            ("card_back", "#7E1828", "#4E0C17"),    // burgundy (default)
+            ("card_back_navy", "#1E3566", "#0D1A38")
+        };
         private static readonly Color RailLight = Hex("#5A3620");
         private static readonly Color RailDark = Hex("#1E110A");
         private static readonly Color RoomCentre = Hex("#1D2924");
@@ -41,7 +56,12 @@ namespace Palace.EditorTools
 
             // Cards are drawn at 2x their on-screen size (140x196) for crisp edges on high-DPI phones.
             Render("card_face", 280, 392, CardFace);
-            Render("card_back", 280, 392, CardBack);
+            foreach (var b in Backs)
+            {
+                Burgundy = Hex(b.main);
+                BurgundyDark = Hex(b.dark);
+                Render(b.file, 280, 392, CardBack);
+            }
             Render("card_outline", 280, 392, CardOutline);
             Render("card_shadow", 328, 440, CardShadow);
             Render("card_glow", 360, 472, CardGlow);
@@ -51,7 +71,12 @@ namespace Palace.EditorTools
             Render("suit_spades", 256, 256, (x, y) => SuitPixel(x, y, 256, Spade, 1.52f, 0.70f));
             Render("suit_clubs", 256, 256, (x, y) => SuitPixel(x, y, 256, Club, 1.45f, 0.63f));
 
-            Render("table", 2048, 1024, Table);
+            foreach (var f in Felts)
+            {
+                FeltLight = Hex(f.light);
+                FeltDark = Hex(f.dark);
+                Render(f.file, 2048, 1024, Table);
+            }
             Render("background", 960, 540, Background);
             Render("panel", 64, 64, (x, y) => Shape(RoundRect(x, y, 32f, 32f, 31f, 31f, 22f)));
             Render("circle", 128, 128, (x, y) => Shape(Circle(x, y, 64f, 64f, 62f)));
@@ -61,7 +86,7 @@ namespace Palace.EditorTools
             AssetDatabase.Refresh();
 
             ConfigureSprite("card_face", 512);
-            ConfigureSprite("card_back", 512);
+            foreach (var b in Backs) ConfigureSprite(b.file, 512);
             ConfigureSprite("card_outline", 512);
             ConfigureSprite("card_shadow", 512);
             ConfigureSprite("card_glow", 512);
@@ -69,7 +94,7 @@ namespace Palace.EditorTools
             ConfigureSprite("suit_diamonds", 256);
             ConfigureSprite("suit_spades", 256);
             ConfigureSprite("suit_clubs", 256);
-            ConfigureSprite("table", 2048);
+            foreach (var f in Felts) ConfigureSprite(f.file, 2048);
             ConfigureSprite("background", 1024);
             ConfigureSprite("panel", 64, new Vector4(22f, 22f, 22f, 22f));
             ConfigureSprite("circle", 128);
@@ -364,6 +389,7 @@ namespace Palace.EditorTools
             var cards = LoadOrCreate<CardTheme>(CardThemePath);
             cards.face = LoadSprite("card_face");
             cards.back = LoadSprite("card_back");
+            cards.backVariants = Array.ConvertAll(Backs, b => LoadSprite(b.file));
             cards.outline = LoadSprite("card_outline");
             cards.shadow = LoadSprite("card_shadow");
             cards.glow = LoadSprite("card_glow");
@@ -375,6 +401,7 @@ namespace Palace.EditorTools
 
             var table = LoadOrCreate<TableTheme>(TableThemePath);
             table.table = LoadSprite("table");
+            table.tableVariants = Array.ConvertAll(Felts, f => LoadSprite(f.file));
             table.background = LoadSprite("background");
             table.panel = LoadSprite("panel");
             table.circle = LoadSprite("circle");

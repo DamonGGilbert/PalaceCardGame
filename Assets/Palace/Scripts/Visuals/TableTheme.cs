@@ -19,6 +19,20 @@ namespace Palace
         public Sprite ring;
         public Sprite softGlow;
 
+        [Tooltip("Felt colour choices for Settings > Table (index matches GameSettings.TableColourNames).")]
+        public Sprite[] tableVariants;
+
+        /// <summary>The table chosen in Settings (falls back to the default table).</summary>
+        public Sprite CurrentTable
+        {
+            get
+            {
+                if (tableVariants == null || tableVariants.Length == 0) return table;
+                Sprite s = tableVariants[Mathf.Clamp(GameSettings.TableColour, 0, tableVariants.Length - 1)];
+                return s != null ? s : table;
+            }
+        }
+
         [Header("Colours")]
         public Color panelColor = new Color(0.03f, 0.05f, 0.04f, 0.78f);
         public Color panelTurnColor = new Color(0.42f, 0.31f, 0.09f, 0.92f);

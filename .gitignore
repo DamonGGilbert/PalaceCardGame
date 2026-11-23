@@ -12,14 +12,16 @@
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 
-# IDE / solution files (Unity regenerates these)
+# IDE / solution files (Unity regenerates these). Root-level only, so Tests/ projects are kept.
 .vs/
 .vscode/
 .idea/
-*.csproj
+/*.csproj
 *.unityproj
-*.sln
-*.slnx
+/*.sln
+/*.slnx
+Tests/**/bin/
+Tests/**/obj/
 *.suo
 *.user
 *.userprefs

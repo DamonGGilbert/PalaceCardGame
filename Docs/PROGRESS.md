@@ -1,35 +1,40 @@
 # Palace – Progress Log
 
-## Stage 1 – Project foundation ✅ code delivered (waiting for you to run it)
-- [x] Project structure (`Assets/Palace/...`)
-- [x] Landscape orientation + PC window settings (`Palace → Setup → 1`)
-- [x] Original art generated from code: cards, suits, card back, felt table, UI shapes (`Palace → Setup → 2`)
-- [x] CardTheme / TableTheme ScriptableObjects
-- [x] Card prefab (CardView: face/back, select lift, dimming, tap event)
-- [x] Seat prefab (name plate, avatar, turn glow, hand-count fan, 3 face-down + 3 face-up)
-- [x] Responsive 2–10 player layout with guaranteed no-overlap (TableLayout)
-- [x] Game scene with preview harness (`Palace → Setup → 3`)
-- [x] Tested on Unity 6000.6.10f1 and 6000.4.3f1: compiles with 0 errors and 0 warnings. Rendered 2–10 players
-      at 16:9, 19.5:9 and 4:3 with 0 overlaps and nothing off-screen.
-- [ ] **You:** run it in your own project and tick the checklist in `Stage1-Guide.md`
+## Stage 1 – Project foundation ✅
+- [x] Project structure, landscape/PC settings, original generated art, Card and Seat prefabs
+- [x] Responsive 2–10 player table layout with guaranteed no-overlap
+- [x] Project on GitHub (local repo created 2026-11-23; publish via GitHub Desktop)
+
+## Stages 2–4 – Card system, rules, full single-player game ✅ (branch `feature/playable-game`)
+- [x] Rules engine `Palace.Core.PalaceGame`: deck(s), shuffle, deal 3/3/3, every house rule, three stages,
+      replenishing, picking up, finishing order, game over
+- [x] Rule options in `HouseRules.cs` (proposed defaults for Q1–Q21, each switchable in one place)
+- [x] Computer players (`BotBrain`): use only information a real player could see
+- [x] `GameController`: taps → commands, bot turns, event-by-event animations and sounds
+- [x] Hand view (fans out for big hands), playable cards highlighted, tap a darkened card to see why
+- [x] Prompts for 7 HIGHER/LOWER and Ace high/burn; Pick Up button only when forced
+- [x] Results screen (positions, winner, player count, Play Again / Main Menu), pause menu
+- [x] Splash, Main Menu, Single Player (name + bot slider 1–9), Multiplayer (placeholder), How to Play, Settings, Credits
+- [x] Settings saved on the device: music, SFX, animation speed (Off/Fast/Normal), 30/60 FPS, table colour, card back
+- [x] Procedural sound effects and background music (no audio files)
+- [x] Tests: 64 automated rule checks plus 3,600 simulated games (`Tests/Palace.Core.Tests`), and an automated
+      end-to-end run of a real Windows build
 
 ## Waiting on you
-- [ ] Answers to the rule questions in `DESIGN.md` (Q1–Q7 are needed for Stage 3)
+- [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
+- [ ] Play it and report anything that feels wrong
 
-## Next: Stage 2 – Core card system
-- Deck building (1 or 2 decks, see Q1), shuffle, deal 3 face-down / 3 face-up / 3 hand
-- PlayerState and GameState in `Palace.Core`
-- HandView: your hand along the bottom, fanned/overlapping for big hands after a pick-up
-- Rule self-tests runnable from a menu
+## Next: Stage 5 – Multiplayer
+- Decide on services (Unity Gaming Services Lobby + Relay, free tier) and confirm costs together
+- Local network play (same Wi-Fi) and online play with join codes
+- Host-authoritative: the host runs `PalaceGame`; clients send commands and receive events
+- Hidden information: each client only receives its own hand
 
 ## Later
-- Stage 3: rules engine (2 reset, 7 higher/lower, 8 skip stacking, 10/Ace burn, Queen reverse, multi-card plays, pick up)
-- Stage 4: three-stage flow, replenishing, finishing order, results screen
-- Stage 5: bots → lobby → online multiplayer (costs checked first)
-- Stage 6: animations, audio, settings, menus
-- Stage 7: full test pass
+- Stage 6: polish (more animation, real recorded sounds if wanted, haptics on mobile, keyboard shortcuts on PC)
+- Stage 7: device testing on Android and iOS
 
 ## Known limitations / notes
-- The local hand area is positioned relative to the table. On 4:3 tablets there is spare space below it.
-  It will be anchored to the bottom of the screen when HandView is built in Stage 2.
-- `TableLayoutPreview` is a temporary test harness and will be removed once the real game controller exists.
+- The hand area is positioned relative to the table, so 4:3 tablets have spare space below it.
+- Bots are deliberately simple (cheapest legal card, saving 2s/10s/Aces). A harder difficulty can come later.
+- `AutoPlayHarness` only runs when the game is launched with `-palace-autoplay` (used for automated testing).

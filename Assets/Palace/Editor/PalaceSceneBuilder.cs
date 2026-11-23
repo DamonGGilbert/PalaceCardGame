@@ -11,10 +11,11 @@ using UnityEngine.UI;
 namespace Palace.EditorTools
 {
     /// <summary>
-    /// Creates the Card and Seat prefabs and the Game scene with every reference already
-    /// connected. Re-running it overwrites those three assets.
+    /// Creates the Card and Seat prefabs plus the MainMenu and Game scenes, with every
+    /// reference already connected, and puts both scenes in Build Settings (MainMenu first).
+    /// Re-running it overwrites those assets.
     ///
-    /// Menu: Palace > Setup > 3 - Build Prefabs and Game Scene
+    /// Menu: Palace > Setup > 3 - Build Prefabs and Scenes
     /// </summary>
     public static class PalaceSceneBuilder
     {
@@ -22,65 +23,114 @@ namespace Palace.EditorTools
         public const string SceneFolder = "Assets/Palace/Scenes";
         public const string CardPrefabPath = PrefabFolder + "/Card.prefab";
         public const string SeatPrefabPath = PrefabFolder + "/Seat.prefab";
-        public const string ScenePath = SceneFolder + "/Game.unity";
+        public const string ScenePath = SceneFolder + "/" + GameLaunch.GameScene + ".unity";
+        public const string MenuScenePath = SceneFolder + "/" + GameLaunch.MainMenuScene + ".unity";
 
-        [MenuItem("Palace/Setup/3 - Build Prefabs and Game Scene", priority = 3)]
+        [MenuItem("Palace/Setup/3 - Build Prefabs and Scenes", priority = 3)]
         public static void BuildPrefabsAndScene()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
-            // Open the new scene FIRST: opening a scene unloads unused assets, which would
-            // invalidate any theme or prefab references loaded before it.
-            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
             if (!PalaceProjectSetup.HasTextMeshProEssentials())
                 Debug.LogWarning("[Palace] TextMeshPro Essential Resources are missing, so text may not show. Run Palace > Setup > 1 - Apply Project Settings first.");
 
-            var cardTheme = AssetDatabase.LoadAssetAtPath<CardTheme>(PalaceArtGenerator.CardThemePath);
-            var tableTheme = AssetDatabase.LoadAssetAtPath<TableTheme>(PalaceArtGenerator.TableThemePath);
-            if (cardTheme == null || tableTheme == null)
-            {
-                PalaceArtGenerator.GenerateAll();
-                cardTheme = AssetDatabase.LoadAssetAtPath<CardTheme>(PalaceArtGenerator.CardThemePath);
-                tableTheme = AssetDatabase.LoadAssetAtPath<TableTheme>(PalaceArtGenerator.TableThemePath);
-            }
-
+            // Opening a scene unloads unused assets, so assets are (re)loaded after every NewScene.
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var themes = LoadThemes();
             PalaceArtGenerator.EnsureFolder(PrefabFolder);
             PalaceArtGenerator.EnsureFolder(SceneFolder);
+            BuildCardPrefab(themes.card);
+            BuildSeatPrefab(themes.table, themes.card, AssetDatabase.LoadAssetAtPath<CardView>(CardPrefabPath));
 
-            CardView cardPrefab = BuildCardPrefab(cardTheme);
-            SeatView seatPrefab = BuildSeatPrefab(tableTheme, cardTheme, cardPrefab);
-            BuildScene(scene, tableTheme, cardTheme, cardPrefab, seatPrefab);
+            scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            BuildGameScene(scene);
 
-            Debug.Log("[Palace] Built " + CardPrefabPath + ", " + SeatPrefabPath + " and " + ScenePath + ". Press Play to preview the table.");
+            scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            BuildMenuScene(scene);
+
+            SetBuildScenes();
+            Debug.Log("[Palace] Built prefabs and the MainMenu and Game scenes. Open MainMenu and press Play.");
         }
 
-        private static CardView BuildCardPrefab(CardTheme theme)
+        private static (CardTheme card, TableTheme table) LoadThemes()
+        {
+            var card = AssetDatabase.LoadAssetAtPath<CardTheme>(PalaceArtGenerator.CardThemePath);
+            var table = AssetDatabase.LoadAssetAtPath<TableTheme>(PalaceArtGenerator.TableThemePath);
+            if (card == null || table == null)
+            {
+                PalaceArtGenerator.GenerateAll();
+                card = AssetDatabase.LoadAssetAtPath<CardTheme>(PalaceArtGenerator.CardThemePath);
+                table = AssetDatabase.LoadAssetAtPath<TableTheme>(PalaceArtGenerator.TableThemePath);
+            }
+            return (card, table);
+        }
+
+        // ------------------------------------------------------------------ prefabs
+
+        private static void BuildCardPrefab(CardTheme theme)
         {
             var go = NewUIObject("Card");
             var view = go.AddComponent<CardView>();
             view.Theme = theme;
             view.ShowBack();
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, CardPrefabPath);
+            PrefabUtility.SaveAsPrefabAsset(go, CardPrefabPath);
             UnityEngine.Object.DestroyImmediate(go);
-            return prefab.GetComponent<CardView>();
         }
 
-        private static SeatView BuildSeatPrefab(TableTheme tableTheme, CardTheme cardTheme, CardView cardPrefab)
+        private static void BuildSeatPrefab(TableTheme tableTheme, CardTheme cardTheme, CardView cardPrefab)
         {
             var go = NewUIObject("Seat");
             var seat = go.AddComponent<SeatView>();
             seat.Configure(tableTheme, cardTheme, cardPrefab);
             seat.EnsureBuilt();
             seat.SetPlayer("Player", 0);
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, SeatPrefabPath);
+            PrefabUtility.SaveAsPrefabAsset(go, SeatPrefabPath);
             UnityEngine.Object.DestroyImmediate(go);
-            return prefab.GetComponent<SeatView>();
         }
 
-        private static void BuildScene(Scene scene, TableTheme tableTheme, CardTheme cardTheme, CardView cardPrefab, SeatView seatPrefab)
+        // ------------------------------------------------------------------ scenes
+
+        private static void BuildGameScene(Scene scene)
         {
-            // Camera
+            var themes = LoadThemes();
+            var cardPrefab = AssetDatabase.LoadAssetAtPath<CardView>(CardPrefabPath);
+            var seatPrefab = AssetDatabase.LoadAssetAtPath<SeatView>(SeatPrefabPath);
+
+            Canvas canvas = CreateCameraCanvasAndEvents(themes.table);
+
+            var tableRt = UIBuild.Rect("Table", canvas.transform, TableView.ReferenceSize, Vector2.zero);
+            var table = tableRt.gameObject.AddComponent<TableView>();
+            table.Configure(themes.table, themes.card, seatPrefab, cardPrefab);
+            table.EnsureBuilt();
+
+            var hud = UIBuild.Stretch("HUD (Safe Area)", canvas.transform);
+            hud.gameObject.AddComponent<SafeAreaFitter>();
+
+            var gameGo = new GameObject("Game");
+            gameGo.AddComponent<AppBootstrap>();
+            gameGo.AddComponent<GameController>().Configure(table, themes.table, themes.card, hud);
+
+            EditorSceneManager.SaveScene(scene, ScenePath);
+        }
+
+        private static void BuildMenuScene(Scene scene)
+        {
+            var themes = LoadThemes();
+            var cardPrefab = AssetDatabase.LoadAssetAtPath<CardView>(CardPrefabPath);
+
+            Canvas canvas = CreateCameraCanvasAndEvents(themes.table);
+            var menuRoot = UIBuild.Rect("Menu", canvas.transform, TableView.ReferenceSize, Vector2.zero);
+
+            var menuGo = new GameObject("MainMenu");
+            menuGo.AddComponent<AppBootstrap>();
+            menuGo.AddComponent<MainMenuController>().Configure(themes.table, themes.card, cardPrefab, menuRoot);
+
+            EditorSceneManager.SaveScene(scene, MenuScenePath);
+        }
+
+        /// <summary>Camera, a 1920x1080 "Expand" canvas with the room background, and an EventSystem.</summary>
+        private static Canvas CreateCameraCanvasAndEvents(TableTheme tableTheme)
+        {
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
@@ -91,8 +141,7 @@ namespace Palace.EditorTools
             cam.transform.position = new Vector3(0f, 0f, -10f);
             camGo.AddComponent<AudioListener>();
 
-            // Canvas: 1920x1080 reference, "Expand" so the whole table always fits any screen shape.
-            var canvasGo = NewUIObject("GameCanvas");
+            var canvasGo = NewUIObject("Canvas");
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = cam;
@@ -104,20 +153,8 @@ namespace Palace.EditorTools
             scaler.referencePixelsPerUnit = 100f;
             canvasGo.AddComponent<GraphicRaycaster>();
 
-            var background = UIBuild.StretchImage("Background", canvasGo.transform, tableTheme.background, Color.white);
-            background.raycastTarget = false;
+            UIBuild.StretchImage("Background", canvasGo.transform, tableTheme.background, Color.white);
 
-            // Table
-            var tableRt = UIBuild.Rect("Table", canvasGo.transform, TableView.ReferenceSize, Vector2.zero);
-            var table = tableRt.gameObject.AddComponent<TableView>();
-            table.Configure(tableTheme, cardTheme, seatPrefab, cardPrefab);
-            table.EnsureBuilt();
-
-            // HUD inside the safe area (buttons, menus, banners go here)
-            var hud = UIBuild.Stretch("HUD (Safe Area)", canvasGo.transform);
-            hud.gameObject.AddComponent<SafeAreaFitter>();
-
-            // Event system with the right input module for this project's input settings
             var esGo = new GameObject("EventSystem", typeof(EventSystem));
             Type inputSystemModule = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
 #if ENABLE_INPUT_SYSTEM
@@ -126,15 +163,7 @@ namespace Palace.EditorTools
 #else
             esGo.AddComponent<StandaloneInputModule>();
 #endif
-
-            // App settings + Stage 1 preview harness
-            var gameGo = new GameObject("Game");
-            gameGo.AddComponent<AppBootstrap>();
-            var preview = gameGo.AddComponent<TableLayoutPreview>();
-            preview.Configure(table, hud);
-
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuildSettings(ScenePath);
+            return canvas;
         }
 
         private static GameObject NewUIObject(string name)
@@ -144,11 +173,12 @@ namespace Palace.EditorTools
             return go;
         }
 
-        private static void AddSceneToBuildSettings(string path)
+        private static void SetBuildScenes()
         {
-            List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes.ToList();
-            if (scenes.Any(s => s.path == path)) return;
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+            List<EditorBuildSettingsScene> scenes = EditorBuildSettings.scenes
+                .Where(s => s.path != MenuScenePath && s.path != ScenePath).ToList();
+            scenes.Insert(0, new EditorBuildSettingsScene(MenuScenePath, true));
+            scenes.Insert(1, new EditorBuildSettingsScene(ScenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
     }

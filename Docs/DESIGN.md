@@ -4,7 +4,8 @@ Living document: architecture decisions and open rule questions.
 
 ## 1. Open rule questions (needed before Stage 3)
 
-Each question has a **proposed default**. Nothing here is implemented until you confirm it.
+Each question has a **proposed default**. The defaults are now implemented so the game is playable.
+The adjustable ones are single settings in `Assets/Palace/Scripts/Core/HouseRules.cs`. Tell me any you want changed.
 
 ### Must decide
 | # | Question | Proposed default |
@@ -12,7 +13,7 @@ Each question has a **proposed default**. Nothing here is implemented until you 
 | Q1 | **Deck size.** 9 cards × players: 6 players need 54 cards, 10 players need 90. One deck only covers 2–5 players. | 1 deck for 2–5 players, 2 decks for 6–10. No jokers. |
 | Q2 | **Can a 10 be played on anything** (e.g. on a King), or only when ≥ the top card? Same question for an **Ace used as a 10**. | 10 and Ace-as-10 can be played on anything except during a 7-LOWER (see Q3). |
 | Q3 | **7 HIGHER/LOWER**: strictly higher (8+) / strictly lower (6 or less)? Do 2s and 10s (and Ace-as-10) ignore the 7 restriction? | Strict. 2 is always allowed (it's lower than 7 anyway). 10 / Ace-as-10 are **not** allowed on a LOWER 7, but are allowed on a HIGHER 7. |
-| Q4 | **"7 on 7"**: under HIGHER, 7 isn't higher; under LOWER, 7 isn't lower. So when can a 7 go on a 7? | Only as part of a multi-card play (two 7s together). A single 7 can't be played on a declared 7. |
+| Q4 | **"7 on 7"**: under HIGHER, 7 isn't higher; under LOWER, 7 isn't lower. So when can a 7 go on a 7? | A 7 can't be played on a declared 7 (it's neither higher nor lower). A 2 always can; a 10 only on a HIGHER 7. |
 | Q5 | **Ace choice**: when an Ace is played, does the player choose "high Ace" or "burn"? | The player chooses with two buttons, shown only when both options are legal. |
 | Q6 | **Who goes first?** | Random player for the prototype. |
 | Q7 | **Card swap before play.** Many versions let players swap hand cards with face-up cards before the first turn. It's not in your rules. | No swap phase. |

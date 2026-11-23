@@ -57,7 +57,42 @@ namespace Palace
             cardPrefab = prefab;
         }
 
-        private void Awake() => EnsureBuilt();
+        [SerializeField] private Image placeBadge;
+        [SerializeField] private TextMeshProUGUI placeText;
+
+        private void Awake()
+        {
+            EnsureBuilt();
+            if (cardTheme != null)
+                foreach (var fan in handFan) fan.sprite = cardTheme.CurrentBack; // card back chosen in Settings
+        }
+
+        /// <summary>Shows "1st", "2nd"... once the player has finished. 0 hides it.</summary>
+        public void SetFinished(int position)
+        {
+            EnsureBuilt();
+            if (placeBadge == null)
+            {
+                placeBadge = UIBuild.Image("PlaceBadge", content, tableTheme != null ? tableTheme.panel : null,
+                    tableTheme != null ? tableTheme.accent : Color.yellow, new Vector2(120f, 56f), Vector2.zero);
+                placeBadge.type = Image.Type.Sliced;
+                placeText = UIBuild.Text("Place", placeBadge.transform, "", 32f, new Color(0.15f, 0.1f, 0.02f),
+                    new Vector2(120f, 56f), Vector2.zero, TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+            }
+
+            bool finished = position > 0;
+            placeBadge.gameObject.SetActive(finished);
+            placeBadge.rectTransform.anchoredPosition = cardsBlock.anchoredPosition;
+            if (finished) placeText.text = Ordinal(position);
+            if (finished && handBadge != null) handBadge.gameObject.SetActive(false);
+        }
+
+        public static string Ordinal(int n)
+        {
+            int mod100 = n % 100;
+            string suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (n % 10 == 1 ? "st" : n % 10 == 2 ? "nd" : n % 10 == 3 ? "rd" : "th");
+            return n + suffix;
+        }
 
         // ------------------------------------------------------------------
         // Public display API
@@ -209,7 +244,7 @@ namespace Palace
             handBadge = UIBuild.Rect("HandBadge", plate.transform, new Vector2(80f, 44f), Vector2.zero);
             SetAnchor(handBadge, right, new Vector2(-42f, 0f));
             handFan = new Image[3];
-            Sprite backSprite = cardTheme != null ? cardTheme.back : null;
+            Sprite backSprite = cardTheme != null ? cardTheme.CurrentBack : null;
             for (int i = 0; i < 3; i++)
             {
                 handFan[i] = UIBuild.Image("HandCard" + (i + 1), handBadge, backSprite, Color.white, new Vector2(24f, 34f),
