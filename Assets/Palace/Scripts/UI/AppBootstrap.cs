@@ -16,6 +16,8 @@ namespace Palace
             Application.targetFrameRate = targetFrameRate;
             // A card game has long thinking pauses; don't let the phone dim mid-game.
             if (keepScreenAwake) Screen.sleepTimeout = SleepTimeout.NeverSleep;
+            // Connect to the store early so unfinished purchases are delivered and prices are ready.
+            Shop.Initialize();
         }
     }
 }

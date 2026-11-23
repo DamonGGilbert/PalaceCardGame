@@ -42,12 +42,13 @@ namespace Palace
         // ------------------------------------------------------------------ owning and equipping
 
         public static bool Owns(CosmeticItem item) =>
-            item != null && (item.price <= 0 || PlayerPrefs.GetInt("palace.own." + item.id, 0) == 1);
+            item != null && ((item.price <= 0 && !item.storeOnly) || PlayerPrefs.GetInt("palace.own." + item.id, 0) == 1);
 
-        /// <summary>Buy with coins. Returns false if there aren't enough.</summary>
+        /// <summary>Buy with coins. Returns false if there aren't enough (or it's a shop-only item).</summary>
         public static bool TryBuy(CosmeticItem item)
         {
             if (Owns(item)) return true;
+            if (item.storeOnly) return false;
             if (Coins < item.price) return false;
             PlayerPrefs.SetInt("palace.own." + item.id, 1);
             Coins -= item.price; // also saves and notifies

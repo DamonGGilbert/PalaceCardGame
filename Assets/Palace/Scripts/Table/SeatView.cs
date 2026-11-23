@@ -106,6 +106,7 @@ namespace Palace
         public void SetPlayer(string playerName, int avatarIndex)
         {
             EnsureBuilt();
+            nameText.overflowMode = TextOverflowModes.Ellipsis; // long names end in "…" instead of spilling over
             nameText.text = playerName;
             avatarInitial.text = string.IsNullOrEmpty(playerName) ? "?" : playerName.Substring(0, 1).ToUpperInvariant();
             avatar.color = tableTheme != null ? tableTheme.GetAvatarColor(avatarIndex) : Color.gray;

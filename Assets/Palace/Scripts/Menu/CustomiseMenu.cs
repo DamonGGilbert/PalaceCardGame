@@ -13,7 +13,9 @@ namespace Palace
     /// </summary>
     public class CustomiseMenu : MonoBehaviour
     {
-        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects" };
+        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects", "Shop" };
+        private const int ShopTab = 6;
+        private bool shopTab;
 
         private RectTransform root;
         private Action backToMain;
@@ -33,11 +35,15 @@ namespace Palace
             UIKit.Label(p, "Customise", 54f, new Vector2(800f, 80f), new Vector2(0f, 425f), TextAlignmentOptions.Center, UIKit.Gold, true);
             coinsLabel = UIKit.Label(p, "", 32f, new Vector2(420f, 60f), new Vector2(560f, 425f), TextAlignmentOptions.Right, UIKit.Gold, true);
 
-            UIKit.Segmented(p, TabNames, 0, new Vector2(1500f, 64f), new Vector2(0f, 330f), i =>
+            UIKit.Segmented(p, TabNames, 0, new Vector2(1540f, 64f), new Vector2(0f, 330f), i =>
             {
-                category = (CosmeticCategory)i;
+                shopTab = i == ShopTab;
+                shopNote = null;
+                if (!shopTab) category = (CosmeticCategory)i;
                 Refresh();
             });
+            Shop.Changed += OnShopChanged;
+            Shop.Message += OnShopMessage;
 
             grid = UIBuild.Rect("Items", p, new Vector2(1560f, 640f), new Vector2(0f, -20f));
             message = UIKit.Label(p, "", 26f, new Vector2(1400f, 40f), new Vector2(0f, -370f), TextAlignmentOptions.Center, UIKit.Muted);
@@ -47,6 +53,15 @@ namespace Palace
                 backToMain();
             });
             screen.SetActive(false);
+        }
+
+        /// <summary>Open straight on the Shop tab (e.g. from a "get coins" prompt).</summary>
+        public void OpenShop()
+        {
+            screen.SetActive(true);
+            shopTab = true;
+            shopNote = null;
+            Refresh();
         }
 
         public void Open()
@@ -60,6 +75,11 @@ namespace Palace
         {
             coinsLabel.text = Cosmetics.Coins + " coins";
             foreach (Transform child in grid) Destroy(child.gameObject);
+            if (shopTab)
+            {
+                BuildShop();
+                return;
+            }
 
             var lib = CosmeticLibrary.Instance;
             if (lib == null)
@@ -96,6 +116,10 @@ namespace Palace
             else if (owned)
             {
                 UIKit.Button(t, "Equip", new Vector2(220f, 60f), new Vector2(0f, -112f), () => Equip(item), true, 26f);
+            }
+            else if (item.storeOnly)
+            {
+                UIKit.Label(t, "Supporter Pack (Shop)", 22f, new Vector2(320f, 56f), new Vector2(0f, -112f), TextAlignmentOptions.Center, UIKit.Muted, true);
             }
             else
             {
@@ -145,6 +169,85 @@ namespace Palace
                     break;
                 }
             }
+        }
+
+        // ------------------------------------------------------------------ shop
+
+        private string shopNote;
+
+        private void BuildShop()
+        {
+            Shop.Initialize();
+            var products = ShopCatalog.Products;
+            const int columns = 4;
+            int slot = 0;
+
+            // Free bonus coins first: watch an optional ad (or claim instantly with Remove Ads).
+            BuildBonusTile(SlotPosition(slot++, columns));
+            foreach (var product in products) BuildProductTile(product, SlotPosition(slot++, columns));
+
+            string status = Shop.Backend != null && !string.IsNullOrEmpty(Shop.Backend.StatusMessage) ? Shop.Backend.StatusMessage : "";
+            message.text = !string.IsNullOrEmpty(shopNote) ? shopNote : status;
+
+            UIKit.Button(grid, "Restore purchases", new Vector2(270f, 52f), new Vector2(-600f, 445f), Shop.Restore, false, 22f);
+        }
+
+        private static Vector2 SlotPosition(int i, int columns) =>
+            new Vector2((i % columns - (columns - 1) * 0.5f) * 380f, 160f - (i / columns) * 320f);
+
+        private void BuildBonusTile(Vector2 pos)
+        {
+            var tile = UIKit.Panel(grid, new Vector2(350f, 300f), pos, new Color(1f, 0.95f, 0.8f, 1f));
+            Transform t = tile.transform;
+            bool adFree = Shop.HasAdFree;
+            UIKit.Label(t, "Bonus Coins", 30f, new Vector2(330f, 44f), new Vector2(0f, 95f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            var info = UIKit.Label(t, "+" + RewardedAds.Reward + " coins\n" + RewardedAds.RemainingToday + " left today", 26f,
+                new Vector2(320f, 90f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
+            info.textWrappingMode = TextWrappingModes.Normal;
+
+            string label = adFree ? "Claim" : "Watch an ad";
+            var button = UIKit.Button(t, label, new Vector2(240f, 60f), new Vector2(0f, -100f), () =>
+            {
+                RewardedAds.Claim(ok =>
+                {
+                    if (this == null) return;
+                    message.text = ok ? "+" + RewardedAds.Reward + " coins!" : "No bonus available right now.";
+                    Refresh();
+                });
+            }, true, 26f);
+            button.interactable = RewardedAds.CanClaim;
+        }
+
+        private void BuildProductTile(ShopProduct product, Vector2 pos)
+        {
+            bool owned = product.Type == ShopProductType.NonConsumable && Shop.IsOwned(product.Id);
+            var tile = UIKit.Panel(grid, new Vector2(350f, 300f), pos, new Color(0.75f, 0.72f, 0.68f, 1f));
+            Transform t = tile.transform;
+            UIKit.Label(t, product.Title, 30f, new Vector2(330f, 44f), new Vector2(0f, 95f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            var desc = UIKit.Label(t, product.Description, 24f, new Vector2(310f, 100f), new Vector2(0f, 15f), TextAlignmentOptions.Center, UIKit.Text);
+            desc.textWrappingMode = TextWrappingModes.Normal;
+
+            if (owned)
+                UIKit.Label(t, "Owned", 28f, new Vector2(300f, 56f), new Vector2(0f, -100f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            else
+                UIKit.Button(t, Shop.PriceLabel(product), new Vector2(240f, 60f), new Vector2(0f, -100f), () => Shop.Buy(product), true, 28f);
+        }
+
+        private void OnShopChanged()
+        {
+            if (this != null && screen != null && screen.activeSelf) Refresh();
+        }
+
+        private void OnShopMessage(string text)
+        {
+            shopNote = text;
+            if (this != null && message != null) message.text = text;
+        }
+
+        private void OnDestroy()
+        {
+            Shop.Changed -= OnShopChanged;
+            Shop.Message -= OnShopMessage;
         }
 
         private void Equip(CosmeticItem item)

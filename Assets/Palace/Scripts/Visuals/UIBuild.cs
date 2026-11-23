@@ -72,8 +72,9 @@ namespace Palace
             tmp.alignment = alignment;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
-            // The default font has no "…" character, so long text is simply cut off.
-            tmp.overflowMode = TextOverflowModes.Truncate;
+            // Let text draw past its box rather than vanish (Truncate hides a line that is too TALL,
+            // which made big titles disappear with taller fonts). Names on banners opt in to "…".
+            tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
             return tmp;
         }

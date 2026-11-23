@@ -367,7 +367,7 @@ namespace Palace
                 "<color=#F2C24D><b>PALACE</b></color>\n\n" +
                 "Game design and house rules\n<b>Damon Gilbert</b>\n\n" +
                 "Programming, art and sound\n<b>Built with Claude (Anthropic)</b>\n\n" +
-                "Made with Unity\nFont: Liberation Sans (SIL Open Font License)\n" +
+                "Made with Unity\nFonts: Alegreya and Liberation Sans (SIL Open Font License)\n" +
                 "All card art, table art and sounds are generated in code for this game.",
                 28f, new Vector2(900f, 440f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
             text.textWrappingMode = TextWrappingModes.Normal;
@@ -415,6 +415,12 @@ namespace Palace
                 ScreenCapture.CaptureScreenshot(Path.Combine(dir, shot.name + ".png"));
                 yield return new WaitForSecondsRealtime(0.3f);
             }
+
+            Show(customisePanel);
+            customise.OpenShop();
+            yield return new WaitForSecondsRealtime(0.5f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_shop.png"));
+            yield return new WaitForSecondsRealtime(0.3f);
 
             if (Array.IndexOf(args, "-palace-autoplay") >= 0) SceneManager.LoadScene(GameLaunch.GameScene);
             else Application.Quit();

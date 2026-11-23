@@ -437,9 +437,52 @@ namespace Palace.EditorTools
             table.uiInkColor = new Color(0.2f, 0.11f, 0.04f);
             EditorUtility.SetDirty(table);
 
+            TMPro.TMP_FontAsset serif = CreateSerifFont();
+            if (serif != null)
+            {
+                table.font = serif;   // titles, buttons, names
+                cards.rankFont = serif;  // card corner indices
+                EditorUtility.SetDirty(table);
+                EditorUtility.SetDirty(cards);
+            }
+
             BuildCosmeticLibrary();
 
             AssetDatabase.SaveAssets();
+        }
+
+        public const string SerifFontPath = "Assets/Palace/Fonts/Alegreya.ttf";
+        public const string SerifAssetPath = "Assets/Palace/Fonts/Alegreya SDF.asset";
+
+        /// <summary>
+        /// Builds a TextMeshPro font from Alegreya (SIL Open Font License, see Fonts/Alegreya-OFL.txt).
+        /// Dynamic atlas: glyphs are added as text needs them. The default font is a fallback for symbols.
+        /// </summary>
+        private static TMPro.TMP_FontAsset CreateSerifFont()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(SerifAssetPath);
+            if (existing != null) return existing;
+
+            var source = AssetDatabase.LoadAssetAtPath<Font>(SerifFontPath);
+            if (source == null) return null;
+
+            var asset = TMPro.TMP_FontAsset.CreateFontAsset(source, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA,
+                1024, 1024, TMPro.AtlasPopulationMode.Dynamic, true);
+            if (asset == null) return null;
+            asset.name = "Alegreya SDF";
+            AssetDatabase.CreateAsset(asset, SerifAssetPath);
+            asset.material.name = "Alegreya SDF Material";
+            AssetDatabase.AddObjectToAsset(asset.material, asset);
+            foreach (var atlas in asset.atlasTextures)
+            {
+                atlas.name = "Alegreya SDF Atlas";
+                AssetDatabase.AddObjectToAsset(atlas, asset);
+            }
+            if (TMPro.TMP_Settings.instance != null && TMPro.TMP_Settings.defaultFontAsset != null)
+                asset.fallbackFontAssetTable = new System.Collections.Generic.List<TMPro.TMP_FontAsset> { TMPro.TMP_Settings.defaultFontAsset };
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+            return asset;
         }
 
         public const string LibraryFolder = "Assets/Palace/Resources";
@@ -502,6 +545,9 @@ namespace Palace.EditorTools
                 N("banner_leather", "Stitched Leather", 150, "pub_plate_leather", Color.white, new Color(0.98f, 0.9f, 0.75f)),
                 N("banner_brass", "Polished Brass", 200, "pub_button", Color.white, new Color(0.2f, 0.11f, 0.04f))
             };
+            var supporterBanner = N("banner_supporter", "Supporter Gold", 0, "pub_button", new Color(1f, 0.86f, 0.5f), new Color(0.32f, 0.08f, 0.32f));
+            supporterBanner.storeOnly = true;
+            lib.banners.Add(supporterBanner);
 
             NameStyle S(string id, string name, int price, Color face, Color outline, float width) =>
                 new NameStyle { id = id, displayName = name, price = price, face = face, outline = outline, outlineWidth = width };
@@ -513,6 +559,9 @@ namespace Palace.EditorTools
                 S("name_neon", "Neon", 200, new Color(0.8f, 1f, 1f), new Color(0f, 0.85f, 1f), 0.28f),
                 S("name_fire", "Blaze", 200, new Color(1f, 0.93f, 0.4f), new Color(0.95f, 0.3f, 0.05f), 0.3f)
             };
+            var royal = S("name_royal", "Royal (Supporter)", 0, new Color(1f, 0.88f, 0.45f), new Color(0.45f, 0.1f, 0.55f), 0.3f);
+            royal.storeOnly = true;
+            lib.nameStyles.Add(royal);
 
             lib.effects = new System.Collections.Generic.List<EffectSkin>
             {

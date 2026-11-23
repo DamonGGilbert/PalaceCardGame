@@ -44,7 +44,14 @@
 - [x] Rebrand tagline: "The classic Shedhead card game" (last place is the Shedhead). Audience: teens and young adults
 - [x] Cosmetics: 7 tables (incl. animated Lagoon water), 3 decks, 5 card backs, 4 banners, 5 name styles, 2 effect themes
 - [x] Coins earned per finish; Customise screen to buy and equip; Water effect theme (SPLASH, bubbles, blue arrows)
-- [ ] Optional: a characterful serif font for titles (needs your OK to download a free OFL font)
+- [x] Alegreya serif font (SIL OFL) for titles, buttons, names and card ranks
+
+## Monetization ✅ (code) — store setup is yours
+- [x] Shop tab: coin packs, Water/Midnight bundles, Remove Ads (instant bonus), Supporter Pack (exclusive items)
+- [x] Unity IAP 5 backend (auto-enabled when the package is installed), test store in editor/dev builds
+- [x] Rewarded ads only (opt-in, 50 coins, 5/day); test ad in dev builds
+- [ ] **You:** install In App Purchasing; create the 7 products in Play Console + App Store Connect (Docs/Monetization-Setup.md)
+- [ ] **Next:** connect Unity LevelPlay for real rewarded ads (needs your LevelPlay app keys + ad unit IDs)
 
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)

@@ -15,6 +15,7 @@ namespace Palace
         public string displayName;
         public int price;            // in coins; 0 = free / owned from the start
         public Sprite preview;       // shown on the Customise screen
+        public bool storeOnly;       // only from a real-money pack (e.g. the Supporter Pack)
     }
 
     [Serializable] public class TableSkin : CosmeticItem
