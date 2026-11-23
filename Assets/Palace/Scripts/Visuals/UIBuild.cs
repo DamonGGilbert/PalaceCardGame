@@ -72,7 +72,8 @@ namespace Palace
             tmp.alignment = alignment;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
-            tmp.overflowMode = TextOverflowModes.Ellipsis;
+            // The default font has no "…" character, so long text is simply cut off.
+            tmp.overflowMode = TextOverflowModes.Truncate;
             tmp.raycastTarget = false;
             return tmp;
         }
