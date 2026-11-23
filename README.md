@@ -1,4 +1,4 @@
-# Palace – The Classic Shithead Card Game
+# Palace – The Classic Shedhead Card Game
 
 A mobile-first (Android / iOS, landscape) and Windows card game made in Unity 6, faithfully following our school's house rules.
 

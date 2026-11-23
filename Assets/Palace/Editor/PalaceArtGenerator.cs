@@ -82,8 +82,10 @@ namespace Palace.EditorTools
             Render("circle", 128, 128, (x, y) => Shape(Circle(x, y, 64f, 64f, 62f)));
             Render("ring", 128, 128, (x, y) => Shape(Mathf.Abs(Circle(x, y, 64f, 64f, 57f)) - 4f));
             Render("soft_glow", 256, 256, SoftGlow);
+            PalacePubArt.GenerateAll(); // the hand-painted pub style (the default look)
 
             AssetDatabase.Refresh();
+            PalacePubArt.ConfigureAll();
 
             ConfigureSprite("card_face", 512);
             foreach (var b in Backs) ConfigureSprite(b.file, 512);
@@ -241,7 +243,7 @@ namespace Palace.EditorTools
             return Shape(sdf(p) / unitsPerPixel);
         }
 
-        private static float Heart(Vector2 p)
+        internal static float Heart(Vector2 p)
         {
             p.x = Mathf.Abs(p.x);
             if (p.y + p.x > 1f)
@@ -251,7 +253,7 @@ namespace Palace.EditorTools
             return Mathf.Sqrt(Mathf.Min(a, b)) * Mathf.Sign(p.x - p.y);
         }
 
-        private static float Spade(Vector2 p)
+        internal static float Spade(Vector2 p)
         {
             float body = Heart(new Vector2(p.x, 1.4036f - p.y));
             float stem = Polygon(p, new[]
@@ -261,7 +263,7 @@ namespace Palace.EditorTools
             return Mathf.Min(body, stem);
         }
 
-        private static float Club(Vector2 p)
+        internal static float Club(Vector2 p)
         {
             float d = (p - new Vector2(0f, 0.95f)).magnitude - 0.30f;
             d = Mathf.Min(d, (p - new Vector2(-0.33f, 0.56f)).magnitude - 0.30f);
@@ -274,13 +276,13 @@ namespace Palace.EditorTools
             return Mathf.Min(d, stem);
         }
 
-        private static float Diamond(Vector2 p) => Rhombus(p.x, p.y, 0.43f, 0.63f);
+        internal static float Diamond(Vector2 p) => Rhombus(p.x, p.y, 0.43f, 0.63f);
 
         // ------------------------------------------------------------------
         // Distance helpers (negative = inside)
         // ------------------------------------------------------------------
 
-        private static float RoundRect(float x, float y, float cx, float cy, float halfW, float halfH, float radius)
+        internal static float RoundRect(float x, float y, float cx, float cy, float halfW, float halfH, float radius)
         {
             float qx = Mathf.Abs(x - cx) - halfW + radius;
             float qy = Mathf.Abs(y - cy) - halfH + radius;
@@ -288,14 +290,14 @@ namespace Palace.EditorTools
             return outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
         }
 
-        private static float Circle(float x, float y, float cx, float cy, float r) => new Vector2(x - cx, y - cy).magnitude - r;
+        internal static float Circle(float x, float y, float cx, float cy, float r) => new Vector2(x - cx, y - cy).magnitude - r;
 
-        private static float Rhombus(float x, float y, float halfW, float halfH)
+        internal static float Rhombus(float x, float y, float halfW, float halfH)
         {
             return (Mathf.Abs(x) / halfW + Mathf.Abs(y) / halfH - 1f) * (halfW * halfH / Mathf.Sqrt(halfW * halfW + halfH * halfH));
         }
 
-        private static float Polygon(Vector2 p, Vector2[] v)
+        internal static float Polygon(Vector2 p, Vector2[] v)
         {
             float d = (p - v[0]).sqrMagnitude;
             float s = 1f;
@@ -311,11 +313,11 @@ namespace Palace.EditorTools
             return s * Mathf.Sqrt(d);
         }
 
-        private static float Coverage(float distancePx) => Mathf.Clamp01(0.5f - distancePx);
+        internal static float Coverage(float distancePx) => Mathf.Clamp01(0.5f - distancePx);
 
-        private static Color Shape(float distancePx) => new Color(1f, 1f, 1f, Coverage(distancePx));
+        internal static Color Shape(float distancePx) => new Color(1f, 1f, 1f, Coverage(distancePx));
 
-        private static float Smooth(float edge0, float edge1, float x)
+        internal static float Smooth(float edge0, float edge1, float x)
         {
             float t = Mathf.Clamp01((x - edge0) / (edge1 - edge0));
             return t * t * (3f - 2f * t);
@@ -327,7 +329,7 @@ namespace Palace.EditorTools
             return h - Mathf.Floor(h);
         }
 
-        private static Color Over(Color dst, Color src)
+        internal static Color Over(Color dst, Color src)
         {
             float a = src.a + dst.a * (1f - src.a);
             if (a <= 0f) return new Color(0f, 0f, 0f, 0f);
@@ -336,7 +338,7 @@ namespace Palace.EditorTools
             return rgb;
         }
 
-        private static Color Hex(string hex)
+        internal static Color Hex(string hex)
         {
             ColorUtility.TryParseHtmlString(hex, out Color c);
             return c;
@@ -346,7 +348,7 @@ namespace Palace.EditorTools
         // File + asset handling
         // ------------------------------------------------------------------
 
-        private static void Render(string fileName, int width, int height, Func<float, float, Color> pixel)
+        internal static void Render(string fileName, int width, int height, Func<float, float, Color> pixel)
         {
             var pixels = new Color[width * height];
             for (int y = 0; y < height; y++)
@@ -360,7 +362,7 @@ namespace Palace.EditorTools
             UnityEngine.Object.DestroyImmediate(tex);
         }
 
-        private static void ConfigureSprite(string fileName, int maxSize, Vector4 border = default)
+        internal static void ConfigureSprite(string fileName, int maxSize, Vector4 border = default, float pixelsPerUnit = 100f)
         {
             string path = ArtFolder + "/" + fileName + ".png";
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -374,39 +376,63 @@ namespace Palace.EditorTools
             importer.filterMode = FilterMode.Bilinear;
             importer.maxTextureSize = maxSize;
             importer.textureCompression = TextureImporterCompression.CompressedHQ;
-            importer.spritePixelsPerUnit = 100f;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
             importer.spriteBorder = border;
             importer.SaveAndReimport();
         }
 
-        private static Sprite LoadSprite(string fileName)
+        internal static Sprite LoadSprite(string fileName)
         {
             return AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/" + fileName + ".png");
         }
 
         private static void UpdateThemes()
         {
+            // Default look: the hand-painted pub style. The classic sprites stay available as variants.
             var cards = LoadOrCreate<CardTheme>(CardThemePath);
-            cards.face = LoadSprite("card_face");
-            cards.back = LoadSprite("card_back");
-            cards.backVariants = Array.ConvertAll(Backs, b => LoadSprite(b.file));
+            cards.face = LoadSprite("pub_card_face");
+            cards.back = LoadSprite("pub_card_back");
+            var backs = new System.Collections.Generic.List<Sprite> { LoadSprite("pub_card_back") };
+            backs.AddRange(Array.ConvertAll(Backs, b => LoadSprite(b.file)));
+            cards.backVariants = backs.ToArray();
             cards.outline = LoadSprite("card_outline");
             cards.shadow = LoadSprite("card_shadow");
             cards.glow = LoadSprite("card_glow");
-            cards.hearts = LoadSprite("suit_hearts");
-            cards.diamonds = LoadSprite("suit_diamonds");
-            cards.spades = LoadSprite("suit_spades");
-            cards.clubs = LoadSprite("suit_clubs");
+            cards.hearts = LoadSprite("pub_suit_hearts");
+            cards.diamonds = LoadSprite("pub_suit_diamonds");
+            cards.spades = LoadSprite("pub_suit_spades");
+            cards.clubs = LoadSprite("pub_suit_clubs");
+            cards.kingIcon = LoadSprite("pub_icon_king");
+            cards.queenIcon = LoadSprite("pub_icon_queen");
+            cards.jackIcon = LoadSprite("pub_icon_jack");
+            cards.redSuit = PalacePubArt.RedInk;
+            cards.blackSuit = PalacePubArt.BlackInk;
+            cards.selectedGlow = new Color(1f, 0.78f, 0.38f, 1f);
             EditorUtility.SetDirty(cards);
 
             var table = LoadOrCreate<TableTheme>(TableThemePath);
-            table.table = LoadSprite("table");
-            table.tableVariants = Array.ConvertAll(Felts, f => LoadSprite(f.file));
-            table.background = LoadSprite("background");
-            table.panel = LoadSprite("panel");
+            table.table = LoadSprite("pub_table");
+            var felts = new System.Collections.Generic.List<Sprite> { LoadSprite("pub_table") };
+            felts.AddRange(Array.ConvertAll(Felts, f => LoadSprite(f.file)));
+            table.tableVariants = felts.ToArray();
+            table.background = LoadSprite("pub_background");
+            table.panel = LoadSprite("pub_panel");
+            table.buttonPrimary = LoadSprite("pub_button");
+            table.buttonSecondary = LoadSprite("pub_panel");
             table.circle = LoadSprite("circle");
             table.ring = LoadSprite("ring");
             table.softGlow = LoadSprite("soft_glow");
+            table.panelColor = new Color(0.9f, 0.85f, 0.8f, 0.97f);       // wooden name plates
+            table.panelTurnColor = new Color(1f, 0.8f, 0.42f, 1f);         // glowing amber on your turn
+            table.textColor = new Color(0.98f, 0.93f, 0.82f);
+            table.mutedTextColor = new Color(0.86f, 0.76f, 0.58f);
+            table.accent = new Color(0.98f, 0.8f, 0.42f);
+            table.turnGlow = new Color(1f, 0.72f, 0.3f, 0.55f);
+            table.uiTextColor = new Color(0.98f, 0.93f, 0.82f);
+            table.uiMutedColor = new Color(0.84f, 0.74f, 0.56f);
+            table.uiAccentColor = new Color(0.98f, 0.8f, 0.42f);
+            table.uiPanelColor = Color.white;                              // the wood texture shows through
+            table.uiInkColor = new Color(0.2f, 0.11f, 0.04f);
             EditorUtility.SetDirty(table);
 
             AssetDatabase.SaveAssets();

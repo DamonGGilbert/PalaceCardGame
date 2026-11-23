@@ -28,6 +28,11 @@ namespace Palace
         public Sprite hearts;
         public Sprite spades;
 
+        [Header("Court card pictures (optional; white, tinted in code)")]
+        public Sprite jackIcon;
+        public Sprite queenIcon;
+        public Sprite kingIcon;
+
         [Header("Colours")]
         public Color redSuit = new Color(0.78f, 0.07f, 0.17f);
         public Color blackSuit = new Color(0.09f, 0.09f, 0.11f);
@@ -45,6 +50,17 @@ namespace Palace
                 if (backVariants == null || backVariants.Length == 0) return back;
                 Sprite s = backVariants[Mathf.Clamp(GameSettings.CardBack, 0, backVariants.Length - 1)];
                 return s != null ? s : back;
+            }
+        }
+
+        public Sprite GetCourtIcon(Rank rank)
+        {
+            switch (rank)
+            {
+                case Rank.Jack: return jackIcon;
+                case Rank.Queen: return queenIcon;
+                case Rank.King: return kingIcon;
+                default: return null;
             }
         }
 

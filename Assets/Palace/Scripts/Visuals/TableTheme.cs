@@ -55,6 +55,16 @@ namespace Palace
             new Color(0.38f, 0.42f, 0.80f)
         };
 
+        [Header("Menus and buttons")]
+        [Tooltip("Optional painted button art. Empty = plain coloured buttons.")]
+        public Sprite buttonPrimary;
+        public Sprite buttonSecondary;
+        public Color uiTextColor = new Color(0.95f, 0.93f, 0.89f);
+        public Color uiMutedColor = new Color(0.68f, 0.72f, 0.66f);
+        public Color uiAccentColor = new Color(0.95f, 0.76f, 0.30f);
+        public Color uiPanelColor = new Color(0.05f, 0.07f, 0.06f, 0.94f);
+        public Color uiInkColor = new Color(0.14f, 0.09f, 0.02f);
+
         [Header("Font (leave empty to use the TextMeshPro default)")]
         public TMP_FontAsset font;
 

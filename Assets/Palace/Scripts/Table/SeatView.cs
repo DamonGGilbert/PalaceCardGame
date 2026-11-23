@@ -76,8 +76,9 @@ namespace Palace
             EnsureBuilt();
             if (placeBadge == null)
             {
-                placeBadge = UIBuild.Image("PlaceBadge", content, tableTheme != null ? tableTheme.panel : null,
-                    tableTheme != null ? tableTheme.accent : Color.yellow, new Vector2(120f, 56f), Vector2.zero);
+                bool painted = tableTheme != null && tableTheme.buttonPrimary != null;
+                placeBadge = UIBuild.Image("PlaceBadge", content, painted ? tableTheme.buttonPrimary : (tableTheme != null ? tableTheme.panel : null),
+                    painted ? Color.white : (tableTheme != null ? tableTheme.accent : Color.yellow), new Vector2(120f, 56f), Vector2.zero);
                 placeBadge.type = Image.Type.Sliced;
                 placeText = UIBuild.Text("Place", placeBadge.transform, "", 32f, new Color(0.15f, 0.1f, 0.02f),
                     new Vector2(120f, 56f), Vector2.zero, TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);

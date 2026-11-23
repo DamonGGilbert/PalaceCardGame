@@ -304,16 +304,30 @@ namespace Palace
             }
 
             bool court = c.IsCourt;
-            UIBuild.SetActive(centerLetter, court);
+            Sprite picture = court && theme != null ? theme.GetCourtIcon(c.Rank) : null;
+            UIBuild.SetActive(centerLetter, court && picture == null);
             UIBuild.SetActive(courtFrame, court);
+            if (picture != null) EnsureCourtIcon();
+            if (courtIcon != null) UIBuild.SetActive(courtIcon, picture != null);
 
             if (court)
             {
-                centerLetter.text = c.RankLabel;
-                centerLetter.color = ink;
                 courtFrame.color = new Color(ink.r, ink.g, ink.b, 0.35f);
-                suitCenter.rectTransform.sizeDelta = new Vector2(38f, 38f);
-                suitCenter.rectTransform.anchoredPosition = new Vector2(0f, -42f);
+                if (picture != null)
+                {
+                    // Illustrated court card: crown / tiara / shield picture with the suit beneath.
+                    courtIcon.sprite = picture;
+                    courtIcon.color = ink;
+                    suitCenter.rectTransform.sizeDelta = new Vector2(36f, 36f);
+                    suitCenter.rectTransform.anchoredPosition = new Vector2(0f, -50f);
+                }
+                else
+                {
+                    centerLetter.text = c.RankLabel;
+                    centerLetter.color = ink;
+                    suitCenter.rectTransform.sizeDelta = new Vector2(38f, 38f);
+                    suitCenter.rectTransform.anchoredPosition = new Vector2(0f, -42f);
+                }
             }
             else
             {
@@ -321,6 +335,15 @@ namespace Palace
                 suitCenter.rectTransform.sizeDelta = new Vector2(size, size);
                 suitCenter.rectTransform.anchoredPosition = Vector2.zero;
             }
+        }
+
+        [SerializeField] private Image courtIcon;
+
+        private void EnsureCourtIcon()
+        {
+            if (courtIcon != null) return;
+            courtIcon = UIBuild.Image("CourtPicture", face.transform, null, Color.white, new Vector2(94f, 94f), new Vector2(0f, 14f));
+            courtIcon.preserveAspect = true;
         }
     }
 }

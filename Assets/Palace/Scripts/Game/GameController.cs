@@ -1031,8 +1031,8 @@ namespace Palace
                 {
                     bool last = e.Position == s.Players.Count;
                     string text = e.Player == localPlayer
-                        ? (last ? "You finished last" : "You finish " + SeatView.Ordinal(e.Position) + "!")
-                        : who + (last ? " finishes last" : " finishes " + SeatView.Ordinal(e.Position) + "!");
+                        ? (last ? "You're the Shedhead!" : "You finish " + SeatView.Ordinal(e.Position) + "!")
+                        : who + (last ? " is the Shedhead!" : " finishes " + SeatView.Ordinal(e.Position) + "!");
                     table.Announce(text, UIKit.Gold, table.DiscardPoint + new Vector2(-120f, -10f), 56f);
                     if (e.Position == 1 || e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
                     RefreshAll();
@@ -1328,7 +1328,7 @@ namespace Palace
                 int p = s.FinishOrder[i];
                 float y = top - 165f - i * 52f;
                 Color c = i == 0 ? UIKit.Gold : (p == localPlayer ? new Color(0.6f, 0.85f, 1f) : UIKit.Text);
-                string suffix = i == n - 1 ? "   (last)" : "";
+                string suffix = i == n - 1 ? "   - Shedhead!" : "";
                 UIKit.Label(panel.transform, SeatView.Ordinal(i + 1), 30f, new Vector2(120f, 48f), new Vector2(-230f, y), TextAlignmentOptions.Left, c, true);
                 UIKit.Label(panel.transform, s.Players[p].Name + suffix, 30f, new Vector2(420f, 48f), new Vector2(60f, y), TextAlignmentOptions.Left, c, i == 0);
             }

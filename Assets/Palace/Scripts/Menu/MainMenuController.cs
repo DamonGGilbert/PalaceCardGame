@@ -92,7 +92,7 @@ namespace Palace
             var title = UIBuild.Text("Title", layer, "PALACE", 170f, UIKit.Gold, new Vector2(1200f, 220f), new Vector2(0f, 60f),
                 TextAlignmentOptions.Center, UIKit.Font, true);
             title.characterSpacing = 18f;
-            var sub = UIBuild.Text("Subtitle", layer, "THE CLASSIC SHITHEAD CARD GAME", 34f, UIKit.Muted, new Vector2(1200f, 60f),
+            var sub = UIBuild.Text("Subtitle", layer, "THE CLASSIC SHEDHEAD CARD GAME", 34f, UIKit.Muted, new Vector2(1200f, 60f),
                 new Vector2(0f, -70f), TextAlignmentOptions.Center, UIKit.Font, true);
             sub.characterSpacing = 8f;
             sub.alpha = 0f;
@@ -147,7 +147,7 @@ namespace Palace
             title.characterSpacing = 16f;
             title.outlineWidth = 0.12f;
             title.outlineColor = new Color32(0, 0, 0, 180);
-            var sub = UIKit.Label(p, "THE CLASSIC SHITHEAD CARD GAME", 30f, new Vector2(1200f, 50f), new Vector2(0f, 222f), TextAlignmentOptions.Center, UIKit.Muted, true);
+            var sub = UIKit.Label(p, "THE CLASSIC SHEDHEAD CARD GAME", 30f, new Vector2(1200f, 50f), new Vector2(0f, 222f), TextAlignmentOptions.Center, UIKit.Muted, true);
             sub.characterSpacing = 6f;
 
             BuildFan(p, new Vector2(-600f, -60f), new[] { new Card(0, Rank.Queen, Suit.Hearts), new Card(1, Rank.King, Suit.Clubs) }, -1f);

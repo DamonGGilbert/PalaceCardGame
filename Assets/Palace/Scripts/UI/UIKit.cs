@@ -11,17 +11,19 @@ namespace Palace
     /// </summary>
     public static class UIKit
     {
-        public static readonly Color Gold = new Color(0.95f, 0.76f, 0.30f);
-        public static readonly Color GoldDark = new Color(0.42f, 0.31f, 0.09f);
-        public static readonly Color Dark = new Color(0.05f, 0.07f, 0.06f, 0.94f);
-        public static readonly Color DarkButton = new Color(0.10f, 0.14f, 0.12f, 0.96f);
-        public static readonly Color Ink = new Color(0.14f, 0.09f, 0.02f);
-        public static readonly Color Text = new Color(0.95f, 0.93f, 0.89f);
-        public static readonly Color Muted = new Color(0.68f, 0.72f, 0.66f);
+        // Style colours: set from the TableTheme by Init (these are the classic defaults).
+        public static Color Gold = new Color(0.95f, 0.76f, 0.30f);
+        public static Color Dark = new Color(0.05f, 0.07f, 0.06f, 0.94f);
+        public static Color DarkButton = new Color(0.10f, 0.14f, 0.12f, 0.96f);
+        public static Color Ink = new Color(0.14f, 0.09f, 0.02f);
+        public static Color Text = new Color(0.95f, 0.93f, 0.89f);
+        public static Color Muted = new Color(0.68f, 0.72f, 0.66f);
         public static readonly Color Scrim = new Color(0f, 0f, 0f, 0.72f);
 
         public static Sprite PanelSprite;
         public static Sprite CircleSprite;
+        public static Sprite PrimarySprite;    // painted button art (optional)
+        public static Sprite SecondarySprite;
         public static TMP_FontAsset Font;
 
         public static void Init(TableTheme theme)
@@ -29,7 +31,14 @@ namespace Palace
             if (theme == null) return;
             PanelSprite = theme.panel;
             CircleSprite = theme.circle;
+            PrimarySprite = theme.buttonPrimary;
+            SecondarySprite = theme.buttonSecondary;
             Font = theme.font;
+            Gold = theme.uiAccentColor;
+            Text = theme.uiTextColor;
+            Muted = theme.uiMutedColor;
+            Dark = theme.uiPanelColor;
+            Ink = theme.uiInkColor;
         }
 
         /// <summary>Full-screen layer. With blockClicks it stops taps reaching anything underneath.</summary>
@@ -86,7 +95,15 @@ namespace Palace
 
         public static void SetButtonStyle(Button button, bool primary)
         {
-            ((Image)button.targetGraphic).color = primary ? Gold : DarkButton;
+            var image = (Image)button.targetGraphic;
+            if (PrimarySprite != null && SecondarySprite != null)
+            {
+                // Painted style: brass for the main action, wood for everything else.
+                image.sprite = primary ? PrimarySprite : SecondarySprite;
+                image.color = Color.white;
+            }
+            else image.color = primary ? Gold : DarkButton;
+
             var text = button.GetComponentInChildren<TextMeshProUGUI>();
             if (text != null) text.color = primary ? Ink : Text;
         }
@@ -110,7 +127,8 @@ namespace Palace
             var fillArea = UIBuild.Stretch("Fill Area", root);
             fillArea.offsetMin = new Vector2(8f, size.y * 0.5f - 7f);
             fillArea.offsetMax = new Vector2(-8f, -(size.y * 0.5f - 7f));
-            var fill = UIBuild.StretchImage("Fill", fillArea, PanelSprite, Gold);
+            var fill = UIBuild.StretchImage("Fill", fillArea, PrimarySprite != null ? PrimarySprite : PanelSprite,
+                PrimarySprite != null ? Color.white : Gold);
             fill.type = Image.Type.Sliced;
             fill.pixelsPerUnitMultiplier = 3f;
 

@@ -12,8 +12,8 @@ namespace Palace
 
         public static readonly string[] AnimationNames = { "Off", "Fast", "Normal" };
         public static readonly string[] FrameRateNames = { "30 FPS", "60 FPS" };
-        public static readonly string[] TableColourNames = { "Green", "Blue", "Red" };
-        public static readonly string[] CardBackNames = { "Burgundy", "Navy" };
+        public static readonly string[] TableColourNames = { "Pub", "Green", "Blue", "Red" };
+        public static readonly string[] CardBackNames = { "Pub", "Burgundy", "Navy" };
         public static readonly string[] BotSpeedNames = { "Relaxed", "Normal", "Quick" };
 
         /// <summary>How long computer players "think": 0 Relaxed, 1 Normal, 2 Quick.</summary>
