@@ -117,7 +117,8 @@ internal static class Program
             g.DeclareSeven(0, SevenCall.Lower);
             Check(g.CheckRank(Rank.Six).Legal && g.CheckRank(Rank.Three).Legal, "6 and 3 are lower than 7");
             Check(!g.CheckRank(Rank.Eight).Legal && !g.CheckRank(Rank.Seven).Legal, "8 and 7 are not lower");
-            Check(!g.CheckRank(Rank.Ten).Legal && !g.CheckRank(Rank.Ace).Legal, "10 / Ace can't burn on a LOWER 7 (default)");
+            Check(!g.CheckRank(Rank.Ten).Legal && !g.AceBurnLegal, "10 / Ace can't burn on a LOWER 7 (default)");
+            Check(g.CheckRank(Rank.Ace).Legal, "but an Ace can be played as a low card");
             Check(g.CheckRank(Rank.Ten).Reason == "Must be LOWER than 7", "reason explains the 7 call");
             Check(g.CheckRank(Rank.Two).Legal, "2 is allowed on a LOWER 7");
         }
@@ -229,6 +230,21 @@ internal static class Program
             var ace = Give(g, 1, Rank.Ace);
             g.PlayCards(1, PlaySource.Hand, Ids(ace));
             Check(g.State.PendingAceValues.First() == Rank.Eight && !g.State.PendingAceValues.Contains(Rank.Seven), "options start at 8");
+        }
+
+        Section("Ace on a LOWER 7 can be a low card, 2-6 (no burn)");
+        {
+            var g = Table(3);
+            var seven = Give(g, 0, Rank.Seven);
+            g.PlayCards(0, PlaySource.Hand, Ids(seven));
+            g.DeclareSeven(0, SevenCall.Lower);
+            var ace = Give(g, 1, Rank.Ace);
+            Check(g.PlayCards(1, PlaySource.Hand, Ids(ace)).Ok, "Ace can be played on a LOWER 7");
+            Check(g.State.PendingAceValues.SequenceEqual(new[] { Rank.Two, Rank.Three, Rank.Four, Rank.Five, Rank.Six }), "options are 2-6");
+            Check(!g.State.PendingAceBurnAllowed, "burning isn't offered on a LOWER 7");
+            Check(!g.ChooseAce(1, false, Rank.Eight).Ok, "choosing 8 is rejected");
+            g.ChooseAce(1, false, Rank.Four);
+            Check(g.CheckRank(Rank.Four).Legal && !g.CheckRank(Rank.Three).Legal, "next player must beat the Ace-as-4");
         }
 
         Section("Queen reverses");

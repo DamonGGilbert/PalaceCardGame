@@ -20,6 +20,14 @@
 - [x] Tests: 64 automated rule checks plus 3,600 simulated games (`Tests/Palace.Core.Tests`), and an automated
       end-to-end run of a real Windows build
 
+## Play-test round 1 ✅
+- [x] Ace as a high card counts as a chosen value that matches or beats the pile (equal allowed); on a LOWER 7 it can be 2-6; or burn
+- [x] Direction arrows around the felt; skip / 7 / reset / reverse / Ace effects; burning-cards effect
+- [x] Drag and drop cards onto the pile
+- [x] Hand-size fan + count bubble (gold = last card, orange 8+, red 15+)
+- [x] Pause after a pick-up; slower computer players with a Computer speed setting (Relaxed / Normal / Quick)
+- [x] Pile viewer: tap the pile to see every card and a count per rank
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong

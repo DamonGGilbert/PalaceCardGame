@@ -113,15 +113,13 @@ namespace Palace.Core
         public bool AceBurnLegal => CheckBurn().Legal;
 
         /// <summary>
-        /// The values an Ace could stand for as a high card right now: equal to or higher than
-        /// the card on the pile (never lower), and 10 is excluded because "Ace as 10" means burn.
-        /// Under a LOWER 7 an Ace can't be played as a high card.
+        /// The values an Ace could stand for right now: equal to or higher than the card on the
+        /// pile (never lower). On a HIGHER 7 that means 8+, and on a LOWER 7 the Ace can be a
+        /// low card, 2-6. 10 is never offered because "Ace as 10" means burn.
         /// </summary>
         public List<Rank> AceValueOptions()
         {
             var options = new List<Rank>();
-            if (ActiveSeven == SevenCall.Lower) return options;
-
             Rank? top = State.EffectiveTopRank;
             for (int r = 2; r <= 14; r++)
             {

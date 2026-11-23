@@ -74,6 +74,11 @@ namespace Palace
             }
 
             if (string.IsNullOrEmpty(shotsDir) || gamesPlayed > 0) return;
+            if (!pileShotTaken && game.State.Discard.Count >= 6 && !controller.IsBusy)
+            {
+                pileShotTaken = true;
+                StartCoroutine(PileViewerShot());
+            }
             if (!midShotTaken && game.State.TurnNumber >= 12 && !controller.IsBusy)
             {
                 midShotTaken = true;
@@ -167,6 +172,17 @@ namespace Palace
             Debug.Log("[AutoPlay] drag-and-drop test: " + (played ? "card was played by dragging it onto the pile" : "FAILED - nothing was played"));
             if (!played) errors++;
             controller.HoldAutoPlay = false;
+        }
+
+        private bool pileShotTaken;
+
+        private IEnumerator PileViewerShot()
+        {
+            controller.TestOpenPileViewer();
+            yield return new WaitForSecondsRealtime(0.5f);
+            Shot("pile_viewer");
+            yield return new WaitForSecondsRealtime(0.2f);
+            controller.TestClosePileViewer();
         }
 
         private void OnGameFinished(PalaceGame game)

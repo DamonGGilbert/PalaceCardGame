@@ -270,18 +270,18 @@ namespace Palace
             "<b>8</b>  Skip. Each 8 skips one player (two 8s skip two players).\n" +
             "<b>10</b>  Burn. Removes the pile from the game and you go again.\n" +
             "<b>Queen</b>  Reverses the direction of play.\n" +
-            "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). Or use it as a 10 to burn the pile.\n\n" +
+            "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
             "2. Then play your face-up cards.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
-            "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play.";
+            "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play. Tap the pile to see every card in it.";
 
         // ------------------------------------------------------------------ settings
 
         private void BuildSettings()
         {
-            Transform p = BuildScreen("Settings", new Vector2(1100f, 860f), out settingsPanel, -370f);
-            float y = 230f;
-            const float step = 92f;
+            Transform p = BuildScreen("Settings", new Vector2(1100f, 980f), out settingsPanel, -420f);
+            float y = 320f;
+            const float step = 84f;
             const float labelX = -330f, controlX = 150f;
             var controlSize = new Vector2(600f, 60f);
 
@@ -297,6 +297,10 @@ namespace Palace
             Row(p, "Animations", y);
             UIKit.Segmented(p, GameSettings.AnimationNames, (int)GameSettings.Animation, controlSize, new Vector2(controlX, y),
                 i => GameSettings.Animation = (GameSettings.AnimationSpeed)i);
+            y -= step;
+            Row(p, "Computer speed", y);
+            UIKit.Segmented(p, GameSettings.BotSpeedNames, GameSettings.BotSpeed, controlSize, new Vector2(controlX, y),
+                i => GameSettings.BotSpeed = i);
             y -= step;
             Row(p, "Frame rate", y);
             UIKit.Segmented(p, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y),
@@ -321,7 +325,7 @@ namespace Palace
                 UIKit.Label(parent, label, 28f, new Vector2(300f, 50f), new Vector2(labelX, rowY), TextAlignmentOptions.Left, UIKit.Text, true);
             }
 
-            UIKit.Label(p, "Changes are saved automatically.", 22f, new Vector2(900f, 40f), new Vector2(0f, -300f), TextAlignmentOptions.Center, UIKit.Muted);
+            UIKit.Label(p, "Changes are saved automatically.", 22f, new Vector2(900f, 40f), new Vector2(0f, -345f), TextAlignmentOptions.Center, UIKit.Muted);
         }
 
         // ------------------------------------------------------------------ credits

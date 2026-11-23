@@ -64,7 +64,10 @@ namespace Palace
         {
             EnsureBuilt();
             if (cardTheme != null)
+            {
                 foreach (var fan in handFan) fan.sprite = cardTheme.CurrentBack; // card back chosen in Settings
+                foreach (var card in stackCards) if (card != null) card.sprite = cardTheme.CurrentBack;
+            }
         }
 
         /// <summary>Shows "1st", "2nd"... once the player has finished. 0 hides it.</summary>
@@ -85,6 +88,7 @@ namespace Palace
             placeBadge.rectTransform.anchoredPosition = cardsBlock.anchoredPosition;
             if (finished) placeText.text = Ordinal(position);
             if (finished && handBadge != null) handBadge.gameObject.SetActive(false);
+            if (finished && handStack != null) handStack.gameObject.SetActive(false);
         }
 
         public static string Ordinal(int n)
@@ -119,19 +123,83 @@ namespace Palace
             }
         }
 
-        /// <summary>Hidden hand: shows up to three small card backs plus the exact count.</summary>
+        // ------------------------------------------------------------------
+        // Hand size: a fan of card backs that grows with the hand, plus a count bubble
+        // that turns gold on the last card and orange/red for big hands.
+        // ------------------------------------------------------------------
+
+        private const int MaxFanCards = 6;
+        private static readonly Color BubbleNormal = new Color(0.07f, 0.09f, 0.08f, 0.95f);
+        private static readonly Color BubbleLast = new Color(0.98f, 0.78f, 0.28f, 1f);
+        private static readonly Color BubbleBig = new Color(0.88f, 0.46f, 0.10f, 1f);
+        private static readonly Color BubbleHuge = new Color(0.78f, 0.16f, 0.12f, 1f);
+
+        [SerializeField] private RectTransform handStack;
+        [SerializeField] private System.Collections.Generic.List<Image> stackCards = new System.Collections.Generic.List<Image>();
+        [SerializeField] private Image countBubble;
+        [SerializeField] private TextMeshProUGUI countText;
+        private int shownCount = -1;
+
         public void SetHandCount(int count)
         {
             EnsureBuilt();
-            for (int i = 0; i < handFan.Length; i++) UIBuild.SetActive(handFan[i], i < count);
-            handCountText.text = count.ToString();
+            EnsureHandStack();
+
+            int k = Mathf.Min(count, MaxFanCards);
+            float spread = k <= 1 ? 0f : Mathf.Lerp(16f, 64f, (k - 2) / (float)(MaxFanCards - 2));
+            for (int i = 0; i < stackCards.Count; i++)
+            {
+                bool active = i < k;
+                UIBuild.SetActive(stackCards[i], active);
+                if (!active) continue;
+                var rt = stackCards[i].rectTransform;
+                float angle = k <= 1 ? 0f : spread * 0.5f - i * spread / (k - 1);
+                rt.anchoredPosition = new Vector2(-16f + (i - (k - 1) * 0.5f) * 5f, -18f);
+                rt.localEulerAngles = new Vector3(0f, 0f, angle);
+            }
+
+            countText.text = count.ToString();
+            countBubble.color = count == 1 ? BubbleLast : count >= 15 ? BubbleHuge : count >= 8 ? BubbleBig : BubbleNormal;
+            countText.color = count == 1 ? new Color(0.15f, 0.1f, 0.02f) : Color.white;
+
+            if (shownCount >= 0 && count > shownCount && isActiveAndEnabled) StartCoroutine(PopCount());
+            shownCount = count;
         }
 
         public void SetHandBadgeVisible(bool visible)
         {
             EnsureBuilt();
-            handBadge.gameObject.SetActive(visible);
-            nameText.rectTransform.offsetMax = new Vector2(visible ? -84f : -14f, 0f);
+            EnsureHandStack();
+            handStack.gameObject.SetActive(visible);
+            nameText.rectTransform.offsetMax = new Vector2(visible ? -124f : -14f, 0f);
+        }
+
+        private System.Collections.IEnumerator PopCount()
+        {
+            var rt = countBubble.rectTransform;
+            yield return Tween.Run(0.35f, t => rt.localScale = Vector3.one * Mathf.Lerp(1.6f, 1f, t));
+        }
+
+        private void EnsureHandStack()
+        {
+            if (handStack != null) return;
+            if (handBadge != null) handBadge.gameObject.SetActive(false); // older, smaller design
+
+            handStack = UIBuild.Rect("HandStack", plate.transform, new Vector2(120f, 64f), Vector2.zero);
+            SetAnchor(handStack, new Vector2(1f, 0.5f), new Vector2(-62f, 0f));
+
+            Sprite back = cardTheme != null ? cardTheme.CurrentBack : null;
+            for (int i = 0; i < MaxFanCards; i++)
+            {
+                var img = UIBuild.Image("HandCard", handStack, back, Color.white, new Vector2(30f, 42f), Vector2.zero);
+                img.rectTransform.pivot = new Vector2(0.5f, 0.1f);
+                stackCards.Add(img);
+            }
+
+            countBubble = UIBuild.Image("CountBubble", handStack, tableTheme != null ? tableTheme.circle : null, BubbleNormal,
+                new Vector2(42f, 42f), new Vector2(36f, -2f));
+            countText = UIBuild.Text("Count", countBubble.transform, "0", 24f, Color.white, new Vector2(42f, 42f), Vector2.zero,
+                TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
         }
 
         /// <summary>slot 0-2. present = false means that face-down card has been played.</summary>

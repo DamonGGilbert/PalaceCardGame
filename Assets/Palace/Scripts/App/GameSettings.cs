@@ -14,6 +14,20 @@ namespace Palace
         public static readonly string[] FrameRateNames = { "30 FPS", "60 FPS" };
         public static readonly string[] TableColourNames = { "Green", "Blue", "Red" };
         public static readonly string[] CardBackNames = { "Burgundy", "Navy" };
+        public static readonly string[] BotSpeedNames = { "Relaxed", "Normal", "Quick" };
+
+        /// <summary>How long computer players "think": 0 Relaxed, 1 Normal, 2 Quick.</summary>
+        public static int BotSpeed
+        {
+            get => PlayerPrefs.GetInt("palace.botspeed", 1);
+            set => PlayerPrefs.SetInt("palace.botspeed", Mathf.Clamp(value, 0, 2));
+        }
+
+        /// <summary>Average seconds a computer player waits before acting.</summary>
+        public static float BotThinkSeconds => BotSpeed == 0 ? 1.9f : BotSpeed == 2 ? 0.7f : 1.25f;
+
+        /// <summary>Extra pause after someone picks up the pile, so everyone can take it in.</summary>
+        public static float PickUpPauseSeconds => BotSpeed == 0 ? 2.4f : BotSpeed == 2 ? 1.0f : 1.7f;
 
         public static float MusicVolume
         {

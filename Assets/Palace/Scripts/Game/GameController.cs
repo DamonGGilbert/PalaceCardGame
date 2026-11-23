@@ -54,6 +54,10 @@ namespace Palace
         private bool busy;
         private bool paused;
         private float botTimer;
+        private float botWait = -1f;      // this bot's thinking time (varies a little each turn)
+        private float pauseUntil;         // bots wait until this time (e.g. after a pick-up)
+        private string noticeMessage;
+        private float noticeUntil;
 
         private readonly HashSet<int> selected = new HashSet<int>();
         private PlaySource selectedSource;
@@ -72,6 +76,7 @@ namespace Palace
         private GameObject sevenPanel;
         private GameObject acePanel;
         private RectTransform aceButtons;
+        private TextMeshProUGUI aceTitle;
         private DirectionRing ring;
         private TableFx fx;
         private GameObject pausePanel;
@@ -117,6 +122,7 @@ namespace Palace
             selected.Clear();
             if (resultsLayer != null) Destroy(resultsLayer.gameObject);
             if (pausePanel != null) pausePanel.SetActive(false);
+            ClosePileViewer();
             foreach (Transform flying in table.FxRoot) Destroy(flying.gameObject); // cards left mid-flight by a restart
 
             int bots = Mathf.Clamp(GameLaunch.BotCount, 1, 9);
@@ -165,22 +171,25 @@ namespace Palace
         {
             if (Game == null) return;
             if (statusText != null) UpdateStatus();
-            if (busy || paused || Game.State.Phase == GamePhase.GameOver) return;
+            if (busy || paused || viewingPile || Game.State.Phase == GamePhase.GameOver) return;
 
             int actor = Game.State.ActingPlayer;
             bool autoPlayLocal = AutoPlayHarness.Active && actor == localPlayer; // test builds only
             if (!Game.State.Players[actor].IsBot && !autoPlayLocal) return;
             if (autoPlayLocal && HoldAutoPlay) return;
 
+            if (Time.unscaledTime < pauseUntil) return; // giving everyone a moment to think
+            if (botWait < 0f) botWait = BotDelay * UnityEngine.Random.Range(0.8f, 1.25f);
             botTimer += Time.unscaledDeltaTime;
-            if (botTimer < BotDelay) return;
+            if (botTimer < botWait) return;
             botTimer = 0f;
+            botWait = -1f;
 
             BotMove move = BotBrain.Decide(Game, actor, botRng);
             Execute(BotBrain.Execute(Game, actor, move));
         }
 
-        private float BotDelay => AutoPlayHarness.Active ? 0.02f : Mathf.Max(0.25f, 0.8f * GameSettings.AnimationScale);
+        private float BotDelay => AutoPlayHarness.Active ? 0.02f : GameSettings.BotThinkSeconds;
 
         private bool Execute(CommandResult result)
         {
@@ -192,6 +201,8 @@ namespace Palace
             selected.Clear();
             HidePrompts();
             busy = true;
+            botTimer = 0f;
+            botWait = -1f;
             StartCoroutine(PlayEvents(result.Events));
             return true;
         }
@@ -384,7 +395,10 @@ namespace Palace
             table.SetDeckCount(shownDeck);
             table.SetDiscardPile(shownPile);
             SevenCall seven = Game.ActiveSeven;
-            table.SetEffect(seven == SevenCall.Higher ? "Next: HIGHER than 7" : seven == SevenCall.Lower ? "Next: LOWER than 7" : null);
+            string effect = seven == SevenCall.Higher ? "Next: HIGHER than 7" : seven == SevenCall.Lower ? "Next: LOWER than 7" : null;
+            if (effect == null && s.TopRank == Rank.Ace && s.AceValue.HasValue && !busy)
+                effect = "Ace counts as " + Card.RankToLabel(s.AceValue.Value);
+            table.SetEffect(effect);
 
             if (localPlayer >= 0)
             {
@@ -418,6 +432,13 @@ namespace Palace
             {
                 statusText.text = toastMessage;
                 statusText.color = new Color(1f, 0.6f, 0.5f);
+                return;
+            }
+
+            if (Time.unscaledTime < noticeUntil && !string.IsNullOrEmpty(noticeMessage) && Game.State.ActingPlayer != localPlayer)
+            {
+                statusText.text = noticeMessage;
+                statusText.color = UIKit.Gold;
                 return;
             }
 
@@ -626,17 +647,32 @@ namespace Palace
                 case GameEventType.PileCollected:
                 {
                     Vector2 to = e.Player == localPlayer ? table.HandCenter : table.SeatPoint(e.Player);
+                    int n = e.Cards.Count;
+                    string what = (e.Player == localPlayer ? "You pick up " : who + " picks up ") + n + (n == 1 ? " card" : " cards");
                     AudioManager.Play(Sfx.PickUp);
-                    table.Announce(who + " picks up " + e.Cards.Count, new Color(1f, 0.75f, 0.6f), centre, 44f);
-                    int shown = Mathf.Min(6, shownPile.Count);
+                    table.Announce(what, new Color(1f, 0.75f, 0.6f), centre, 52f);
+
+                    // Cards peel off the pile one after another so the size of the pick-up is obvious.
+                    int shown = Mathf.Min(10, shownPile.Count);
                     for (int i = 0; i < shown; i++)
                     {
-                        Card c = shownPile[shownPile.Count - 1 - i];
-                        StartCoroutine(FlyCard(c, table.DiscardPoint, to, table.PileCardScale, 0.5f, 0.35f, null));
+                        Card c = shownPile[shownPile.Count - 1];
+                        shownPile.RemoveAt(shownPile.Count - 1);
+                        table.SetDiscardPile(shownPile);
+                        StartCoroutine(FlyCard(c, table.DiscardPoint, to, table.PileCardScale, 0.5f, 0.4f, null));
+                        yield return Tween.Wait(Tween.Scaled(0.06f));
                     }
                     shownPile.Clear();
                     table.SetDiscardPile(shownPile);
                     yield return Tween.Wait(Tween.Scaled(0.45f));
+
+                    // Give everyone a moment to take it in before the computer plays on.
+                    if (!AutoPlayHarness.Active)
+                    {
+                        pauseUntil = Time.unscaledTime + GameSettings.PickUpPauseSeconds;
+                        noticeMessage = what + ". Take a moment...";
+                        noticeUntil = pauseUntil;
+                    }
                     break;
                 }
 
@@ -803,11 +839,18 @@ namespace Palace
             sevenPanel = BuildChoice("You played a 7. The next player must play...", "HIGHER", () => OnSevenCall(SevenCall.Higher),
                 "LOWER", () => OnSevenCall(SevenCall.Lower));
             var ace = UIKit.Panel(tableHud, new Vector2(1000f, 320f), new Vector2(0f, 20f));
-            UIKit.Label(ace.transform, "Your Ace counts as... (it must match or beat the pile)", 28f, new Vector2(940f, 50f),
+            aceTitle = UIKit.Label(ace.transform, "", 28f, new Vector2(940f, 50f),
                 new Vector2(0f, 115f), TextAlignmentOptions.Center, UIKit.Text, true);
             aceButtons = UIBuild.Stretch("AceButtons", ace.transform);
             acePanel = ace.gameObject;
             acePanel.SetActive(false);
+
+            // Tap the pile (or the button beside it) to look through it.
+            var pileTap = UIBuild.Image("PileTap", tableHud, null, new Color(0f, 0f, 0f, 0f),
+                new Vector2(CardView.Width, CardView.Height) * table.PileCardScale + new Vector2(20f, 20f), table.DiscardPoint);
+            pileTap.raycastTarget = true;
+            pileTap.gameObject.AddComponent<Button>().onClick.AddListener(OpenPileViewer);
+            UIKit.Button(tableHud, "View pile", new Vector2(140f, 52f), table.DiscardPoint + new Vector2(150f, 0f), OpenPileViewer, false, 22f);
 
             // Menu button + pause menu live in the safe-area HUD.
             var menu = UIKit.Button(hudRoot, "Menu", new Vector2(150f, 64f), Vector2.zero, TogglePause, false, 26f);
@@ -826,6 +869,95 @@ namespace Palace
             HidePrompts();
         }
 
+        // ------------------------------------------------------------------ pile viewer
+
+        private RectTransform pileViewer;
+        private bool viewingPile;
+
+        /// <summary>Shows every card in the discard pile (newest first) plus a count of each rank.</summary>
+        private void OpenPileViewer()
+        {
+            if (pileViewer != null || Game == null) return;
+            viewingPile = true;
+            AudioManager.Play(Sfx.CardDraw, 0.6f);
+
+            pileViewer = UIKit.Layer(hudRoot, "PileViewer", UIKit.Scrim);
+            var panel = UIKit.Panel(pileViewer, new Vector2(1560f, 920f), Vector2.zero, new Color(0.04f, 0.06f, 0.05f, 0.98f));
+            int n = shownPile.Count;
+
+            UIKit.Label(panel.transform, n == 0 ? "The pile is empty" : "The pile: " + n + (n == 1 ? " card" : " cards"),
+                48f, new Vector2(1400f, 70f), new Vector2(0f, 392f), TextAlignmentOptions.Center, UIKit.Gold, true);
+
+            string info = "Burned so far: " + Game.State.BurnedCount + "     Left in deck: " + shownDeck;
+            if (n > 0)
+            {
+                Card top = shownPile[n - 1];
+                string topText = "Top card: " + RankName(top.Rank).ToLowerInvariant();
+                if (top.Rank == Rank.Ace && Game.State.AceValue.HasValue) topText += " (counts as " + Card.RankToLabel(Game.State.AceValue.Value) + ")";
+                info = topText + "     Next card must be " + Game.Requirement() + "     " + info;
+            }
+            UIKit.Label(panel.transform, info, 24f, new Vector2(1480f, 40f), new Vector2(0f, 340f), TextAlignmentOptions.Center, UIKit.Muted);
+
+            if (n > 0)
+            {
+                // Scrollable grid of the pile, newest (top) card first.
+                var view = UIBuild.Image("Cards", panel.transform, null, new Color(0f, 0f, 0f, 0.25f), new Vector2(1480f, 580f), new Vector2(0f, 20f));
+                view.raycastTarget = true;
+                view.gameObject.AddComponent<RectMask2D>();
+
+                var content = UIBuild.Rect("Content", view.transform, Vector2.zero, Vector2.zero);
+                content.anchorMin = new Vector2(0f, 1f);
+                content.anchorMax = new Vector2(1f, 1f);
+                content.pivot = new Vector2(0.5f, 1f);
+                content.offsetMin = Vector2.zero;
+                content.offsetMax = Vector2.zero;
+                var grid = content.gameObject.AddComponent<GridLayoutGroup>();
+                grid.cellSize = new Vector2(84f, 118f);
+                grid.spacing = new Vector2(8f, 12f);
+                grid.padding = new RectOffset(20, 20, 18, 18);
+                grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 15;
+                grid.childAlignment = TextAnchor.UpperCenter;
+                content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+                for (int i = n - 1; i >= 0; i--)
+                {
+                    var cell = UIBuild.Rect("Cell", content, new Vector2(84f, 118f), Vector2.zero);
+                    if (i == n - 1)
+                        UIBuild.Image("TopGlow", cell, FxSprites.Dot, new Color(1f, 0.8f, 0.3f, 0.8f), new Vector2(150f, 190f), Vector2.zero);
+                    CardView card = CardFactory.Spawn(table.CardPrefab, table.CardTheme, cell);
+                    card.SetInteractable(false);
+                    card.ShowCard(shownPile[i], true);
+                    ((RectTransform)card.transform).localScale = Vector3.one * 0.6f;
+                }
+
+                var scroll = view.gameObject.AddComponent<ScrollRect>();
+                scroll.content = content;
+                scroll.viewport = view.rectTransform;
+                scroll.horizontal = false;
+                scroll.movementType = ScrollRect.MovementType.Clamped;
+                scroll.scrollSensitivity = 40f;
+
+                // How many of each rank are in the pile (useful for planning).
+                var counts = shownPile.GroupBy(c => c.Rank).OrderByDescending(g => g.Key)
+                    .Select(g => "<b>" + Card.RankToLabel(g.Key) + "</b> x" + g.Count());
+                UIKit.Label(panel.transform, "In the pile:   " + string.Join("     ", counts), 28f, new Vector2(1480f, 50f),
+                    new Vector2(0f, -310f), TextAlignmentOptions.Center, UIKit.Text);
+            }
+
+            UIKit.Button(panel.transform, "Close", new Vector2(260f, 74f), new Vector2(0f, -392f), ClosePileViewer, true);
+        }
+
+        public void TestOpenPileViewer() => OpenPileViewer();   // used by the automated test harness
+        public void TestClosePileViewer() => ClosePileViewer();
+
+        private void ClosePileViewer()
+        {
+            if (pileViewer != null) Destroy(pileViewer.gameObject);
+            pileViewer = null;
+            viewingPile = false;
+        }
+
         /// <summary>One button per value the Ace may stand for, plus "Burn" when allowed.</summary>
         private void BuildAceButtons()
         {
@@ -833,6 +965,8 @@ namespace Palace
 
             List<Rank> values = Game.State.PendingAceValues;
             int n = values.Count;
+            bool lowOnly = n > 0 && values.All(v => (int)v < 7);
+            aceTitle.text = lowOnly ? "Your Ace counts as... (LOWER than 7 was called)" : "Your Ace counts as... (it must match or beat the pile)";
             float step = n > 0 ? Mathf.Min(110f, 920f / n) : 0f;
             for (int i = 0; i < n; i++)
             {
