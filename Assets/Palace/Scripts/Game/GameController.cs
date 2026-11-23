@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Palace.Core;
+using Palace.Net;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -110,36 +111,238 @@ namespace Palace
             fx = TableFx.Attach(table);
             ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
             BuildHud();
+
+            if (NetSession.Active && NetSession.Instance.InGame) StartNetworked();
+            else StartNewGame();
+        }
+
+        // ==================================================================
+        // Multiplayer
+        //  - Host: runs the rules engine, plays the bots, and sends every other device its
+        //    private view of the table after each move.
+        //  - Client: sends its moves to the host and animates the updates that come back.
+        // ==================================================================
+
+        private NetSession net;   // null in single player
+        private bool IsNetworked => net != null;
+        private bool IsNetHost => net != null && net.IsHost;
+        private bool IsNetClient => net != null && !net.IsHost;
+        public bool IsWaitingForHost => awaitingHost;
+
+        private readonly Dictionary<int, ulong> remoteClients = new Dictionary<int, ulong>(); // host: player -> device
+        private readonly HashSet<int> takenOver = new HashSet<int>();                         // host: players who left
+        private readonly HashSet<ulong> clientsInGame = new HashSet<ulong>();
+        private readonly Queue<(ulong client, NetCommand command)> remoteCommands = new Queue<(ulong, NetCommand)>();
+        private bool awaitingHost;   // client: a move was sent and the host hasn't answered yet
+        private bool clientStarted;
+
+        private void StartNetworked()
+        {
+            net = NetSession.Instance;
+            net.Disconnected += OnNetDisconnected;
+            net.ErrorReceived += OnNetError;
+            if (net.IsHost)
+            {
+                net.CommandReceived += OnRemoteCommand;
+                net.ClientInGame += OnClientInGame;
+                net.ClientLeft += OnClientLeft;
+                StartCoroutine(HostWaitThenStart());
+            }
+            else
+            {
+                botRng = new System.Random(Environment.TickCount);
+                net.ReportInGame();
+            }
+        }
+
+        private void OnRemoteCommand(ulong client, NetCommand command) => remoteCommands.Enqueue((client, command));
+        private void OnClientInGame(ulong client) => clientsInGame.Add(client);
+
+        /// <summary>Host: wait (up to 10 s) until every player's device has loaded the table.</summary>
+        private IEnumerator HostWaitThenStart()
+        {
+            busy = true;
+            float until = Time.unscaledTime + 10f;
+            while (Time.unscaledTime < until)
+            {
+                bool everyone = net.Seats.All(s => s.IsBot || s.ClientId == net.LocalClientId || clientsInGame.Contains(s.ClientId));
+                if (everyone) break;
+                yield return null;
+            }
+            busy = false;
             StartNewGame();
         }
 
-        public void StartNewGame()
+        private void HandleRemoteCommand((ulong client, NetCommand command) item)
+        {
+            int player = net.PlayerIndexOf(item.client);
+            if (player < 0 || takenOver.Contains(player) || Game == null) return;
+            if (Game.State.ActingPlayer != player)
+            {
+                net.SendError(item.client, "It isn't your turn");
+                return;
+            }
+            CommandResult result = item.command.ApplyTo(Game, player);
+            if (!result.Ok) net.SendError(item.client, result.Error);
+            else Execute(result);
+        }
+
+        /// <summary>Host: send every other device its own view of what just happened.</summary>
+        private void Broadcast(IReadOnlyList<GameEvent> events)
+        {
+            foreach (var kv in remoteClients)
+                if (!takenOver.Contains(kv.Key)) net.SendUpdate(kv.Value, Game.State, events, kv.Key);
+        }
+
+        /// <summary>Client: an update from the host. A new game rebuilds the table and deals.</summary>
+        private void ApplyHostUpdate(List<GameEvent> events, GameState state)
+        {
+            awaitingHost = false;
+            localPlayer = net.LocalPlayerIndex;
+            Game = new PalaceGame(state, new HouseRules(), 0);
+
+            if (!clientStarted || events.Any(e => e.Type == GameEventType.GameStarted))
+            {
+                clientStarted = true;
+                ResetTable();
+                BuildTable();
+                shownPile.Clear();
+                shownDeck = state.TotalCards;
+                StartCoroutine(DealThenPlay(events));
+            }
+            else
+            {
+                selected.Clear();
+                HidePrompts();
+                busy = true;
+                StartCoroutine(PlayEvents(events));
+            }
+        }
+
+        private void OnClientLeft(ulong client)
+        {
+            foreach (var kv in remoteClients)
+            {
+                if (kv.Value != client) continue;
+                takenOver.Add(kv.Key);
+                if (Game != null) Toast(Game.State.Players[kv.Key].Name + " left. A computer player takes over.");
+            }
+        }
+
+        private void OnNetDisconnected(string reason)
+        {
+            GameLaunch.MenuMessage = reason;
+            SceneManager.LoadScene(GameLaunch.MainMenuScene);
+        }
+
+        private void OnNetError(string error)
+        {
+            awaitingHost = false;
+            Toast(error);
+            if (Game != null) RefreshAll();
+        }
+
+        private void OnDestroy()
+        {
+            Tween.SpeedMultiplier = 1f; // never carry fast-forward into the menu
+            if (net == null) return;
+            net.Disconnected -= OnNetDisconnected;
+            net.ErrorReceived -= OnNetError;
+            net.CommandReceived -= OnRemoteCommand;
+            net.ClientInGame -= OnClientInGame;
+            net.ClientLeft -= OnClientLeft;
+        }
+
+        /// <summary>Where a player sits on THIS screen: you are always seat 0 at the bottom.</summary>
+        private int SeatOf(int player)
+        {
+            int n = Game.State.Players.Count;
+            return localPlayer < 0 ? player : (player - localPlayer + n) % n;
+        }
+
+        private int PlayerAtSeat(int seat)
+        {
+            int n = Game.State.Players.Count;
+            return localPlayer < 0 ? seat : (seat + localPlayer) % n;
+        }
+
+        private SeatView SeatFor(int player) => table.Seats[SeatOf(player)];
+        private Vector2 SeatPointFor(int player) => table.SeatPoint(SeatOf(player));
+
+        // ==================================================================
+        // Starting a game
+        // ==================================================================
+
+        private void ResetTable()
         {
             StopAllCoroutines();
+            SetSpeed(0);
             busy = false;
             paused = false;
             botTimer = 0f;
+            botWait = -1f;
+            pauseUntil = 0f;
             selected.Clear();
             if (resultsLayer != null) Destroy(resultsLayer.gameObject);
             if (pausePanel != null) pausePanel.SetActive(false);
             ClosePileViewer();
             foreach (Transform flying in table.FxRoot) Destroy(flying.gameObject); // cards left mid-flight by a restart
+        }
 
-            int bots = Mathf.Clamp(GameLaunch.BotCount, 1, 9);
-            var names = new List<string> { GameLaunch.SpectateOnly ? "Bot" : GameLaunch.PlayerName };
-            var isBot = new List<bool> { GameLaunch.SpectateOnly };
-            for (int i = 0; i < bots; i++)
+        public void StartNewGame()
+        {
+            if (IsNetClient) return; // only the host deals
+            ResetTable();
+
+            var names = new List<string>();
+            var isBot = new List<bool>();
+            remoteClients.Clear();
+            takenOver.Clear();
+
+            if (IsNetHost)
             {
-                names.Add(BotNames[i]);
-                isBot.Add(true);
+                for (int i = 0; i < net.Seats.Count; i++)
+                {
+                    LobbySeat seat = net.Seats[i];
+                    names.Add(seat.Name);
+                    isBot.Add(seat.IsBot);
+                    if (!seat.IsBot && seat.ClientId != net.LocalClientId) remoteClients[i] = seat.ClientId;
+                }
+                localPlayer = 0;
+            }
+            else
+            {
+                int bots = Mathf.Clamp(GameLaunch.BotCount, 1, 9);
+                names.Add(GameLaunch.SpectateOnly ? "Bot" : GameLaunch.PlayerName);
+                isBot.Add(GameLaunch.SpectateOnly);
+                for (int i = 0; i < bots; i++)
+                {
+                    names.Add(BotNames[i]);
+                    isBot.Add(true);
+                }
+                localPlayer = GameLaunch.SpectateOnly ? -1 : 0;
             }
 
             int seed = GameLaunch.Seed != 0 ? GameLaunch.Seed : Environment.TickCount;
             Game = PalaceGame.Create(names, isBot, new HouseRules(), seed);
             botRng = new System.Random(seed * 31 + 7);
-            localPlayer = GameLaunch.SpectateOnly ? -1 : 0;
 
-            IReadOnlyList<SeatView> seats = table.BuildSeats(names);
+            BuildTable();
+            shownPile.Clear();
+            shownDeck = Game.State.TotalCards;
+            if (IsNetHost) Broadcast(Game.StartEvents);
+            StartCoroutine(DealThenPlay(Game.StartEvents));
+        }
+
+        /// <summary>Seats in this screen's order (you at the bottom) plus your card taps and drags.</summary>
+        private void BuildTable()
+        {
+            int n = Game.State.Players.Count;
+            var seatNames = new List<string>();
+            for (int k = 0; k < n; k++) seatNames.Add(Game.State.Players[PlayerAtSeat(k)].Name);
+
+            IReadOnlyList<SeatView> seats = table.BuildSeats(seatNames);
+            for (int k = 0; k < n; k++) seats[k].SetPlayer(seatNames[k], PlayerAtSeat(k)); // same colours on every device
             for (int k = 0; k < HouseRules.TableCards; k++)
             {
                 int slot = k;
@@ -157,10 +360,6 @@ namespace Palace
             }
             table.FxRoot.SetAsLastSibling();
             ring.SetDirection(Game.State.Direction, false);
-
-            shownPile.Clear();
-            shownDeck = Game.State.TotalCards;
-            StartCoroutine(DealThenPlay());
         }
 
         // ==================================================================
@@ -169,27 +368,112 @@ namespace Palace
 
         private void Update()
         {
-            if (Game == null) return;
+            if (IsNetClient && !busy && net.TryTakeUpdate(out var events, out var state)) ApplyHostUpdate(events, state);
+            if (IsNetHost && !busy && remoteCommands.Count > 0) HandleRemoteCommand(remoteCommands.Dequeue());
+
+            if (Game == null)
+            {
+                if (statusText != null) statusText.text = IsNetClient ? "Waiting for the host to deal..." : "";
+                return;
+            }
             if (statusText != null) UpdateStatus();
-            if (busy || paused || viewingPile || Game.State.Phase == GamePhase.GameOver) return;
+            bool singlePlayerPause = !IsNetworked && (paused || viewingPile);
+            if (busy || singlePlayerPause || Game.State.Phase == GamePhase.GameOver) return;
 
             int actor = Game.State.ActingPlayer;
-            bool autoPlayLocal = AutoPlayHarness.Active && actor == localPlayer; // test builds only
-            if (!Game.State.Players[actor].IsBot && !autoPlayLocal) return;
-            if (autoPlayLocal && HoldAutoPlay) return;
+            bool autoPlayLocal = AutoPlayHarness.Active && actor == localPlayer && !HoldAutoPlay; // test builds only
 
-            if (Time.unscaledTime < pauseUntil) return; // giving everyone a moment to think
-            if (botWait < 0f) botWait = BotDelay * UnityEngine.Random.Range(0.8f, 1.25f);
-            botTimer += Time.unscaledDeltaTime;
-            if (botTimer < botWait) return;
-            botTimer = 0f;
-            botWait = -1f;
+            if (IsNetClient)
+            {
+                // The host plays the bots. A client only acts for itself (and only in automated tests).
+                if (autoPlayLocal && !awaitingHost && BotReady()) Submit(ToCommand(BotBrain.Decide(Game, actor, botRng)));
+                return;
+            }
+
+            bool computerPlays = Game.State.Players[actor].IsBot || takenOver.Contains(actor) || autoPlayLocal;
+            if (!computerPlays || !BotReady()) return; // otherwise waiting for a person (here or on another device)
 
             BotMove move = BotBrain.Decide(Game, actor, botRng);
             Execute(BotBrain.Execute(Game, actor, move));
         }
 
-        private float BotDelay => AutoPlayHarness.Active ? 0.02f : GameSettings.BotThinkSeconds;
+        /// <summary>True once a computer player has "thought" for long enough.</summary>
+        private bool BotReady()
+        {
+            if (Time.unscaledTime < pauseUntil) return false; // giving everyone a moment to think
+            if (botWait < 0f) botWait = BotDelay * UnityEngine.Random.Range(0.8f, 1.25f);
+            botTimer += Time.unscaledDeltaTime;
+            if (botTimer < botWait) return false;
+            botTimer = 0f;
+            botWait = -1f;
+            return true;
+        }
+
+        private NetCommand PlayCommand()
+        {
+            var c = new NetCommand { Type = NetCommandType.PlayCards, Source = selectedSource };
+            c.CardIds.AddRange(selected);
+            return c;
+        }
+
+        private static NetCommand ToCommand(BotMove m)
+        {
+            var c = new NetCommand { Source = m.Source, Slot = m.Slot, Call = m.Call, Burn = m.Burn, AceValue = m.AceValue };
+            if (m.CardIds != null) c.CardIds.AddRange(m.CardIds);
+            switch (m.Type)
+            {
+                case BotMoveType.PlayCards: c.Type = NetCommandType.PlayCards; break;
+                case BotMoveType.PlayFaceDown: c.Type = NetCommandType.PlayFaceDown; break;
+                case BotMoveType.PickUp: c.Type = NetCommandType.PickUp; break;
+                case BotMoveType.DeclareSeven: c.Type = NetCommandType.DeclareSeven; break;
+                default: c.Type = NetCommandType.ChooseAce; break;
+            }
+            return c;
+        }
+
+        /// <summary>
+        /// A move by the person at this device. In single player (or as host) it is applied
+        /// straight away; as a client it is sent to the host, which checks it and replies.
+        /// </summary>
+        private bool Submit(NetCommand command)
+        {
+            if (IsNetClient)
+            {
+                if (awaitingHost) return false;
+                awaitingHost = true;
+                net.SendCommand(command);
+                selected.Clear();
+                HidePrompts();
+                RefreshAll();
+                return true;
+            }
+            return Execute(command.ApplyTo(Game, localPlayer));
+        }
+
+        private float BotDelay => AutoPlayHarness.Active ? 0.02f : GameSettings.BotThinkSeconds / Tween.SpeedMultiplier;
+
+        // ------------------------------------------------------------------ fast-forward
+
+        private static readonly float[] Speeds = { 1f, 2f, 4f };
+        private Button speedButton;
+        private int speedIndex;
+
+        /// <summary>Only offered once you have finished (or are watching), so you never wait ages for the bots.</summary>
+        private bool CanFastForward =>
+            !IsNetworked && Game != null && Game.State.Phase != GamePhase.GameOver &&
+            (localPlayer < 0 || Game.State.Players[localPlayer].IsFinished);
+
+        private void CycleSpeed()
+        {
+            SetSpeed((speedIndex + 1) % Speeds.Length);
+        }
+
+        private void SetSpeed(int index)
+        {
+            speedIndex = index;
+            Tween.SpeedMultiplier = Speeds[index];
+            if (speedButton != null) UIKit.SetButtonLabel(speedButton, "Speed " + Speeds[index] + "x");
+        }
 
         private bool Execute(CommandResult result)
         {
@@ -203,6 +487,7 @@ namespace Palace
             busy = true;
             botTimer = 0f;
             botWait = -1f;
+            if (IsNetHost) Broadcast(result.Events);
             StartCoroutine(PlayEvents(result.Events));
             return true;
         }
@@ -243,8 +528,8 @@ namespace Palace
             if (IsOverPile(e) && LocalCanAct)
             {
                 played = source == PlaySource.FaceDown
-                    ? Execute(Game.PlayFaceDown(localPlayer, slot))
-                    : selected.Count > 0 && Execute(Game.PlayCards(localPlayer, selectedSource, selected.ToList()));
+                    ? Submit(new NetCommand { Type = NetCommandType.PlayFaceDown, Slot = slot })
+                    : selected.Count > 0 && Submit(PlayCommand());
             }
 
             if (played)
@@ -273,7 +558,7 @@ namespace Palace
         // ==================================================================
 
         private bool LocalCanAct =>
-            localPlayer >= 0 && !busy && !paused &&
+            localPlayer >= 0 && !busy && !awaitingHost && (!paused || IsNetworked) &&
             Game.State.Phase == GamePhase.Playing && Game.State.Current == localPlayer;
 
         private void OnHandCardTapped(Card card)
@@ -303,7 +588,7 @@ namespace Palace
                 Toast("Face-down cards come last");
                 return;
             }
-            Execute(Game.PlayFaceDown(localPlayer, slot));
+            Submit(new NetCommand { Type = NetCommandType.PlayFaceDown, Slot = slot });
         }
 
         private void ToggleSelection(Card card, PlaySource source)
@@ -334,25 +619,25 @@ namespace Palace
         private void OnPlayPressed()
         {
             if (!LocalCanAct || selected.Count == 0) return;
-            Execute(Game.PlayCards(localPlayer, selectedSource, selected.ToList()));
+            Submit(PlayCommand());
         }
 
         private void OnPickUpPressed()
         {
             if (!LocalCanAct) return;
-            Execute(Game.PickUp(localPlayer));
+            Submit(new NetCommand { Type = NetCommandType.PickUp });
         }
 
         private void OnSevenCall(SevenCall call)
         {
             if (busy || Game.State.Phase != GamePhase.AwaitingSevenCall || Game.State.PendingPlayer != localPlayer) return;
-            Execute(Game.DeclareSeven(localPlayer, call));
+            Submit(new NetCommand { Type = NetCommandType.DeclareSeven, Call = call });
         }
 
         private void OnAceChoice(bool burn, Rank value)
         {
             if (busy || Game.State.Phase != GamePhase.AwaitingAceChoice || Game.State.PendingPlayer != localPlayer) return;
-            Execute(Game.ChooseAce(localPlayer, burn, value));
+            Submit(new NetCommand { Type = NetCommandType.ChooseAce, Burn = burn, AceValue = value });
         }
 
         // ==================================================================
@@ -369,7 +654,7 @@ namespace Palace
             for (int i = 0; i < seats.Count; i++)
             {
                 PlayerState p = s.Players[i];
-                SeatView seat = seats[i];
+                SeatView seat = SeatFor(i);
                 bool mine = i == localPlayer;
 
                 for (int k = 0; k < HouseRules.TableCards; k++)
@@ -413,6 +698,8 @@ namespace Palace
 
             bool myChoice = !busy && localPlayer >= 0 && s.PendingPlayer == localPlayer;
             sevenPanel.SetActive(myChoice && s.Phase == GamePhase.AwaitingSevenCall);
+            speedButton.gameObject.SetActive(CanFastForward);
+
             bool showAce = myChoice && s.Phase == GamePhase.AwaitingAceChoice;
             if (showAce && !acePanel.activeSelf) BuildAceButtons();
             acePanel.SetActive(showAce);
@@ -479,7 +766,7 @@ namespace Palace
         // Animations
         // ==================================================================
 
-        private IEnumerator DealThenPlay()
+        private IEnumerator DealThenPlay(IReadOnlyList<GameEvent> startEvents)
         {
             busy = true;
             GameState s = Game.State;
@@ -512,7 +799,7 @@ namespace Palace
                 for (int i = 0; i < seats.Count; i++)
                 {
                     PlayerState p = s.Players[i];
-                    SeatView seat = seats[i];
+                    SeatView seat = SeatFor(i);
                     Transform target = round < 3 ? seat.FaceDownCards[k].transform
                         : round < 6 ? seat.FaceUpCards[k].transform
                         : (i == localPlayer ? table.HandRoot : seat.transform);
@@ -531,7 +818,7 @@ namespace Palace
             yield return Tween.Wait(Tween.Scaled(0.3f));
 
             shownDeck = s.DrawPile.Count;
-            yield return PlayEvents(Game.StartEvents);
+            yield return PlayEvents(startEvents);
         }
 
         private IEnumerator PlayEvents(IReadOnlyList<GameEvent> events)
@@ -555,6 +842,11 @@ namespace Palace
                 yield return AnimateEvent(e, origins, onPile);
             }
 
+            // Make sure the table shows exactly the real state now the animations are done.
+            shownPile.Clear();
+            shownPile.AddRange(Game.State.Discard);
+            shownDeck = Game.State.DrawPile.Count;
+
             busy = false;
             RefreshAll();
 
@@ -567,7 +859,7 @@ namespace Palace
 
         private (Vector2 pos, float scale) SourcePoint(GameEvent e, int index)
         {
-            SeatView seat = table.Seats[e.Player];
+            SeatView seat = SeatFor(e.Player);
             if (e.Source == PlaySource.Hand)
             {
                 if (e.Player == localPlayer)
@@ -576,7 +868,7 @@ namespace Palace
                     if (v != null) return (table.ToLocal(v.transform), 1f);
                     return (table.HandCenter, 1f);
                 }
-                return (table.SeatPoint(e.Player), ScaleOf(seat.transform) * SeatView.TableCardScale);
+                return (SeatPointFor(e.Player), ScaleOf(seat.transform) * SeatView.TableCardScale);
             }
 
             int slot = e.Slots.Count > index ? e.Slots[index] : 0;
@@ -613,7 +905,7 @@ namespace Palace
                     {
                         Card card = e.Cards[i];
                         if (onPile.Contains(card.Id)) continue;
-                        (Vector2 pos, float scale) from = origins.TryGetValue(card.Id, out var o) ? o : (table.SeatPoint(e.Player), 0.5f);
+                        (Vector2 pos, float scale) from = origins.TryGetValue(card.Id, out var o) ? o : (SeatPointFor(e.Player), 0.5f);
                         flights.Add(StartCoroutine(FlyCard(card, from.pos, table.DiscardPoint, from.scale, table.PileCardScale, 0.3f, () =>
                         {
                             shownPile.Add(card);
@@ -630,7 +922,7 @@ namespace Palace
 
                 case GameEventType.CardsDrawn:
                 {
-                    Vector2 to = e.Player == localPlayer ? table.HandCenter : table.SeatPoint(e.Player);
+                    Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
                     float toScale = e.Player == localPlayer ? 1f : 0.5f;
                     for (int i = 0; i < e.Cards.Count; i++)
                     {
@@ -646,7 +938,7 @@ namespace Palace
 
                 case GameEventType.PileCollected:
                 {
-                    Vector2 to = e.Player == localPlayer ? table.HandCenter : table.SeatPoint(e.Player);
+                    Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
                     int n = e.Cards.Count;
                     string what = (e.Player == localPlayer ? "You pick up " : who + " picks up ") + n + (n == 1 ? " card" : " cards");
                     AudioManager.Play(Sfx.PickUp);
@@ -669,7 +961,7 @@ namespace Palace
                     // Give everyone a moment to take it in before the computer plays on.
                     if (!AutoPlayHarness.Active)
                     {
-                        pauseUntil = Time.unscaledTime + GameSettings.PickUpPauseSeconds;
+                        pauseUntil = Time.unscaledTime + GameSettings.PickUpPauseSeconds / Tween.SpeedMultiplier;
                         noticeMessage = what + ". Take a moment...";
                         noticeUntil = pauseUntil;
                     }
@@ -695,7 +987,7 @@ namespace Palace
                     float delay = 0f;
                     foreach (int p in e.Players)
                     {
-                        fx.SkipIcon(table.SeatPoint(p), delay);
+                        fx.SkipIcon(SeatPointFor(p), delay);
                         delay += 0.18f;
                     }
                     yield return Tween.Wait(Tween.Scaled(0.6f) + delay * GameSettings.AnimationScale);
@@ -858,12 +1150,18 @@ namespace Palace
             mrt.anchorMin = mrt.anchorMax = new Vector2(1f, 1f);
             mrt.anchoredPosition = new Vector2(-95f, -48f);
 
+            speedButton = UIKit.Button(hudRoot, "Speed 1x", new Vector2(170f, 64f), Vector2.zero, CycleSpeed, true, 26f);
+            var srt = (RectTransform)speedButton.transform;
+            srt.anchorMin = srt.anchorMax = new Vector2(1f, 1f);
+            srt.anchoredPosition = new Vector2(-280f, -48f);
+            speedButton.gameObject.SetActive(false);
+
             pausePanel = UIKit.Layer(hudRoot, "PauseMenu", UIKit.Scrim).gameObject;
             var panel = UIKit.Panel(pausePanel.transform, new Vector2(520f, 470f), Vector2.zero);
             UIKit.Label(panel.transform, "Paused", 48f, new Vector2(480f, 70f), new Vector2(0f, 165f), TextAlignmentOptions.Center, UIKit.Gold, true);
             UIKit.Button(panel.transform, "Resume", new Vector2(380f, 76f), new Vector2(0f, 65f), TogglePause, true);
-            UIKit.Button(panel.transform, "Restart", new Vector2(380f, 76f), new Vector2(0f, -25f), StartNewGame);
-            UIKit.Button(panel.transform, "Main Menu", new Vector2(380f, 76f), new Vector2(0f, -115f), GoToMainMenu);
+            restartButton = UIKit.Button(panel.transform, "Restart", new Vector2(380f, 76f), new Vector2(0f, -25f), StartNewGame);
+            leaveButton = UIKit.Button(panel.transform, "Main Menu", new Vector2(380f, 76f), new Vector2(0f, -115f), GoToMainMenu);
             pausePanel.SetActive(false);
 
             HidePrompts();
@@ -993,15 +1291,21 @@ namespace Palace
             return panel.gameObject;
         }
 
+        private Button restartButton, leaveButton;
+
+        /// <summary>In multiplayer the game keeps going for everyone else while this menu is open.</summary>
         private void TogglePause()
         {
             paused = !paused;
             pausePanel.SetActive(paused);
             pausePanel.transform.SetAsLastSibling();
+            restartButton.gameObject.SetActive(!IsNetClient);
+            UIKit.SetButtonLabel(leaveButton, IsNetworked ? "Leave game" : "Main Menu");
         }
 
         private void GoToMainMenu()
         {
+            if (IsNetworked) net.Leave();
             SceneManager.LoadScene(GameLaunch.MainMenuScene);
         }
 
@@ -1029,8 +1333,12 @@ namespace Palace
                 UIKit.Label(panel.transform, s.Players[p].Name + suffix, 30f, new Vector2(420f, 48f), new Vector2(60f, y), TextAlignmentOptions.Left, c, i == 0);
             }
 
-            UIKit.Button(panel.transform, "Play Again", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f), StartNewGame, true);
-            UIKit.Button(panel.transform, "Main Menu", new Vector2(300f, 80f), new Vector2(165f, -top + 65f), GoToMainMenu);
+            if (IsNetClient)
+                UIKit.Label(panel.transform, "Waiting for the host...", 26f, new Vector2(300f, 80f), new Vector2(-165f, -top + 65f),
+                    TextAlignmentOptions.Center, UIKit.Muted);
+            else
+                UIKit.Button(panel.transform, "Play Again", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f), StartNewGame, true);
+            UIKit.Button(panel.transform, IsNetworked ? "Leave game" : "Main Menu", new Vector2(300f, 80f), new Vector2(165f, -top + 65f), GoToMainMenu);
             AudioManager.Play(Sfx.Win);
         }
     }

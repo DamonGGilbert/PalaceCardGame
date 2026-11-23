@@ -51,13 +51,22 @@ namespace Palace
             BuildCredits();
 
             if (!GameLaunch.SplashShown) StartCoroutine(Splash());
+            else if (!string.IsNullOrEmpty(GameLaunch.MenuMessage)) OpenMultiplayer(GameLaunch.MenuMessage); // e.g. "The host left"
             else Show(mainPanel);
+            GameLaunch.MenuMessage = null;
             AudioManager.StartMusic();
 
             // Testing only: automated runs skip straight past the menu.
             string[] args = Environment.GetCommandLineArgs();
-            if (Array.IndexOf(args, "-palace-menushots") >= 0) StartCoroutine(MenuShots());
-            else if (Array.IndexOf(args, "-palace-autoplay") >= 0) SceneManager.LoadScene(GameLaunch.GameScene);
+            int netArg = Array.IndexOf(args, "-palace-net");
+            if (netArg >= 0 && netArg + 1 < args.Length && !Net.NetSession.Active)
+            {
+                int players = Array.IndexOf(args, "-palace-players") is int pi && pi >= 0 && pi + 1 < args.Length && int.TryParse(args[pi + 1], out int pc) ? pc : 4;
+                OpenMultiplayer();
+                StartCoroutine(multi.RunNetTest(args[netArg + 1], players));
+            }
+            else if (Array.IndexOf(args, "-palace-menushots") >= 0) StartCoroutine(MenuShots());
+            else if (Array.IndexOf(args, "-palace-autoplay") >= 0 && netArg < 0) SceneManager.LoadScene(GameLaunch.GameScene);
         }
 
         private void Show(GameObject panel)
@@ -146,7 +155,7 @@ namespace Palace
 
             var size = new Vector2(440f, 78f);
             UIKit.Button(p, "Single Player", size, new Vector2(0f, 110f), () => Show(singlePanel), true, 32f);
-            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, 18f), () => Show(multiPanel));
+            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, 18f), () => OpenMultiplayer());
             UIKit.Button(p, "How to Play", size, new Vector2(0f, -74f), () => Show(howPanel));
             UIKit.Button(p, "Settings", size, new Vector2(0f, -166f), () => Show(settingsPanel));
             UIKit.Button(p, "Credits", size, new Vector2(0f, -258f), () => Show(creditsPanel));
@@ -234,22 +243,20 @@ namespace Palace
 
         // ------------------------------------------------------------------ multiplayer
 
+        private MultiplayerMenu multi;
+
         private void BuildMultiplayer()
         {
-            Transform p = BuildScreen("Multiplayer", new Vector2(1000f, 680f), out multiPanel);
+            multiPanel = UIBuild.Stretch("Multiplayer", root).gameObject;
+            multi = gameObject.AddComponent<MultiplayerMenu>();
+            multi.Build((RectTransform)multiPanel.transform, () => Show(mainPanel));
+            multiPanel.SetActive(false);
+        }
 
-            var local = UIKit.Button(p, "Local network\n<size=22>Same Wi-Fi, no internet needed</size>", new Vector2(420f, 150f), new Vector2(-220f, 110f), null);
-            var online = UIKit.Button(p, "Online\n<size=22>Friends anywhere, using a join code</size>", new Vector2(420f, 150f), new Vector2(220f, 110f), null);
-            local.interactable = false;
-            online.interactable = false;
-
-            UIKit.Label(p, "Coming in the next update", 34f, new Vector2(900f, 50f), new Vector2(0f, -15f), TextAlignmentOptions.Center, UIKit.Gold, true);
-            var note = UIKit.Label(p,
-                "Multiplayer is the next development stage. The rules engine is already built so that " +
-                "one device can host the game and send every move to the others. Online play will use " +
-                "Unity Gaming Services (Lobby + Relay), which has a free tier. We'll confirm costs before setting it up.",
-                24f, new Vector2(860f, 160f), new Vector2(0f, -120f), TextAlignmentOptions.Center, UIKit.Muted);
-            note.textWrappingMode = TextWrappingModes.Normal;
+        private void OpenMultiplayer(string message = null)
+        {
+            Show(multiPanel);
+            multi.Open(message);
         }
 
         // ------------------------------------------------------------------ how to play
@@ -379,6 +386,7 @@ namespace Palace
             foreach (var shot in shots)
             {
                 Show(shot.panel);
+                if (shot.panel == multiPanel) multi.Open();
                 yield return new WaitForSecondsRealtime(0.4f);
                 ScreenCapture.CaptureScreenshot(Path.Combine(dir, shot.name + ".png"));
                 yield return new WaitForSecondsRealtime(0.3f);

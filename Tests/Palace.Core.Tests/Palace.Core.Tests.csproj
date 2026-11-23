@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\Assets\Palace\Scripts\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\Palace\Scripts\Net\NetProtocol.cs" Link="Net\NetProtocol.cs" />
   </ItemGroup>
 
 </Project>

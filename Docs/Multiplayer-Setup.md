@@ -1,0 +1,38 @@
+# Multiplayer – Setup and Notes
+
+## How it works
+- **Same Wi-Fi:** one player taps **Host a game** and everyone else taps **Join a game**. Nearby games appear automatically.
+  If one doesn't show, type the host's address. The host's room screen shows it, e.g. `192.168.1.20`.
+- **Online:** the host taps **Host a game** under *Online* and reads out the join code. Friends tap
+  **Join with a code**. This uses Unity Lobby and Relay, so nobody needs to change router settings.
+- **Who's in charge:** the host's device runs the rules. Other devices send their moves and only ever
+  receive their own cards, plus what everyone can see (face-up cards, the pile and hand sizes).
+  Hidden cards are never sent to the wrong device.
+- The host can add computer players to fill seats. If someone leaves mid-game, a computer player takes over their cards.
+
+## One-time setup for online play (about 5 minutes)
+Wi-Fi play works without any of this. Online play needs the project linked to Unity Cloud:
+
+1. In the Unity Editor, open **Edit → Project Settings → Services** and click **Link to Unity Cloud project**
+   (or use the cloud icon in the toolbar). You're already signed in. Choose **Create project** and name it `PalaceCardGame`.
+2. Go to <https://cloud.unity.com>, open the **PalaceCardGame** project, and turn on **Lobby** and **Relay**
+   (under *Multiplayer*). Accept the terms if asked. Both have a free tier; check the current limits on
+   Unity's pricing page before inviting lots of players.
+3. Build the game onto two devices, or run one copy in the Editor and one as a Windows build, and try Host / Join with a code.
+
+Until step 1 is done, "Host a game (Online)" shows a message saying the game isn't linked to Unity Cloud yet.
+
+## Testing on one computer
+The automated test runs two copies against each other on this PC:
+```
+Palace.exe -palace-net host -palace-players 4 -palace-autoplay 1
+Palace.exe -palace-net join -palace-autoplay 1
+```
+
+## Known limits (to address before release)
+- **iPhone Wi-Fi discovery:** Apple requires a special "multicast" permission for automatic discovery.
+  Until that's granted, iPhone players type the host's address or use online play. iOS will also ask for
+  "Local Network" permission the first time.
+- **Some Android phones** filter Wi-Fi broadcasts. Typing the address always works.
+- There's no turn timer yet, so a player who stops responding holds the game up until they leave.
+- If the host leaves, the game ends for everyone. Host handover is possible later.

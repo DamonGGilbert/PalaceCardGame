@@ -10,7 +10,10 @@ namespace Palace
     /// </summary>
     public static class Tween
     {
-        public static float Scaled(float seconds) => seconds * GameSettings.AnimationScale;
+        /// <summary>Temporary fast-forward (2x / 4x) while waiting for computer players to finish.</summary>
+        public static float SpeedMultiplier = 1f;
+
+        public static float Scaled(float seconds) => seconds * GameSettings.AnimationScale / Mathf.Max(1f, SpeedMultiplier);
 
         public static float EaseOutCubic(float t) => 1f - Mathf.Pow(1f - t, 3f);
         public static float EaseInOut(float t) => t * t * (3f - 2f * t);

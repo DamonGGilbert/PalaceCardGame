@@ -28,6 +28,16 @@
 - [x] Pause after a pick-up; slower computer players with a Computer speed setting (Relaxed / Normal / Quick)
 - [x] Pile viewer: tap the pile to see every card and a count per rank
 
+## Stage 5 – Multiplayer ✅ (Wi-Fi tested; online needs Unity Cloud linking)
+- [x] Host / join on the same Wi-Fi with automatic discovery (or type the address)
+- [x] Online host / join with a code (Unity Lobby + Relay via Multiplayer Services 2.5)
+- [x] Game room: players, ready status, add/remove computer players, Start
+- [x] Host-authoritative: the host runs the rules; each device receives only its own private view
+- [x] Everyone sees themselves at the bottom; leavers are replaced by a computer player
+- [x] Tests: privacy and consistency of every network update (85 checks); two builds played a full game over the network
+- [x] Single player: Speed 1x/2x/4x once you've finished
+- [ ] **You:** link the project to Unity Cloud and turn on Lobby + Relay (Docs/Multiplayer-Setup.md)
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong

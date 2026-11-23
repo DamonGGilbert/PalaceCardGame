@@ -167,6 +167,8 @@ namespace Palace
             UnityEngine.EventSystems.ExecuteEvents.Execute(view.gameObject, ped, UnityEngine.EventSystems.ExecuteEvents.endDragHandler);
 
             yield return new WaitForSecondsRealtime(0.2f);
+            while (controller.IsBusy || controller.IsWaitingForHost) yield return null;
+            yield return new WaitForSecondsRealtime(0.2f);
             while (controller.IsBusy) yield return null;
             bool played = controller.Game.State.TurnNumber != turnBefore || controller.Game.State.Players[0].Hand.Count != handBefore;
             Debug.Log("[AutoPlay] drag-and-drop test: " + (played ? "card was played by dragging it onto the pile" : "FAILED - nothing was played"));
@@ -189,7 +191,8 @@ namespace Palace
         {
             gamesPlayed++;
             var order = string.Join(", ", game.State.FinishOrder.Select(p => game.State.Players[p].Name));
-            Debug.Log($"[AutoPlay] game {gamesPlayed}/{gamesWanted} finished after {game.State.TurnNumber} turns. Order: {order}");
+            string role = Net.NetSession.Active ? (Net.NetSession.Instance.IsHost ? " [host]" : " [client]") : "";
+            Debug.Log($"[AutoPlay]{role} game {gamesPlayed}/{gamesWanted} finished after {game.State.TurnNumber} turns. Order: {order}");
             StartCoroutine(Next());
         }
 
@@ -199,8 +202,13 @@ namespace Palace
             if (gamesPlayed == 1 && !string.IsNullOrEmpty(shotsDir)) Shot("results");
             yield return new WaitForSecondsRealtime(0.4f);
 
-            if (gamesPlayed >= gamesWanted) Quit();
-            else controller.StartNewGame();
+            bool networkClient = Net.NetSession.Active && !Net.NetSession.Instance.IsHost;
+            if (gamesPlayed >= gamesWanted)
+            {
+                if (Net.NetSession.Active && Net.NetSession.Instance.IsHost) yield return new WaitForSecondsRealtime(2f); // let clients log their result
+                Quit();
+            }
+            else if (!networkClient) controller.StartNewGame(); // in multiplayer only the host deals
         }
 
         private void Shot(string name)

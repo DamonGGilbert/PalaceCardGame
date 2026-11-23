@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Palace.Core;
 
@@ -13,6 +14,7 @@ internal static class Program
     private static int Main()
     {
         RuleScenarios();
+        NetworkMessages();
         Simulations();
         Console.WriteLine();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");
@@ -382,6 +384,84 @@ internal static class Program
             g.PlayCards(0, PlaySource.Hand, Ids(hand));
             Check(g.State.Current == 1 && g.State.Discard.Count == 0, "next player starts on an empty pile");
         }
+    }
+
+    // ------------------------------------------------------------------ network messages
+
+    private static void NetworkMessages()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Network messages");
+        var rng = new Random(99);
+        bool privacyOk = true, roundTripOk = true, legalityOk = true, eventsOk = true;
+        int updates = 0;
+
+        for (int g = 0; g < 60; g++)
+        {
+            int players = 2 + g % 9;
+            var game = PalaceGame.Create(Enumerable.Range(0, players).Select(i => "P" + i).ToList(),
+                Enumerable.Repeat(true, players).ToList(), new HouseRules(), rng.Next());
+            var events = game.StartEvents.ToList();
+
+            for (int step = 0; step < 400 && game.State.Phase != GamePhase.GameOver; step++)
+            {
+                int viewer = step % players;
+                var (v, evs, view) = Decode(Palace.Net.NetProtocol.Update(game.State, events, viewer));
+                updates++;
+                var s = game.State;
+
+                // Privacy: only the viewer's own hand is real; face-down cards and the deck never are.
+                for (int p = 0; p < players; p++)
+                {
+                    var real = s.Players[p];
+                    var seen = view.Players[p];
+                    if (seen.Hand.Count != real.Hand.Count) roundTripOk = false;
+                    if (p == viewer && !seen.Hand.Select(c => c.Id).SequenceEqual(real.Hand.Select(c => c.Id))) roundTripOk = false;
+                    if (p != viewer && seen.Hand.Any(c => c.Id >= 0)) privacyOk = false;
+                    if (seen.FaceDown.Any(c => c.HasValue && c.Value.Id >= 0)) privacyOk = false;
+                    if (seen.FaceDownCount != real.FaceDownCount || seen.FinishPosition != real.FinishPosition) roundTripOk = false;
+                    for (int k = 0; k < 3; k++) if (!Equals(seen.FaceUp[k], real.FaceUp[k])) roundTripOk = false;
+                }
+                if (view.DrawPile.Any(c => c.Id >= 0)) privacyOk = false;
+                if (view.DrawPile.Count != s.DrawPile.Count || !view.Discard.SequenceEqual(s.Discard)) roundTripOk = false;
+                if (view.Current != s.Current || view.Phase != s.Phase || view.Direction != s.Direction || view.PendingPlayer != s.PendingPlayer
+                    || view.AceValue != s.AceValue || view.ActiveSeven != s.ActiveSeven || !view.PendingAceValues.SequenceEqual(s.PendingAceValues))
+                    roundTripOk = false;
+
+                // The viewer's device must reach the same rule decisions as the host.
+                var mirror = new PalaceGame(view, new HouseRules(), 0);
+                for (int r = 2; r <= 14; r++)
+                    if (mirror.CheckRank((Rank)r).Legal != game.CheckRank((Rank)r).Legal) legalityOk = false;
+                if (mirror.MustPickUp(viewer) != game.MustPickUp(viewer)) legalityOk = false;
+
+                foreach (var e in evs.Where(e => e.Type == GameEventType.CardsDrawn && e.Player != viewer))
+                    if (e.Cards.Any(c => c.Id >= 0)) eventsOk = false;
+
+                int actor = s.ActingPlayer;
+                var move = BotBrain.Decide(game, actor, rng);
+                var result = BotBrain.Execute(game, actor, move);
+                events = result.Events;
+            }
+        }
+
+        var cmd = new Palace.Net.NetCommand { Type = Palace.Net.NetCommandType.PlayCards, Source = PlaySource.FaceUp, Slot = 2, AceValue = Rank.Queen };
+        cmd.CardIds.AddRange(new[] { 5, 17 });
+        byte[] bytes = Palace.Net.NetProtocol.Command(cmd);
+        var back = Palace.Net.NetProtocol.ReadCommand(new BinaryReader(new MemoryStream(bytes, 1, bytes.Length - 1)));
+        Check(back.Type == cmd.Type && back.Source == cmd.Source && back.CardIds.SequenceEqual(cmd.CardIds) && back.AceValue == Rank.Queen,
+            "a move survives the trip to the host unchanged");
+
+        Check(roundTripOk, "every player's view of the table arrives intact (" + updates + " updates checked)");
+        Check(privacyOk, "no other player's hand, face-down card or deck order is ever sent");
+        Check(eventsOk, "cards drawn by other players stay hidden");
+        Check(legalityOk, "each device works out the same legal moves as the host");
+    }
+
+    private static (int viewer, List<GameEvent> events, GameState state) Decode(byte[] data)
+    {
+        var r = new BinaryReader(new MemoryStream(data));
+        r.ReadByte(); // message type
+        return Palace.Net.NetProtocol.ReadUpdate(r);
     }
 
     // ------------------------------------------------------------------ part 2

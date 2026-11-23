@@ -14,6 +14,9 @@ namespace Palace
         public static bool SpectateOnly;   // every seat is a bot (used for testing / "watch a game")
         public static int Seed;            // 0 = random
 
+        /// <summary>Shown on the Multiplayer screen after returning from a game (e.g. "The host left").</summary>
+        public static string MenuMessage;
+
         /// <summary>Set by the splash screen so it only shows once per app launch.</summary>
         public static bool SplashShown;
     }

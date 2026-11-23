@@ -13,7 +13,7 @@ A mobile-first (Android / iOS, landscape) and Windows card game made in Unity 6,
 - Single player against 1–9 computer opponents (2–10 players; a second deck is used from 6 players)
 - The full house rules: 2 reset, 7 higher/lower, 8 skips (stacking), 10 burn + extra turn, Queen reverse,
   Ace high or burn, optional same-rank multi-card plays, hand → face-up → face-down stages, finishing order and results
-- Multiplayer (local network and online) is the next stage
+- Multiplayer: same Wi-Fi (automatic discovery) or online with a join code (see Docs/Multiplayer-Setup.md)
 
 ## Project layout
 | Folder | Contents |
