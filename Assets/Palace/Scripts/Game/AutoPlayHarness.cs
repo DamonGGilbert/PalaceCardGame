@@ -42,6 +42,7 @@ namespace Palace
             harness.shotsDir = StringArg(args, "-palace-shots");
             if (!string.IsNullOrEmpty(harness.shotsDir)) Directory.CreateDirectory(harness.shotsDir);
             controller.GameFinished += harness.OnGameFinished;
+            controller.EventStarted += harness.OnEventStarted;
             Application.logMessageReceived += harness.OnLog;
             Debug.Log($"[AutoPlay] starting {games} games with {GameLaunch.BotCount + 1} players");
         }
@@ -66,6 +67,12 @@ namespace Palace
                 Quit();
             }
 
+            if (!dragTested && game.State.TurnNumber >= 3 && !controller.IsBusy)
+            {
+                CardView card = controller.FindPlayableHandCard();
+                if (card != null) StartCoroutine(DragTest(card));
+            }
+
             if (string.IsNullOrEmpty(shotsDir) || gamesPlayed > 0) return;
             if (!midShotTaken && game.State.TurnNumber >= 12 && !controller.IsBusy)
             {
@@ -77,6 +84,89 @@ namespace Palace
                 lateShotTaken = true;
                 Shot("game_late");
             }
+        }
+
+        // ------------------------------------------------------------------ effect screenshots
+
+        private readonly System.Collections.Generic.HashSet<string> effectShots = new System.Collections.Generic.HashSet<string>();
+
+        private void OnEventStarted(GameEvent e)
+        {
+            if (string.IsNullOrEmpty(shotsDir)) return;
+            switch (e.Type)
+            {
+                case GameEventType.PileBurned: EffectShot("fx_burn", 0.55f); break;
+                case GameEventType.PlayersSkipped: EffectShot("fx_skip", 0.3f); break;
+                case GameEventType.SevenDeclared: EffectShot("fx_seven", 0.3f); break;
+                case GameEventType.DirectionReversed: EffectShot("fx_reverse", 0.2f); break;
+                case GameEventType.AceChoiceNeeded:
+                    if (e.Player == 0 && effectShots.Add("fx_ace_picker")) StartCoroutine(AcePickerShot());
+                    break;
+            }
+        }
+
+        private void EffectShot(string name, float delay)
+        {
+            if (effectShots.Add(name)) StartCoroutine(DelayedShot(name, delay));
+        }
+
+        private IEnumerator DelayedShot(string name, float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            Shot(name);
+        }
+
+        private IEnumerator AcePickerShot()
+        {
+            controller.HoldAutoPlay = true;
+            while (controller.IsBusy) yield return null;
+            yield return new WaitForSecondsRealtime(0.4f);
+            Shot("fx_ace_picker");
+            yield return new WaitForSecondsRealtime(0.2f);
+            controller.HoldAutoPlay = false;
+        }
+
+        // ------------------------------------------------------------------ drag-and-drop test
+
+        private bool dragTested;
+
+        /// <summary>Simulates a finger dragging a playable hand card onto the pile, like a real player.</summary>
+        private IEnumerator DragTest(CardView view)
+        {
+            dragTested = true;
+            controller.HoldAutoPlay = true;
+            int turnBefore = controller.Game.State.TurnNumber;
+            int handBefore = controller.Game.State.Players[0].Hand.Count;
+
+            var canvas = controller.Table.GetComponentInParent<Canvas>();
+            Camera cam = canvas.worldCamera;
+            var raycaster = canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>();
+            Vector2 from = RectTransformUtility.WorldToScreenPoint(cam, view.transform.position);
+            Vector2 to = RectTransformUtility.WorldToScreenPoint(cam, controller.Table.transform.TransformPoint(controller.Table.DiscardPoint));
+
+            var hit = new UnityEngine.EventSystems.RaycastResult { module = raycaster, gameObject = view.gameObject };
+            var ped = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
+            {
+                position = from, pressPosition = from, pointerPressRaycast = hit, pointerCurrentRaycast = hit, dragging = true
+            };
+
+            UnityEngine.EventSystems.ExecuteEvents.Execute(view.gameObject, ped, UnityEngine.EventSystems.ExecuteEvents.beginDragHandler);
+            for (int i = 1; i <= 12; i++)
+            {
+                ped.position = Vector2.Lerp(from, to, i / 12f);
+                UnityEngine.EventSystems.ExecuteEvents.Execute(view.gameObject, ped, UnityEngine.EventSystems.ExecuteEvents.dragHandler);
+                if (i == 11 && !string.IsNullOrEmpty(shotsDir)) Shot("drag_over_pile");
+                yield return null;
+                yield return null;
+            }
+            UnityEngine.EventSystems.ExecuteEvents.Execute(view.gameObject, ped, UnityEngine.EventSystems.ExecuteEvents.endDragHandler);
+
+            yield return new WaitForSecondsRealtime(0.2f);
+            while (controller.IsBusy) yield return null;
+            bool played = controller.Game.State.TurnNumber != turnBefore || controller.Game.State.Players[0].Hand.Count != handBefore;
+            Debug.Log("[AutoPlay] drag-and-drop test: " + (played ? "card was played by dragging it onto the pile" : "FAILED - nothing was played"));
+            if (!played) errors++;
+            controller.HoldAutoPlay = false;
         }
 
         private void OnGameFinished(PalaceGame game)

@@ -14,6 +14,7 @@ namespace Palace.Core
         public int Slot;
         public SevenCall Call;
         public bool Burn;
+        public Rank AceValue;
     }
 
     /// <summary>
@@ -31,7 +32,14 @@ namespace Palace.Core
                 return new BotMove { Type = BotMoveType.DeclareSeven, Call = ChooseSevenCall(game, player, rng) };
 
             if (s.Phase == GamePhase.AwaitingAceChoice)
-                return new BotMove { Type = BotMoveType.ChooseAce, Burn = s.Discard.Count >= 4 || rng.NextDouble() < 0.3 };
+            {
+                bool burn = s.PendingAceBurnAllowed && (s.PendingAceValues.Count == 0 || s.Discard.Count >= 4 || rng.NextDouble() < 0.3);
+                // As a high card, usually make it as hard as possible for the next player.
+                Rank value = s.PendingAceValues.Count > 0
+                    ? (rng.NextDouble() < 0.8 ? s.PendingAceValues.Max() : s.PendingAceValues[rng.Next(s.PendingAceValues.Count)])
+                    : Rank.Ace;
+                return new BotMove { Type = BotMoveType.ChooseAce, Burn = burn, AceValue = value };
+            }
 
             PlayerState me = s.Players[player];
             PlaySource source = me.ActiveSource;
@@ -66,7 +74,7 @@ namespace Palace.Core
                 case BotMoveType.PlayFaceDown: return game.PlayFaceDown(player, move.Slot);
                 case BotMoveType.PickUp: return game.PickUp(player);
                 case BotMoveType.DeclareSeven: return game.DeclareSeven(player, move.Call);
-                default: return game.ChooseAce(player, move.Burn);
+                default: return game.ChooseAce(player, move.Burn, move.AceValue);
             }
         }
 
@@ -85,8 +93,9 @@ namespace Palace.Core
         {
             PlayerState next = game.State.Players[game.NextActiveFrom(player)];
 
-            // If the next player is down to face-up cards, aim the call at the side they can't play.
-            if (next.Hand.Count == 0 && next.FaceUpCount > 0)
+            // If the next player is down to face-up cards, usually aim the call at the side they can't play.
+            // (Not always: the "perfect" call every time can trap players in an endless 7 loop.)
+            if (next.Hand.Count == 0 && next.FaceUpCount > 0 && rng.NextDouble() < 0.75)
             {
                 int high = next.FaceUp.Count(c => c.HasValue && (int)c.Value.Rank > 7 && c.Value.Rank != Rank.Ten);
                 int low = next.FaceUp.Count(c => c.HasValue && (int)c.Value.Rank < 7);

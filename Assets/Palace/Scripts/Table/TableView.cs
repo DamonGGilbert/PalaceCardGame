@@ -105,6 +105,24 @@ namespace Palace
             }
         }
 
+        public Vector2 TableCenter => tableCenter;
+        public int FeltSiblingIndex => tableImage.transform.GetSiblingIndex();
+
+        private Image dropGlow;
+
+        /// <summary>Glow behind the pile while a dragged card is over it ("drop here").</summary>
+        public void SetDropHighlight(bool on)
+        {
+            if (dropGlow == null)
+            {
+                if (!on) return;
+                dropGlow = UIBuild.Image("DropGlow", centerRoot, FxSprites.Dot, new Color(1f, 0.82f, 0.35f, 0.75f),
+                    new Vector2(340f, 420f), DiscardPosition);
+                dropGlow.transform.SetAsFirstSibling();
+            }
+            dropGlow.gameObject.SetActive(on);
+        }
+
         public Vector2 DeckPoint => tableCenter + DeckPosition;
         public Vector2 DiscardPoint => tableCenter + DiscardPosition;
         public float PileCardScale => pileCardScale;

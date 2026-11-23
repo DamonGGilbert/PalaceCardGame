@@ -19,6 +19,12 @@ namespace Palace.Core
         /// <summary>Q3: may a 10 / Ace-as-10 burn when the previous player called LOWER on a 7?</summary>
         public bool BurnAllowedOnLowerSeven = false;
 
+        /// <summary>
+        /// An Ace played as a high card stands for a value the player picks. true = the value may
+        /// equal the top card (like the normal "equal or higher" rule); false = it must be strictly higher.
+        /// </summary>
+        public bool AceValueMayEqualTop = true;
+
         /// <summary>Q20: four cards of the same rank burn the pile. Not part of the school rules.</summary>
         public bool FourOfAKindBurns = false;
 

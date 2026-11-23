@@ -81,7 +81,15 @@ namespace Palace.Core
         public int PendingPlayer = -1;
         public int PendingCount;
 
+        // Ace played as a high card stands for a chosen value (e.g. "this Ace counts as a Queen").
+        public Rank? AceValue;
+        public readonly List<Rank> PendingAceValues = new List<Rank>();
+        public bool PendingAceBurnAllowed;
+
         public Rank? TopRank => Discard.Count > 0 ? Discard[Discard.Count - 1].Rank : (Rank?)null;
+
+        /// <summary>The value the next card must match or beat (an Ace counts as its chosen value).</summary>
+        public Rank? EffectiveTopRank => TopRank == Rank.Ace && AceValue.HasValue ? AceValue : TopRank;
 
         public int ActivePlayerCount
         {

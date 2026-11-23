@@ -16,7 +16,7 @@ namespace Palace
     /// and a CardTheme.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
-    public class CardView : MonoBehaviour, IPointerClickHandler
+    public class CardView : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         public const float Width = 140f;
         public const float Height = 196f;
@@ -114,7 +114,78 @@ namespace Palace
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (interactable) Clicked?.Invoke(this);
+            if (interactable && !eventData.dragging) Clicked?.Invoke(this);
+        }
+
+        // ------------------------------------------------------------------
+        // Drag and drop
+        // ------------------------------------------------------------------
+
+        /// <summary>Asked when a drag starts; return false to refuse (e.g. the card can't be played).</summary>
+        public Func<CardView, bool> CanDrag;
+        public event Action<CardView, PointerEventData> DragMoved;
+        public event Action<CardView, PointerEventData> DragEnded;
+
+        private bool dragging;
+        private Vector2 homePosition;
+        private Vector2 grabOffset;
+        private int homeSibling;
+        private Vector3 homeScale;
+        private Coroutine returning;
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            if (!interactable || (CanDrag != null && !CanDrag(this)) || !(transform.parent is RectTransform parent))
+            {
+                eventData.pointerDrag = null; // cancel: no OnDrag / OnEndDrag for this gesture
+                return;
+            }
+
+            if (returning != null) StopCoroutine(returning);
+            dragging = true;
+            var rt = (RectTransform)transform;
+            homePosition = rt.anchoredPosition;
+            homeSibling = rt.GetSiblingIndex();
+            homeScale = rt.localScale;
+            rt.SetAsLastSibling();
+            rt.localScale = homeScale * 1.08f; // lift it slightly as it's picked up
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, eventData.position, eventData.pressEventCamera, out Vector2 local);
+            grabOffset = local - homePosition;
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (!dragging) return;
+            var parent = (RectTransform)transform.parent;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, eventData.position, eventData.pressEventCamera, out Vector2 local))
+                ((RectTransform)transform).anchoredPosition = local - grabOffset;
+            DragMoved?.Invoke(this, eventData);
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            if (!dragging) return;
+            dragging = false;
+            DragEnded?.Invoke(this, eventData);
+        }
+
+        /// <summary>Glide back to where the drag started (dropped somewhere that isn't the pile).</summary>
+        public void ReturnHome()
+        {
+            var rt = (RectTransform)transform;
+            rt.SetSiblingIndex(homeSibling);
+            if (!gameObject.activeInHierarchy) { SnapHome(); return; }
+            returning = StartCoroutine(Tween.Move(rt, rt.anchoredPosition, homePosition, Mathf.Max(0.08f, Tween.Scaled(0.18f)),
+                rt.localScale.x, homeScale.x));
+        }
+
+        /// <summary>Jump straight back to where the drag started.</summary>
+        public void SnapHome()
+        {
+            var rt = (RectTransform)transform;
+            rt.anchoredPosition = homePosition;
+            rt.localScale = homeScale;
+            rt.localEulerAngles = Vector3.zero;
         }
 
         // ------------------------------------------------------------------

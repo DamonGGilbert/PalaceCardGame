@@ -18,6 +18,10 @@ MonoBehaviour:
   circle: {fileID: 21300000, guid: 94955e0abb74ae14da87d9d84cb23a46, type: 3}
   ring: {fileID: 21300000, guid: 8771f909861ca4d4d80ce05a05c589fc, type: 3}
   softGlow: {fileID: 21300000, guid: 32946c8f8726ef349bde7959e7dea3d9, type: 3}
+  tableVariants:
+  - {fileID: 21300000, guid: e222a9ed99e8f6547804f3c8781d580b, type: 3}
+  - {fileID: 21300000, guid: 0141b06a1948c454082a2803bfe4c8f9, type: 3}
+  - {fileID: 21300000, guid: 28a281eb0553b4b46ab252354fcdea8b, type: 3}
   panelColor: {r: 0.03, g: 0.05, b: 0.04, a: 0.78}
   panelTurnColor: {r: 0.42, g: 0.31, b: 0.09, a: 0.92}
   textColor: {r: 0.95, g: 0.93, b: 0.89, a: 1}

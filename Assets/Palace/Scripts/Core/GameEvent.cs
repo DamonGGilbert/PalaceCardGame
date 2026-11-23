@@ -36,6 +36,7 @@ namespace Palace.Core
         public PlaySource Source;
         public SevenCall Call;
         public bool Burn;
+        public Rank AceValue;   // AceChosen: the value the Ace stands for (when not burning)
         public int Count;
         public int Position;
         public int Direction;
@@ -52,7 +53,7 @@ namespace Palace.Core
                 case GameEventType.PlayersSkipped: return $"P{Player} skipped {string.Join(",", Players)}";
                 case GameEventType.DirectionReversed: return $"P{Player} reversed x{Count} -> {Direction}";
                 case GameEventType.SevenDeclared: return $"P{Player} called {Call}";
-                case GameEventType.AceChosen: return $"P{Player} ace {(Burn ? "burn" : "high")}";
+                case GameEventType.AceChosen: return $"P{Player} ace {(Burn ? "burn" : "as " + Card.RankToLabel(AceValue))}";
                 case GameEventType.PlayerFinished: return $"P{Player} finished #{Position}";
                 case GameEventType.TurnChanged: return $"Turn -> P{Player}";
                 default: return $"{Type} P{Player}";

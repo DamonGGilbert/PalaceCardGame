@@ -21,6 +21,11 @@ namespace Palace
 
         public event Action<Card> CardTapped;
 
+        /// <summary>Asked when the player starts dragging a hand card; return false to refuse.</summary>
+        public Func<Card, bool> CanDrag;
+        public event Action<CardView, UnityEngine.EventSystems.PointerEventData> CardDragged;
+        public event Action<CardView, UnityEngine.EventSystems.PointerEventData> CardDropped;
+
         public HandView(TableView table)
         {
             this.table = table;
@@ -34,6 +39,9 @@ namespace Palace
             {
                 CardView view = CardFactory.Spawn(table.CardPrefab, table.CardTheme, table.HandRoot);
                 view.Clicked += OnClicked;
+                view.CanDrag = v => v.CurrentCard.HasValue && CanDrag != null && CanDrag(v.CurrentCard.Value);
+                view.DragMoved += (v, e) => CardDragged?.Invoke(v, e);
+                view.DragEnded += (v, e) => CardDropped?.Invoke(v, e);
                 pool.Add(view);
             }
 

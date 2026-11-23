@@ -193,6 +193,44 @@ internal static class Program
             Check(g2.CheckRank(Rank.Two).Legal && g2.CheckRank(Rank.Ten).Legal, "...or a 2 or 10");
         }
 
+        Section("Ace as a chosen value: on a Jack it can be J/Q/K/A but never 9");
+        {
+            var g = Table(3);
+            Pile(g, Rank.Jack);
+            var hand = Give(g, 0, Rank.Ace);
+            g.PlayCards(0, PlaySource.Hand, Ids(hand));
+            var options = g.State.PendingAceValues;
+            Check(options.SequenceEqual(new[] { Rank.Jack, Rank.Queen, Rank.King, Rank.Ace }), "options are J, Q, K, A");
+            Check(g.State.PendingAceBurnAllowed, "burning is also offered");
+            Check(!g.ChooseAce(0, false, Rank.Nine).Ok, "choosing 9 on a Jack is rejected");
+            Check(g.ChooseAce(0, false, Rank.Queen).Ok, "choosing Queen is accepted");
+            Check(g.State.Current == 1 && g.State.Direction == 1, "turn passes; the Ace-as-Queen does NOT reverse");
+            Check(!g.CheckRank(Rank.Jack).Legal && g.CheckRank(Rank.Queen).Legal && g.CheckRank(Rank.King).Legal,
+                "next player must play a Queen or higher");
+            Check(g.Requirement() == "Q or higher", "requirement text shows the Ace's value");
+        }
+
+        Section("Ace on an empty pile can stand for any value except 10");
+        {
+            var g = Table(3);
+            var hand = Give(g, 0, Rank.Ace);
+            g.PlayCards(0, PlaySource.Hand, Ids(hand));
+            Check(g.State.PendingAceValues.Count == 12 && !g.State.PendingAceValues.Contains(Rank.Ten), "2-9, J, Q, K, A");
+            g.ChooseAce(0, false, Rank.Four);
+            Check(g.CheckRank(Rank.Four).Legal && !g.CheckRank(Rank.Three).Legal, "next player must beat a 4");
+        }
+
+        Section("Ace on a HIGHER 7 must stand for 8 or more");
+        {
+            var g = Table(3);
+            var seven = Give(g, 0, Rank.Seven);
+            g.PlayCards(0, PlaySource.Hand, Ids(seven));
+            g.DeclareSeven(0, SevenCall.Higher);
+            var ace = Give(g, 1, Rank.Ace);
+            g.PlayCards(1, PlaySource.Hand, Ids(ace));
+            Check(g.State.PendingAceValues.First() == Rank.Eight && !g.State.PendingAceValues.Contains(Rank.Seven), "options start at 8");
+        }
+
         Section("Queen reverses");
         {
             var g = Table(4);

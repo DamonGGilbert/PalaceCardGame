@@ -270,10 +270,10 @@ namespace Palace
             "<b>8</b>  Skip. Each 8 skips one player (two 8s skip two players).\n" +
             "<b>10</b>  Burn. Removes the pile from the game and you go again.\n" +
             "<b>Queen</b>  Reverses the direction of play.\n" +
-            "<b>Ace</b>  Highest card, or use it as a 10 to burn the pile.\n\n" +
+            "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). Or use it as a 10 to burn the pile.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
             "2. Then play your face-up cards.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
-            "<b><color=#F2C24D>Controls</color></b>\nTap cards to select them (tap again to deselect), then press PLAY. Cards you can't play are darkened; tap one to see why.";
+            "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play.";
 
         // ------------------------------------------------------------------ settings
 

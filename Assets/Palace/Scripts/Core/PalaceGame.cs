@@ -102,16 +102,36 @@ namespace Palace.Core
             if (rank == Rank.Ten) return CheckBurn();
             if (rank == Rank.Ace)
             {
-                PlayCheck high = CheckValue(14);
-                if (high.Legal) return high;
+                if (AceValueOptions().Count > 0) return PlayCheck.Ok;
                 PlayCheck burn = CheckBurn();
-                return burn.Legal ? burn : high;
+                return burn.Legal ? burn : CheckValue(14);
             }
             return CheckValue((int)rank);
         }
 
-        public bool AceHighLegal => CheckValue(14).Legal;
+        public bool AceHighLegal => AceValueOptions().Count > 0;
         public bool AceBurnLegal => CheckBurn().Legal;
+
+        /// <summary>
+        /// The values an Ace could stand for as a high card right now: equal to or higher than
+        /// the card on the pile (never lower), and 10 is excluded because "Ace as 10" means burn.
+        /// Under a LOWER 7 an Ace can't be played as a high card.
+        /// </summary>
+        public List<Rank> AceValueOptions()
+        {
+            var options = new List<Rank>();
+            if (ActiveSeven == SevenCall.Lower) return options;
+
+            Rank? top = State.EffectiveTopRank;
+            for (int r = 2; r <= 14; r++)
+            {
+                if (r == 10) continue;
+                if (!CheckValue(r).Legal) continue;
+                if (!Rules.AceValueMayEqualTop && top.HasValue && top != Rank.Two && r == (int)top.Value) continue;
+                options.Add((Rank)r);
+            }
+            return options;
+        }
 
         /// <summary>The 7 restriction currently in force (only while that 7 is on top).</summary>
         public SevenCall ActiveSeven => State.TopRank == Rank.Seven ? State.ActiveSeven : SevenCall.None;
@@ -158,7 +178,7 @@ namespace Palace.Core
             SevenCall seven = ActiveSeven;
             if (seven == SevenCall.Higher) return "HIGHER than 7";
             if (seven == SevenCall.Lower) return "LOWER than 7";
-            Rank? top = State.TopRank;
+            Rank? top = State.EffectiveTopRank;
             if (!top.HasValue || top == Rank.Two) return "any card";
             return Card.RankToLabel(top.Value) + " or higher";
         }
@@ -171,7 +191,7 @@ namespace Palace.Core
             if (seven == SevenCall.Lower)
                 return value < 7 ? PlayCheck.Ok : PlayCheck.No("Must be LOWER than 7");
 
-            Rank? top = State.TopRank;
+            Rank? top = State.EffectiveTopRank;
             if (!top.HasValue || value >= (int)top.Value) return PlayCheck.Ok;
             return PlayCheck.No("Needs " + Card.RankToLabel(top.Value) + " or higher");
         }
@@ -225,11 +245,13 @@ namespace Palace.Core
 
             PlayCheck check = CheckRank(rank);
             if (!check.Legal) return CommandResult.Fail(check.Reason);
-            bool aceHigh = AceHighLegal, aceBurn = AceBurnLegal;
+            List<Rank> aceValues = AceValueOptions();
+            bool aceBurn = AceBurnLegal;
 
             if (source == PlaySource.Hand) foreach (var c in cards) p.Hand.Remove(c);
             else foreach (int s in slots) p.FaceUp[s] = null;
             State.Discard.AddRange(cards);
+            State.AceValue = null;
 
             var result = new CommandResult { Ok = true };
             result.Events.Add(new GameEvent
@@ -237,7 +259,7 @@ namespace Palace.Core
                 Type = GameEventType.CardsPlayed, Player = player, Source = source,
                 Cards = new List<Card>(cards), Slots = slots
             });
-            Resolve(result, player, rank, cards.Count, aceHigh, aceBurn);
+            Resolve(result, player, rank, cards.Count, aceValues, aceBurn);
             return result;
         }
 
@@ -261,7 +283,8 @@ namespace Palace.Core
             });
 
             PlayCheck check = CheckRank(card.Rank);
-            bool aceHigh = AceHighLegal, aceBurn = AceBurnLegal;
+            List<Rank> aceValues = AceValueOptions();
+            bool aceBurn = AceBurnLegal;
             State.Discard.Add(card);
 
             if (check.Legal)
@@ -271,7 +294,8 @@ namespace Palace.Core
                     Type = GameEventType.CardsPlayed, Player = player, Source = PlaySource.FaceDown,
                     Cards = new List<Card> { card }, Slots = new List<int> { slot }
                 });
-                Resolve(result, player, card.Rank, 1, aceHigh, aceBurn);
+                State.AceValue = null;
+                Resolve(result, player, card.Rank, 1, aceValues, aceBurn);
             }
             else
             {
@@ -312,16 +336,25 @@ namespace Palace.Core
             return result;
         }
 
-        public CommandResult ChooseAce(int player, bool burn)
+        /// <summary>
+        /// After playing an Ace: burn the pile (Ace as a 10), or keep it as a high card standing
+        /// for <paramref name="value"/>, which must be one of State.PendingAceValues.
+        /// </summary>
+        public CommandResult ChooseAce(int player, bool burn, Rank value = Rank.Ace)
         {
             if (State.Phase != GamePhase.AwaitingAceChoice || player != State.PendingPlayer)
                 return CommandResult.Fail("No Ace choice to make");
+            if (burn && !State.PendingAceBurnAllowed) return CommandResult.Fail("The Ace can't burn right now");
+            if (!burn && !State.PendingAceValues.Contains(value))
+                return CommandResult.Fail("The Ace can be: " + string.Join(", ", State.PendingAceValues.ConvertAll(Card.RankToLabel)));
 
             var result = new CommandResult { Ok = true };
             State.Phase = GamePhase.Playing;
             State.PendingPlayer = -1;
-            result.Events.Add(new GameEvent { Type = GameEventType.AceChosen, Player = player, Burn = burn });
+            result.Events.Add(new GameEvent { Type = GameEventType.AceChosen, Player = player, Burn = burn, AceValue = value });
             ApplyEffects(result, player, Rank.Ace, State.PendingCount, burn);
+            if (!burn) State.AceValue = value;
+            State.PendingAceValues.Clear();
             return result;
         }
 
@@ -329,7 +362,7 @@ namespace Palace.Core
         // What happens after cards land on the pile
         // ==================================================================
 
-        private void Resolve(CommandResult result, int player, Rank rank, int count, bool aceHigh, bool aceBurn)
+        private void Resolve(CommandResult result, int player, Rank rank, int count, List<Rank> aceValues, bool aceBurn)
         {
             Replenish(result, player);
             CheckFinished(result, player);
@@ -348,15 +381,19 @@ namespace Palace.Core
 
             if (rank == Rank.Ace && !fourOfAKind)
             {
-                if (aceHigh && aceBurn)
+                if (aceValues.Count > 0)
                 {
+                    // The player picks a value for the Ace (or to burn, if allowed).
                     State.Phase = GamePhase.AwaitingAceChoice;
                     State.PendingPlayer = player;
                     State.PendingCount = count;
+                    State.PendingAceValues.Clear();
+                    State.PendingAceValues.AddRange(aceValues);
+                    State.PendingAceBurnAllowed = aceBurn;
                     result.Events.Add(new GameEvent { Type = GameEventType.AceChoiceNeeded, Player = player });
                     return;
                 }
-                ApplyEffects(result, player, rank, count, !aceHigh && aceBurn);
+                ApplyEffects(result, player, rank, count, true); // only the burn was legal
                 return;
             }
 
@@ -366,6 +403,7 @@ namespace Palace.Core
         private void ApplyEffects(CommandResult result, int player, Rank rank, int count, bool burn)
         {
             State.ActiveSeven = SevenCall.None;
+            State.AceValue = null;
             PlayerState p = State.Players[player];
 
             if (burn)
@@ -436,6 +474,7 @@ namespace Palace.Core
             State.Players[player].Hand.AddRange(pile);
             State.Discard.Clear();
             State.ActiveSeven = SevenCall.None;
+            State.AceValue = null;
             result.Events.Add(new GameEvent { Type = GameEventType.PileCollected, Player = player, Cards = pile });
         }
 

@@ -34,6 +34,20 @@ namespace Palace
         public bool IsBusy => busy;
         public event Action<PalaceGame> GameFinished;
 
+        // Hooks used only by the automated test harness.
+        public event Action<GameEvent> EventStarted;
+        public bool HoldAutoPlay { get; set; }
+        public TableView Table => table;
+
+        /// <summary>A hand card the local player could drag onto the pile right now, or null.</summary>
+        public CardView FindPlayableHandCard()
+        {
+            if (!LocalCanAct || Game.State.Players[localPlayer].ActiveSource != PlaySource.Hand) return null;
+            foreach (var c in Game.State.Players[localPlayer].Hand)
+                if (Game.CheckRank(c.Rank).Legal) return hand.Find(c.Id);
+            return null;
+        }
+
         private System.Random botRng;
         private HandView hand;
         private int localPlayer;          // -1 when only watching bots
@@ -57,6 +71,9 @@ namespace Palace
         private float toastUntil;
         private GameObject sevenPanel;
         private GameObject acePanel;
+        private RectTransform aceButtons;
+        private DirectionRing ring;
+        private TableFx fx;
         private GameObject pausePanel;
         private RectTransform resultsLayer;
 
@@ -81,6 +98,12 @@ namespace Palace
 
             hand = new HandView(table);
             hand.CardTapped += OnHandCardTapped;
+            hand.CanDrag = c => BeginDrag(c, PlaySource.Hand);
+            hand.CardDragged += (v, e) => OnDragging(e);
+            hand.CardDropped += (v, e) => OnDropped(v, e, PlaySource.Hand, -1);
+
+            fx = TableFx.Attach(table);
+            ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
             BuildHud();
             StartNewGame();
         }
@@ -114,10 +137,20 @@ namespace Palace
             for (int k = 0; k < HouseRules.TableCards; k++)
             {
                 int slot = k;
-                seats[0].FaceUpCards[k].Clicked += _ => OnFaceUpTapped(slot);
-                seats[0].FaceDownCards[k].Clicked += _ => OnFaceDownTapped(slot);
+                CardView up = seats[0].FaceUpCards[k];
+                up.Clicked += _ => OnFaceUpTapped(slot);
+                up.CanDrag = v => v.CurrentCard.HasValue && BeginDrag(v.CurrentCard.Value, PlaySource.FaceUp);
+                up.DragMoved += (v, e) => OnDragging(e);
+                up.DragEnded += (v, e) => OnDropped(v, e, PlaySource.FaceUp, slot);
+
+                CardView down = seats[0].FaceDownCards[k];
+                down.Clicked += _ => OnFaceDownTapped(slot);
+                down.CanDrag = _ => LocalCanAct && Game.State.Players[localPlayer].ActiveSource == PlaySource.FaceDown;
+                down.DragMoved += (v, e) => OnDragging(e);
+                down.DragEnded += (v, e) => OnDropped(v, e, PlaySource.FaceDown, slot);
             }
             table.FxRoot.SetAsLastSibling();
+            ring.SetDirection(Game.State.Direction, false);
 
             shownPile.Clear();
             shownDeck = Game.State.TotalCards;
@@ -137,6 +170,7 @@ namespace Palace
             int actor = Game.State.ActingPlayer;
             bool autoPlayLocal = AutoPlayHarness.Active && actor == localPlayer; // test builds only
             if (!Game.State.Players[actor].IsBot && !autoPlayLocal) return;
+            if (autoPlayLocal && HoldAutoPlay) return;
 
             botTimer += Time.unscaledDeltaTime;
             if (botTimer < BotDelay) return;
@@ -148,17 +182,79 @@ namespace Palace
 
         private float BotDelay => AutoPlayHarness.Active ? 0.02f : Mathf.Max(0.25f, 0.8f * GameSettings.AnimationScale);
 
-        private void Execute(CommandResult result)
+        private bool Execute(CommandResult result)
         {
             if (!result.Ok)
             {
                 Toast(result.Error);
-                return;
+                return false;
             }
             selected.Clear();
             HidePrompts();
             busy = true;
             StartCoroutine(PlayEvents(result.Events));
+            return true;
+        }
+
+        // ==================================================================
+        // Drag and drop onto the pile
+        // ==================================================================
+
+        /// <summary>A drag is starting on one of the player's cards. Allowed only for a playable card.</summary>
+        private bool BeginDrag(Card card, PlaySource source)
+        {
+            if (!LocalCanAct || Game.State.Players[localPlayer].ActiveSource != source) return false;
+            PlayCheck check = Game.CheckRank(card.Rank);
+            if (!check.Legal)
+            {
+                Toast(check.Reason);
+                return false;
+            }
+
+            // The dragged card joins the selection (cards of the same rank already selected go with it).
+            if (!selected.Contains(card.Id))
+            {
+                if (selected.Count > 0 && (selectedSource != source || FindSelectedRank() != card.Rank)) selected.Clear();
+                selected.Add(card.Id);
+                selectedSource = source;
+                AudioManager.Play(Sfx.Select, 0.6f);
+                RefreshAll();
+            }
+            return true;
+        }
+
+        private void OnDragging(UnityEngine.EventSystems.PointerEventData e) => table.SetDropHighlight(IsOverPile(e));
+
+        private void OnDropped(CardView view, UnityEngine.EventSystems.PointerEventData e, PlaySource source, int slot)
+        {
+            table.SetDropHighlight(false);
+            bool played = false;
+            if (IsOverPile(e) && LocalCanAct)
+            {
+                played = source == PlaySource.FaceDown
+                    ? Execute(Game.PlayFaceDown(localPlayer, slot))
+                    : selected.Count > 0 && Execute(Game.PlayCards(localPlayer, selectedSource, selected.ToList()));
+            }
+
+            if (played)
+            {
+                // Hand cards are re-laid out by HandView (and the view may already show another card),
+                // so only table cards need putting back in their slot.
+                if (source != PlaySource.Hand) view.SnapHome();
+            }
+            else
+            {
+                view.ReturnHome();
+                if (source == PlaySource.Hand) RefreshAll();
+            }
+        }
+
+        /// <summary>Generous drop zone around the discard pile, so it's easy to hit with a thumb.</summary>
+        private bool IsOverPile(UnityEngine.EventSystems.PointerEventData e)
+        {
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)table.transform, e.position,
+                       e.pressEventCamera, out Vector2 p)
+                   && (p - table.DiscardPoint).magnitude < 280f;
         }
 
         // ==================================================================
@@ -242,10 +338,10 @@ namespace Palace
             Execute(Game.DeclareSeven(localPlayer, call));
         }
 
-        private void OnAceChoice(bool burn)
+        private void OnAceChoice(bool burn, Rank value)
         {
             if (busy || Game.State.Phase != GamePhase.AwaitingAceChoice || Game.State.PendingPlayer != localPlayer) return;
-            Execute(Game.ChooseAce(localPlayer, burn));
+            Execute(Game.ChooseAce(localPlayer, burn, value));
         }
 
         // ==================================================================
@@ -287,7 +383,6 @@ namespace Palace
 
             table.SetDeckCount(shownDeck);
             table.SetDiscardPile(shownPile);
-            table.SetDirection(s.Direction);
             SevenCall seven = Game.ActiveSeven;
             table.SetEffect(seven == SevenCall.Higher ? "Next: HIGHER than 7" : seven == SevenCall.Lower ? "Next: LOWER than 7" : null);
 
@@ -304,7 +399,9 @@ namespace Palace
 
             bool myChoice = !busy && localPlayer >= 0 && s.PendingPlayer == localPlayer;
             sevenPanel.SetActive(myChoice && s.Phase == GamePhase.AwaitingSevenCall);
-            acePanel.SetActive(myChoice && s.Phase == GamePhase.AwaitingAceChoice);
+            bool showAce = myChoice && s.Phase == GamePhase.AwaitingAceChoice;
+            if (showAce && !acePanel.activeSelf) BuildAceButtons();
+            acePanel.SetActive(showAce);
         }
 
         private void HidePrompts()
@@ -340,7 +437,7 @@ namespace Palace
             }
 
             if (s.Phase == GamePhase.AwaitingSevenCall) { statusText.text = "Call HIGHER or LOWER for the next player"; return; }
-            if (s.Phase == GamePhase.AwaitingAceChoice) { statusText.text = "Use your Ace as a high card or a burn"; return; }
+            if (s.Phase == GamePhase.AwaitingAceChoice) { statusText.text = "Choose what your Ace counts as"; return; }
             if (busy) { statusText.text = ""; return; }
 
             PlayerState me = s.Players[localPlayer];
@@ -469,8 +566,9 @@ namespace Palace
         private IEnumerator AnimateEvent(GameEvent e, Dictionary<int, (Vector2 pos, float scale)> origins, HashSet<int> onPile)
         {
             GameState s = Game.State;
+            EventStarted?.Invoke(e);
             string who = e.Player >= 0 && e.Player < s.Players.Count ? s.Players[e.Player].Name : "";
-            Vector2 centre = table.DiscardPoint + new Vector2(-120f, 150f);
+            Vector2 centre = table.DiscardPoint + new Vector2(-120f, 210f); // above the "Next:" banner, below the top seats
 
             switch (e.Type)
             {
@@ -543,43 +641,61 @@ namespace Palace
                 }
 
                 case GameEventType.PileBurned:
+                {
+                    // The top cards of the pile spread out and burn away; the rest just vanish.
+                    var burning = shownPile.Skip(Mathf.Max(0, shownPile.Count - 6)).ToList();
+                    shownPile.Clear();
+                    table.SetDiscardPile(shownPile);
                     AudioManager.Play(Sfx.Burn);
                     table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
-                    yield return BurnPile();
+                    yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale);
                     break;
+                }
 
                 case GameEventType.PlayersSkipped:
+                {
                     AudioManager.Play(Sfx.Skip);
                     table.Announce(e.Count > 1 ? "SKIP x" + e.Count : "SKIP", new Color(0.6f, 0.85f, 1f), centre, 72f);
+                    float delay = 0f;
                     foreach (int p in e.Players)
-                        if (p != e.Player) table.Announce("skipped", new Color(0.6f, 0.85f, 1f), table.SeatPoint(p), 34f);
-                    yield return Tween.Wait(Tween.Scaled(0.6f));
+                    {
+                        fx.SkipIcon(table.SeatPoint(p), delay);
+                        delay += 0.18f;
+                    }
+                    yield return Tween.Wait(Tween.Scaled(0.6f) + delay * GameSettings.AnimationScale);
                     break;
+                }
 
                 case GameEventType.DirectionReversed:
                     AudioManager.Play(Sfx.Reverse);
                     table.Announce(e.Count % 2 == 1 ? "REVERSE" : "DOUBLE REVERSE", new Color(0.85f, 0.7f, 1f), centre, 72f);
                     table.SetDirection(e.Direction);
-                    yield return Tween.Wait(Tween.Scaled(0.6f));
+                    ring.SetDirection(e.Direction, true);
+                    fx.Ripple(table.DiscardPoint, new Color(0.8f, 0.65f, 1f, 0.9f));
+                    yield return Tween.Wait(Tween.Scaled(0.8f));
                     break;
 
                 case GameEventType.Reset:
                     AudioManager.Play(Sfx.Reset);
                     table.Announce("RESET", new Color(0.65f, 1f, 0.7f), centre, 72f);
-                    yield return Tween.Wait(Tween.Scaled(0.45f));
+                    fx.Ripple(table.DiscardPoint, new Color(0.6f, 1f, 0.7f, 0.9f));
+                    fx.Ripple(table.DiscardPoint, new Color(0.6f, 1f, 0.7f, 0.6f), 0.15f);
+                    yield return Tween.Wait(Tween.Scaled(0.5f));
                     break;
 
                 case GameEventType.SevenDeclared:
                     table.Announce(e.Call == SevenCall.Higher ? "HIGHER than 7" : "LOWER than 7", UIKit.Gold, centre, 64f);
+                    fx.SevenArrow(table.DiscardPoint, e.Call == SevenCall.Higher);
                     AudioManager.Play(Sfx.Skip, 0.5f);
-                    yield return Tween.Wait(Tween.Scaled(0.6f));
+                    yield return Tween.Wait(Tween.Scaled(0.8f));
                     break;
 
                 case GameEventType.AceChosen:
                     if (!e.Burn)
                     {
-                        table.Announce("ACE HIGH", UIKit.Gold, centre, 64f);
-                        yield return Tween.Wait(Tween.Scaled(0.45f));
+                        table.Announce("ACE = " + RankName(e.AceValue), UIKit.Gold, centre, 64f);
+                        fx.Ripple(table.DiscardPoint, new Color(1f, 0.85f, 0.4f, 0.8f));
+                        yield return Tween.Wait(Tween.Scaled(0.5f));
                     }
                     break;
 
@@ -589,7 +705,7 @@ namespace Palace
                     string text = e.Player == localPlayer
                         ? (last ? "You finished last" : "You finish " + SeatView.Ordinal(e.Position) + "!")
                         : who + (last ? " finishes last" : " finishes " + SeatView.Ordinal(e.Position) + "!");
-                    table.Announce(text, UIKit.Gold, centre + new Vector2(0f, 90f), 56f);
+                    table.Announce(text, UIKit.Gold, table.DiscardPoint + new Vector2(-120f, -10f), 56f);
                     if (e.Position == 1 || e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
                     RefreshAll();
                     yield return Tween.Wait(Mathf.Max(0.4f, Tween.Scaled(0.9f)));
@@ -600,7 +716,7 @@ namespace Palace
                     if (e.Player == localPlayer && s.Phase == GamePhase.Playing && Game.State.Current == localPlayer)
                     {
                         AudioManager.Play(Sfx.YourTurn, 0.6f);
-                        table.Announce("YOUR TURN", UIKit.Gold, table.HandCenter + new Vector2(0f, 150f), 48f);
+                        table.Announce("YOUR TURN", UIKit.Gold, new Vector2(735f, -312f), 44f); // just above the status text, clear of your cards
                     }
                     break;
 
@@ -653,36 +769,16 @@ namespace Palace
             Destroy(view.gameObject);
         }
 
-        private IEnumerator BurnPile()
+        private static string RankName(Rank rank)
         {
-            var burning = new List<CardView>();
-            int shown = Mathf.Min(6, shownPile.Count);
-            for (int i = shownPile.Count - shown; i < shownPile.Count; i++)
+            switch (rank)
             {
-                CardView v = CardFactory.Spawn(table.CardPrefab, table.CardTheme, table.FxRoot);
-                v.SetInteractable(false);
-                v.ShowCard(shownPile[i], true);
-                var rt = (RectTransform)v.transform;
-                rt.anchoredPosition = table.DiscardPoint;
-                rt.localScale = Vector3.one * table.PileCardScale;
-                burning.Add(v);
+                case Rank.Jack: return "JACK";
+                case Rank.Queen: return "QUEEN";
+                case Rank.King: return "KING";
+                case Rank.Ace: return "ACE";
+                default: return ((int)rank).ToString();
             }
-            shownPile.Clear();
-            table.SetDiscardPile(shownPile);
-
-            var groups = burning.Select(v => v.gameObject.AddComponent<CanvasGroup>()).ToList();
-            yield return Tween.Run(Mathf.Max(0.2f, Tween.Scaled(0.5f)), t =>
-            {
-                for (int i = 0; i < burning.Count; i++)
-                {
-                    var rt = (RectTransform)burning[i].transform;
-                    rt.localScale = Vector3.one * table.PileCardScale * (1f + 0.4f * t);
-                    rt.localEulerAngles = new Vector3(0f, 0f, (i - burning.Count * 0.5f) * 14f * t);
-                    rt.anchoredPosition = table.DiscardPoint + new Vector2((i - burning.Count * 0.5f) * 30f * t, 40f * t);
-                    groups[i].alpha = 1f - t;
-                }
-            });
-            foreach (var v in burning) Destroy(v.gameObject);
         }
 
         private float ScaleOf(Transform t) => t.lossyScale.x / Mathf.Max(0.0001f, table.transform.lossyScale.x);
@@ -706,8 +802,12 @@ namespace Palace
 
             sevenPanel = BuildChoice("You played a 7. The next player must play...", "HIGHER", () => OnSevenCall(SevenCall.Higher),
                 "LOWER", () => OnSevenCall(SevenCall.Lower));
-            acePanel = BuildChoice("Use your Ace as...", "HIGH CARD", () => OnAceChoice(false),
-                "BURN (as 10)", () => OnAceChoice(true));
+            var ace = UIKit.Panel(tableHud, new Vector2(1000f, 320f), new Vector2(0f, 20f));
+            UIKit.Label(ace.transform, "Your Ace counts as... (it must match or beat the pile)", 28f, new Vector2(940f, 50f),
+                new Vector2(0f, 115f), TextAlignmentOptions.Center, UIKit.Text, true);
+            aceButtons = UIBuild.Stretch("AceButtons", ace.transform);
+            acePanel = ace.gameObject;
+            acePanel.SetActive(false);
 
             // Menu button + pause menu live in the safe-area HUD.
             var menu = UIKit.Button(hudRoot, "Menu", new Vector2(150f, 64f), Vector2.zero, TogglePause, false, 26f);
@@ -724,6 +824,29 @@ namespace Palace
             pausePanel.SetActive(false);
 
             HidePrompts();
+        }
+
+        /// <summary>One button per value the Ace may stand for, plus "Burn" when allowed.</summary>
+        private void BuildAceButtons()
+        {
+            foreach (Transform child in aceButtons) Destroy(child.gameObject);
+
+            List<Rank> values = Game.State.PendingAceValues;
+            int n = values.Count;
+            float step = n > 0 ? Mathf.Min(110f, 920f / n) : 0f;
+            for (int i = 0; i < n; i++)
+            {
+                Rank value = values[i];
+                UIKit.Button(aceButtons, Card.RankToLabel(value), new Vector2(step - 10f, 86f),
+                    new Vector2((i - (n - 1) * 0.5f) * step, 20f), () => OnAceChoice(false, value), true, 36f);
+            }
+
+            if (Game.State.PendingAceBurnAllowed)
+            {
+                var burn = UIKit.Button(aceButtons, "BURN THE PILE (Ace as 10)", new Vector2(460f, 72f), new Vector2(0f, -95f),
+                    () => OnAceChoice(true, Rank.Ace), false, 28f);
+                ((Image)burn.targetGraphic).color = new Color(0.62f, 0.2f, 0.08f, 0.97f);
+            }
         }
 
         private GameObject BuildChoice(string title, string a, Action onA, string b, Action onB)
