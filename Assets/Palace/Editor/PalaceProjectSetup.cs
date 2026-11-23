@@ -23,7 +23,7 @@ namespace Palace.EditorTools
         };
 
         [MenuItem("Palace/Setup/Run Full Setup", priority = 0)]
-        public static void RunAll() => RunAllThen(null);
+        public static void RunAll() => RunAllThen(PalacePlayModeHelper.AfterSetup);
 
         /// <summary>Runs steps 1-3 in order, waiting for the TextMeshPro import to finish first.</summary>
         public static void RunAllThen(Action afterwards)
