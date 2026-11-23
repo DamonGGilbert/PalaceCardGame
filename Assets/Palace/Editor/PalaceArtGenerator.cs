@@ -83,9 +83,11 @@ namespace Palace.EditorTools
             Render("ring", 128, 128, (x, y) => Shape(Mathf.Abs(Circle(x, y, 64f, 64f, 57f)) - 4f));
             Render("soft_glow", 256, 256, SoftGlow);
             PalacePubArt.GenerateAll(); // the hand-painted pub style (the default look)
+            PalacePubArt.GenerateCosmetics();
 
             AssetDatabase.Refresh();
             PalacePubArt.ConfigureAll();
+            PalacePubArt.ConfigureCosmetics();
 
             ConfigureSprite("card_face", 512);
             foreach (var b in Backs) ConfigureSprite(b.file, 512);
@@ -435,7 +437,92 @@ namespace Palace.EditorTools
             table.uiInkColor = new Color(0.2f, 0.11f, 0.04f);
             EditorUtility.SetDirty(table);
 
+            BuildCosmeticLibrary();
+
             AssetDatabase.SaveAssets();
+        }
+
+        public const string LibraryFolder = "Assets/Palace/Resources";
+        public const string LibraryPath = LibraryFolder + "/CosmeticLibrary.asset";
+
+        /// <summary>
+        /// The Customise screen's catalogue: every item, its name and its price in coins.
+        /// Price 0 = owned from the start. Edit prices here and re-run Generate Art.
+        /// </summary>
+        private static void BuildCosmeticLibrary()
+        {
+            EnsureFolder(LibraryFolder);
+            var lib = LoadOrCreate<CosmeticLibrary>(LibraryPath);
+
+            TableSkin T(string id, string name, int price, string file, bool water = false) =>
+                new TableSkin { id = id, displayName = name, price = price, table = LoadSprite(file), preview = LoadSprite(file), animatedWater = water };
+            lib.tables = new System.Collections.Generic.List<TableSkin>
+            {
+                T("table_pub", "Pub Green", 0, "pub_table"),
+                T("table_casino", "Casino Green", 0, "table"),
+                T("table_crimson", "Crimson Velvet", 150, "pub_table_crimson"),
+                T("table_navy", "Midnight Blue", 150, "pub_table_navy"),
+                T("table_casino_blue", "Casino Blue", 100, "table_blue"),
+                T("table_casino_red", "Casino Red", 100, "table_red"),
+                T("table_lagoon", "Lagoon (animated)", 400, "pub_table_lagoon", true)
+            };
+
+            DeckSkin D(string id, string name, int price, string face, string suitPrefix, bool pictures, Color red, Color black) => new DeckSkin
+            {
+                id = id, displayName = name, price = price, face = LoadSprite(face), preview = LoadSprite(face),
+                hearts = LoadSprite(suitPrefix + "suit_hearts"), diamonds = LoadSprite(suitPrefix + "suit_diamonds"),
+                spades = LoadSprite(suitPrefix + "suit_spades"), clubs = LoadSprite(suitPrefix + "suit_clubs"),
+                jack = pictures ? LoadSprite("pub_icon_jack") : null, queen = pictures ? LoadSprite("pub_icon_queen") : null,
+                king = pictures ? LoadSprite("pub_icon_king") : null, red = red, black = black
+            };
+            lib.decks = new System.Collections.Generic.List<DeckSkin>
+            {
+                D("deck_parlour", "Parlour", 0, "pub_card_face", "pub_", true, PalacePubArt.RedInk, PalacePubArt.BlackInk),
+                D("deck_casino", "Casino", 0, "card_face", "", false, new Color(0.78f, 0.07f, 0.17f), new Color(0.09f, 0.09f, 0.11f)),
+                D("deck_midnight", "Midnight Gold", 300, "pub_card_face_midnight", "pub_", true, PalacePubArt.MidnightRed, PalacePubArt.MidnightBlack)
+            };
+
+            BackSkin B(string id, string name, int price, string file) =>
+                new BackSkin { id = id, displayName = name, price = price, back = LoadSprite(file), preview = LoadSprite(file) };
+            lib.backs = new System.Collections.Generic.List<BackSkin>
+            {
+                B("back_oxblood", "Oxblood Rosette", 0, "pub_card_back"),
+                B("back_burgundy", "Casino Burgundy", 0, "card_back"),
+                B("back_navy", "Casino Navy", 100, "card_back_navy"),
+                B("back_emerald", "Emerald Rosette", 150, "pub_card_back_emerald"),
+                B("back_midnight", "Midnight Rosette", 200, "pub_card_back_midnight")
+            };
+
+            BannerSkin N(string id, string name, int price, string file, Color tint, Color text) =>
+                new BannerSkin { id = id, displayName = name, price = price, plate = LoadSprite(file), preview = LoadSprite(file), tint = tint, text = text };
+            lib.banners = new System.Collections.Generic.List<BannerSkin>
+            {
+                N("banner_walnut", "Walnut", 0, "pub_panel", new Color(0.9f, 0.85f, 0.8f, 0.97f), new Color(0.98f, 0.93f, 0.82f)),
+                N("banner_slate", "Slate", 100, "panel", new Color(0.08f, 0.1f, 0.12f, 0.95f), Color.white),
+                N("banner_leather", "Stitched Leather", 150, "pub_plate_leather", Color.white, new Color(0.98f, 0.9f, 0.75f)),
+                N("banner_brass", "Polished Brass", 200, "pub_button", Color.white, new Color(0.2f, 0.11f, 0.04f))
+            };
+
+            NameStyle S(string id, string name, int price, Color face, Color outline, float width) =>
+                new NameStyle { id = id, displayName = name, price = price, face = face, outline = outline, outlineWidth = width };
+            lib.nameStyles = new System.Collections.Generic.List<NameStyle>
+            {
+                S("name_plain", "Plain", 0, new Color(0.98f, 0.93f, 0.82f), Color.black, 0f),
+                S("name_gold", "Gilded", 150, new Color(1f, 0.84f, 0.42f), new Color(0.3f, 0.16f, 0.02f), 0.2f),
+                S("name_ice", "Frost", 150, Color.white, new Color(0.45f, 0.8f, 1f), 0.22f),
+                S("name_neon", "Neon", 200, new Color(0.8f, 1f, 1f), new Color(0f, 0.85f, 1f), 0.28f),
+                S("name_fire", "Blaze", 200, new Color(1f, 0.93f, 0.4f), new Color(0.95f, 0.3f, 0.05f), 0.3f)
+            };
+
+            lib.effects = new System.Collections.Generic.List<EffectSkin>
+            {
+                new EffectSkin { id = "fx_classic", displayName = "Fire & Embers", price = 0, style = FxStyle.Classic, preview = LoadSprite("fx_preview_classic") },
+                new EffectSkin { id = "fx_water", displayName = "Water", price = 500, style = FxStyle.Water, preview = LoadSprite("fx_preview_water") }
+            };
+
+            lib.waterCaustics = AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/water_caustics.png");
+            lib.feltMask = LoadSprite("felt_mask");
+            EditorUtility.SetDirty(lib);
         }
 
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject

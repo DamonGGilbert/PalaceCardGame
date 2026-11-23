@@ -12,8 +12,16 @@ namespace Palace
     {
         private const int ArrowCount = 16;
         private static readonly Vector2 PathSize = new Vector2(1120f, 470f);
-        private static readonly Color BaseColor = new Color(0.95f, 0.78f, 0.35f, 0.30f);
-        private static readonly Color FlashColor = new Color(0.85f, 0.70f, 1f, 0.95f);
+        private Color BaseColor = new Color(0.95f, 0.78f, 0.35f, 0.30f);
+        private Color FlashColor = new Color(0.85f, 0.70f, 1f, 0.95f);
+
+        /// <summary>Match the arrows to the effect theme (gold normally, pale blue for water).</summary>
+        public void SetStyle(FxStyle style)
+        {
+            BaseColor = style == FxStyle.Water ? new Color(0.7f, 0.92f, 1f, 0.32f) : new Color(0.95f, 0.78f, 0.35f, 0.30f);
+            FlashColor = style == FxStyle.Water ? new Color(0.85f, 1f, 1f, 0.95f) : new Color(0.85f, 0.70f, 1f, 0.95f);
+            Layout();
+        }
 
         private readonly List<Image> arrows = new List<Image>();
         private Vector2 centre;
@@ -29,7 +37,7 @@ namespace Palace
             var ring = rt.gameObject.AddComponent<DirectionRing>();
             ring.centre = centre;
             for (int i = 0; i < ArrowCount; i++)
-                ring.arrows.Add(UIBuild.Image("Arrow", rt, FxSprites.Chevron, BaseColor, new Vector2(44f, 44f), Vector2.zero));
+                ring.arrows.Add(UIBuild.Image("Arrow", rt, FxSprites.Chevron, ring.BaseColor, new Vector2(44f, 44f), Vector2.zero));
             ring.Layout();
             return ring;
         }

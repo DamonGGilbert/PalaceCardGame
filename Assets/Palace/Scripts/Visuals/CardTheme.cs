@@ -1,3 +1,4 @@
+using System;
 using Palace.Core;
 using TMPro;
 using UnityEngine;
@@ -42,11 +43,20 @@ namespace Palace
         [Header("Font (leave empty to use the TextMeshPro default)")]
         public TMP_FontAsset rankFont;
 
-        /// <summary>The card back chosen in Settings (falls back to the default back).</summary>
+        // Equipped cosmetics (set at runtime by Cosmetics.ApplyThemes; never saved into the asset).
+        [NonSerialized] public DeckSkin deckSkin;
+        [NonSerialized] public BackSkin backSkin;
+
+        public Sprite Face => deckSkin != null && deckSkin.face != null ? deckSkin.face : face;
+        public Color RedInk => deckSkin != null ? deckSkin.red : redSuit;
+        public Color BlackInk => deckSkin != null ? deckSkin.black : blackSuit;
+
+        /// <summary>The equipped card back (falls back to the default back).</summary>
         public Sprite CurrentBack
         {
             get
             {
+                if (backSkin != null && backSkin.back != null) return backSkin.back;
                 if (backVariants == null || backVariants.Length == 0) return back;
                 Sprite s = backVariants[Mathf.Clamp(GameSettings.CardBack, 0, backVariants.Length - 1)];
                 return s != null ? s : back;
@@ -55,17 +65,29 @@ namespace Palace
 
         public Sprite GetCourtIcon(Rank rank)
         {
+            var d = deckSkin;
             switch (rank)
             {
-                case Rank.Jack: return jackIcon;
-                case Rank.Queen: return queenIcon;
-                case Rank.King: return kingIcon;
+                case Rank.Jack: return d != null ? d.jack : jackIcon;
+                case Rank.Queen: return d != null ? d.queen : queenIcon;
+                case Rank.King: return d != null ? d.king : kingIcon;
                 default: return null;
             }
         }
 
         public Sprite GetSuitSprite(Suit suit)
         {
+            var d = deckSkin;
+            if (d != null && d.hearts != null)
+            {
+                switch (suit)
+                {
+                    case Suit.Clubs: return d.clubs;
+                    case Suit.Diamonds: return d.diamonds;
+                    case Suit.Hearts: return d.hearts;
+                    default: return d.spades;
+                }
+            }
             switch (suit)
             {
                 case Suit.Clubs: return clubs;

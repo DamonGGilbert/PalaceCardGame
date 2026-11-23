@@ -117,11 +117,45 @@ namespace Palace
             isTurn = value;
             UIBuild.SetActive(turnGlow, value);
             UIBuild.SetActive(avatarRing, value);
-            if (tableTheme != null)
+            if (banner != null)
+            {
+                plate.color = value ? Color.Lerp(banner.tint, tableTheme != null ? tableTheme.panelTurnColor : Color.yellow, 0.5f) : banner.tint;
+            }
+            else if (tableTheme != null)
             {
                 plate.color = value ? tableTheme.panelTurnColor : tableTheme.panelColor;
-                nameText.color = value ? Color.white : tableTheme.textColor;
             }
+            if (nameStyle == null && tableTheme != null)
+                nameText.color = value ? Color.white : (banner != null ? banner.text : tableTheme.textColor);
+        }
+
+        // ------------------------------------------------------------------ cosmetics (your own seat)
+
+        private BannerSkin banner;
+        private NameStyle nameStyle;
+
+        /// <summary>Your name banner from the Customise screen.</summary>
+        public void ApplyBanner(BannerSkin skin)
+        {
+            EnsureBuilt();
+            banner = skin;
+            if (skin == null || skin.plate == null) return;
+            plate.sprite = skin.plate;
+            plate.type = Image.Type.Sliced;
+            nameText.color = skin.text;
+            SetTurn(isTurn);
+        }
+
+        /// <summary>Your name lettering from the Customise screen.</summary>
+        public void ApplyNameStyle(NameStyle style)
+        {
+            EnsureBuilt();
+            // "Plain" lettering just uses the banner's own text colour.
+            nameStyle = style != null && style.outlineWidth > 0f ? style : null;
+            if (nameStyle == null) return;
+            nameText.color = style.face;
+            nameText.outlineWidth = style.outlineWidth;
+            nameText.outlineColor = style.outline;
         }
 
         // ------------------------------------------------------------------

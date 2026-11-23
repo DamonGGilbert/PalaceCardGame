@@ -105,6 +105,27 @@ namespace Palace
             }
         }
 
+        private WaterShimmer water;
+
+        /// <summary>Apply the equipped table, deck and card back (call after Cosmetics.ApplyThemes).</summary>
+        public void ApplySkin()
+        {
+            EnsureBuilt();
+            if (tableTheme != null) tableImage.sprite = tableTheme.CurrentTable;
+
+            TableSkin skin = Cosmetics.Table;
+            CosmeticLibrary lib = CosmeticLibrary.Instance;
+            bool wantWater = skin != null && skin.animatedWater && lib != null && lib.waterCaustics != null && lib.feltMask != null;
+            if (wantWater && water == null)
+            {
+                water = WaterShimmer.Create(transform, tableSize, tableCenter, lib.feltMask, lib.waterCaustics);
+                water.transform.SetSiblingIndex(tableImage.transform.GetSiblingIndex() + 1);
+            }
+            if (water != null) water.gameObject.SetActive(wantWater);
+
+            foreach (var card in GetComponentsInChildren<CardView>(true)) card.Theme = cardTheme; // new deck / back
+        }
+
         public Vector2 TableCenter => tableCenter;
         public int FeltSiblingIndex => tableImage.transform.GetSiblingIndex();
 

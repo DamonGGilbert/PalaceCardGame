@@ -22,6 +22,12 @@ namespace Palace
 
         private static readonly Color EmberHot = new Color(1f, 0.92f, 0.55f, 1f);
         private static readonly Color EmberCool = new Color(0.85f, 0.22f, 0.05f, 0f);
+        private static readonly Color BubbleHot = new Color(0.9f, 0.98f, 1f, 0.95f);
+        private static readonly Color BubbleCool = new Color(0.35f, 0.75f, 1f, 0f);
+
+        /// <summary>Effect theme from the Customise screen: fire and embers, or water.</summary>
+        public FxStyle Style = FxStyle.Classic;
+        private bool IsWater => Style == FxStyle.Water;
         private const int MaxParticles = 260;
 
         private TableView table;
@@ -151,12 +157,13 @@ namespace Palace
             {
                 for (int i = 0; i < n; i++) holders[i].anchoredPosition = Vector2.LerpUnclamped(start, targets[i], t);
             });
-            Ripple(pile + new Vector2(0f, 50f), new Color(1f, 0.55f, 0.15f, 0.9f));
+            Ripple(pile + new Vector2(0f, 50f), IsWater ? new Color(0.5f, 0.85f, 1f, 0.9f) : new Color(1f, 0.55f, 0.15f, 0.9f));
 
             // 2. Burn from the bottom up
             var flames = new List<Image>();
             foreach (var _ in holders)
-                flames.Add(UIBuild.Image("Flame", Layer, FxSprites.Dot, new Color(1f, 0.6f, 0.15f, 0.9f), new Vector2(w * 1.4f, 56f), Vector2.zero));
+                flames.Add(UIBuild.Image(IsWater ? "Wave" : "Flame", Layer, FxSprites.Dot,
+                    IsWater ? new Color(0.6f, 0.9f, 1f, 0.9f) : new Color(1f, 0.6f, 0.15f, 0.9f), new Vector2(w * 1.4f, 56f), Vector2.zero));
 
             float duration = Mathf.Max(0.55f, Tween.Scaled(1.0f));
             float time = 0f;
@@ -174,7 +181,9 @@ namespace Palace
                     flameRt.anchoredPosition = edge;
                     float flicker = 0.75f + 0.25f * Mathf.Sin(time * 38f + i * 1.7f);
                     flameRt.localScale = new Vector3(flicker, 0.8f + 0.4f * flicker, 1f);
-                    flames[i].color = new Color(1f, 0.55f + 0.2f * flicker, 0.15f, 0.9f * (1f - t * 0.3f));
+                    flames[i].color = IsWater
+                        ? new Color(0.55f + 0.2f * flicker, 0.88f, 1f, 0.9f * (1f - t * 0.3f))
+                        : new Color(1f, 0.55f + 0.2f * flicker, 0.15f, 0.9f * (1f - t * 0.3f));
 
                     Spawn(edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
                     if (Random.value < 0.5f) Spawn(edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
@@ -202,11 +211,13 @@ namespace Palace
                 p = new Particle { Image = UIBuild.Image("Ember", Layer, FxSprites.Dot, EmberHot, Vector2.one * 16f, Vector2.zero) };
             }
             p.Image.gameObject.SetActive(true);
+            p.Image.sprite = IsWater ? FxSprites.Ring : FxSprites.Dot; // bubbles are hollow rings
             p.Image.rectTransform.SetAsLastSibling();
             p.Image.rectTransform.anchoredPosition = at;
-            p.Velocity = new Vector2(Random.Range(-40f, 40f), Random.Range(70f, 190f));
-            p.MaxLife = p.Life = Random.Range(0.35f, 0.8f);
-            p.Size = Random.Range(10f, 24f);
+            // Embers fly up fast and small; bubbles drift up slower and bigger.
+            p.Velocity = IsWater ? new Vector2(Random.Range(-25f, 25f), Random.Range(40f, 110f)) : new Vector2(Random.Range(-40f, 40f), Random.Range(70f, 190f));
+            p.MaxLife = p.Life = IsWater ? Random.Range(0.6f, 1.1f) : Random.Range(0.35f, 0.8f);
+            p.Size = IsWater ? Random.Range(14f, 32f) : Random.Range(10f, 24f);
             live.Add(p);
         }
 
@@ -230,7 +241,7 @@ namespace Palace
                 var rt = p.Image.rectTransform;
                 rt.anchoredPosition += p.Velocity * dt;
                 rt.sizeDelta = Vector2.one * p.Size * (1f - age * 0.6f);
-                p.Image.color = Color.Lerp(EmberHot, EmberCool, age);
+                p.Image.color = IsWater ? Color.Lerp(BubbleHot, BubbleCool, age) : Color.Lerp(EmberHot, EmberCool, age);
             }
         }
     }

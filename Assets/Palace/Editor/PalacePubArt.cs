@@ -22,15 +22,15 @@ namespace Palace.EditorTools
         private static readonly Color Brass = Hex("#C99A4E");
         private static readonly Color BrassLight = Hex("#F6DC96");
         private static readonly Color BrassDark = Hex("#6E4A1E");
-        private static readonly Color FeltDeep = Hex("#143A26");
-        private static readonly Color FeltMid = Hex("#24583A");
-        private static readonly Color FeltLight = Hex("#3F7D50");
-        private static readonly Color Paper = Hex("#F7EDD6");
-        private static readonly Color PaperShade = Hex("#E3D0A8");
-        private static readonly Color PaperEdge = Hex("#B08E5E");
-        private static readonly Color InkBrown = Hex("#5C3B22");
-        private static readonly Color Oxblood = Hex("#741D17");
-        private static readonly Color OxbloodDark = Hex("#3B0C09");
+        private static Color FeltDeep = Hex("#143A26");
+        private static Color FeltMid = Hex("#24583A");
+        private static Color FeltLight = Hex("#3F7D50");
+        private static Color Paper = Hex("#F7EDD6");
+        private static Color PaperShade = Hex("#E3D0A8");
+        private static Color PaperEdge = Hex("#B08E5E");
+        private static Color InkBrown = Hex("#5C3B22");
+        private static Color Oxblood = Hex("#741D17");
+        private static Color OxbloodDark = Hex("#3B0C09");
         private static readonly Color RoomDark = Hex("#0F0906");
         private static readonly Color RoomWarm = Hex("#3D2414");
         private static readonly Color Lamp = Hex("#FFB257");
@@ -60,6 +60,113 @@ namespace Palace.EditorTools
             Render("pub_icon_jack", 256, 256, (x, y) => Painted(x, y, 256, Shield, 1.35f, 0f, ShieldDetail));
             Render("pub_panel", 96, 96, (x, y) => Plaque(x, y, false));
             Render("pub_button", 96, 96, (x, y) => Plaque(x, y, true));
+        }
+
+        // ------------------------------------------------------------------ cosmetic variants
+
+        private static void WithFelt(string deep, string mid, string light, Action draw)
+        {
+            Color a = FeltDeep, b = FeltMid, c = FeltLight;
+            FeltDeep = Hex(deep); FeltMid = Hex(mid); FeltLight = Hex(light);
+            draw();
+            FeltDeep = a; FeltMid = b; FeltLight = c;
+        }
+
+        private static void WithBack(string main, string dark, Action draw)
+        {
+            Color a = Oxblood, b = OxbloodDark;
+            Oxblood = Hex(main); OxbloodDark = Hex(dark);
+            draw();
+            Oxblood = a; OxbloodDark = b;
+        }
+
+        public static readonly Color MidnightRed = new Color(0.96f, 0.66f, 0.52f);   // rose gold ink
+        public static readonly Color MidnightBlack = new Color(0.86f, 0.88f, 0.94f); // silver ink
+
+        public static void GenerateCosmetics()
+        {
+            WithFelt("#3A0E0E", "#6E1C1C", "#9E3A30", () => Render("pub_table_crimson", 2048, 1024, Table));
+            WithFelt("#0E1830", "#1C2E58", "#30508A", () => Render("pub_table_navy", 2048, 1024, Table));
+            WithFelt("#0A2E40", "#13607A", "#2E95AC", () => Render("pub_table_lagoon", 2048, 1024, Table));
+
+            WithBack("#155A38", "#082A19", () => Render("pub_card_back_emerald", 280, 392, CardBack));
+            WithBack("#1F2F63", "#0B1230", () => Render("pub_card_back_midnight", 280, 392, CardBack));
+
+            Color p = Paper, ps = PaperShade, pe = PaperEdge, ink = InkBrown;
+            Paper = Hex("#2C3556"); PaperShade = Hex("#1A2038"); PaperEdge = Hex("#59628A"); InkBrown = Hex("#D9B060");
+            Render("pub_card_face_midnight", 280, 392, CardFace);
+            Paper = p; PaperShade = ps; PaperEdge = pe; InkBrown = ink;
+
+            Render("pub_plate_leather", 96, 96, Leather);
+            Render("felt_mask", 1024, 512, (x, y) => new Color(1f, 1f, 1f, Coverage(RoundRect(x, y, 512f, 256f, 446f, 190f, 190f))));
+            Render("water_caustics", 512, 512, Caustics);
+            Render("fx_preview_classic", 128, 128, (x, y) => PreviewIcon(x, y, true));
+            Render("fx_preview_water", 128, 128, (x, y) => PreviewIcon(x, y, false));
+        }
+
+        public static void ConfigureCosmetics()
+        {
+            foreach (var n in new[] { "pub_table_crimson", "pub_table_navy", "pub_table_lagoon" }) ConfigureSprite(n, 2048);
+            foreach (var n in new[] { "pub_card_back_emerald", "pub_card_back_midnight", "pub_card_face_midnight" }) ConfigureSprite(n, 512);
+            ConfigureSprite("pub_plate_leather", 96, new Vector4(32f, 32f, 32f, 32f), 150f);
+            ConfigureSprite("felt_mask", 1024);
+            ConfigureSprite("fx_preview_classic", 128);
+            ConfigureSprite("fx_preview_water", 128);
+
+            // The ripple texture scrolls, so it must repeat rather than be a clamped sprite.
+            var importer = UnityEditor.AssetImporter.GetAtPath(ArtFolder + "/water_caustics.png") as UnityEditor.TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = UnityEditor.TextureImporterType.Default;
+                importer.alphaIsTransparency = true;
+                importer.wrapMode = TextureWrapMode.Repeat;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+        }
+
+        private static Color Leather(float x, float y)
+        {
+            float d = RoundRect(x, y, 48f, 48f, 47f, 47f, 26f);
+            float n = Fbm(x * 0.12f, y * 0.12f, 3, 111);
+            Color c = Color.Lerp(OxbloodDark, Oxblood, Mathf.Clamp01(0.45f + (n - 0.5f) * 0.9f));
+            c = Color.Lerp(c, OxbloodDark * 0.6f, Smooth(-8f, -1f, d) * 0.6f);
+            // dashed stitching just inside the edge
+            float stitchLine = Mathf.Abs(d + 7f) - 0.9f;
+            float dash = Mathf.Repeat(x + y, 8f) < 4.5f ? 1f : 0f;
+            c = Color.Lerp(c, Hex("#E8C888"), Coverage(stitchLine) * dash * 0.85f);
+            c.a = Coverage(d);
+            return c;
+        }
+
+        /// <summary>Tileable light ripples (integer frequencies so the edges wrap seamlessly).</summary>
+        private static Color Caustics(float x, float y)
+        {
+            float u = x / 512f * Mathf.PI * 2f, v = y / 512f * Mathf.PI * 2f;
+            float val = 0f;
+            int[,] f = { { 1, 2 }, { 3, -1 }, { -2, 3 }, { 4, 1 } };
+            for (int k = 0; k < 4; k++)
+            {
+                float warp = 1.4f * Mathf.Sin(f[(k + 1) % 4, 0] * u + f[(k + 2) % 4, 1] * v + k);
+                float s = Mathf.Abs(Mathf.Sin(f[k, 0] * u + f[k, 1] * v + warp + k * 1.7f));
+                val += Mathf.Pow(1f - s, 7f);
+            }
+            return new Color(1f, 1f, 1f, Mathf.Clamp01(val * 0.9f));
+        }
+
+        private static Color PreviewIcon(float x, float y, bool flame)
+        {
+            // flame / droplet: a teardrop pointing up, coloured
+            var p = new Vector2((x - 64f) / 52f, (y - 56f) / 52f);
+            float body = (p - new Vector2(0f, -0.15f)).magnitude - 0.55f;
+            float tip = Polygon(p, new[] { new Vector2(-0.45f, 0.05f), new Vector2(0.45f, 0.05f), new Vector2(0f, 0.95f) });
+            float d = Mathf.Min(body, tip) * 52f;
+            float t = Mathf.Clamp01((y - 10f) / 110f);
+            Color c = flame ? Color.Lerp(Hex("#FFE27A"), Hex("#D9461E"), t) : Color.Lerp(Hex("#BFF4FF"), Hex("#1C79B8"), t);
+            float hl = 1f - Smooth(0f, 18f, new Vector2(x - 52f, y - 50f).magnitude);
+            c = Color.Lerp(c, Color.white, hl * 0.5f);
+            c.a = Coverage(d);
+            return c;
         }
 
         public static void ConfigureAll()

@@ -38,6 +38,14 @@
 - [x] Single player: Speed 1x/2x/4x once you've finished
 - [ ] **You:** link the project to Unity Cloud and turn on Lobby + Relay (Docs/Multiplayer-Setup.md)
 
+## Art style + cosmetics ✅
+- [x] Hand-painted pub style (default): walnut and brass table, painted felt, pub backdrop, parchment cards,
+      painted suits, illustrated court cards, wooden menus with brass buttons
+- [x] Rebrand tagline: "The classic Shedhead card game" (last place is the Shedhead). Audience: teens and young adults
+- [x] Cosmetics: 7 tables (incl. animated Lagoon water), 3 decks, 5 card backs, 4 banners, 5 name styles, 2 effect themes
+- [x] Coins earned per finish; Customise screen to buy and equip; Water effect theme (SPLASH, bubbles, blue arrows)
+- [ ] Optional: a characterful serif font for titles (needs your OK to download a free OFL font)
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong

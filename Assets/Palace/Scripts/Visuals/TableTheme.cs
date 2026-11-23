@@ -22,11 +22,15 @@ namespace Palace
         [Tooltip("Felt colour choices for Settings > Table (index matches GameSettings.TableColourNames).")]
         public Sprite[] tableVariants;
 
-        /// <summary>The table chosen in Settings (falls back to the default table).</summary>
+        /// <summary>Equipped table cosmetic (set at runtime by Cosmetics.ApplyThemes; never saved).</summary>
+        [System.NonSerialized] public TableSkin tableSkin;
+
+        /// <summary>The equipped table (falls back to the default table).</summary>
         public Sprite CurrentTable
         {
             get
             {
+                if (tableSkin != null && tableSkin.table != null) return tableSkin.table;
                 if (tableVariants == null || tableVariants.Length == 0) return table;
                 Sprite s = tableVariants[Mathf.Clamp(GameSettings.TableColour, 0, tableVariants.Length - 1)];
                 return s != null ? s : table;

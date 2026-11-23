@@ -259,10 +259,10 @@ namespace Palace
             shadow.color = theme.shadowTint;
             glow.sprite = theme.glow;
             glow.color = theme.selectedGlow;
-            face.sprite = theme.face;
+            face.sprite = theme.Face;
             back.sprite = theme.CurrentBack;
             courtFrame.sprite = theme.outline;
-            dim.sprite = theme.face;
+            dim.sprite = theme.Face;
 
             if (theme.rankFont != null)
             {
@@ -289,7 +289,7 @@ namespace Palace
             if (!showFace) return;
 
             Card c = card.Value;
-            Color ink = theme != null ? (c.IsRed ? theme.redSuit : theme.blackSuit) : (c.IsRed ? Color.red : Color.black);
+            Color ink = theme != null ? (c.IsRed ? theme.RedInk : theme.BlackInk) : (c.IsRed ? Color.red : Color.black);
             Sprite suitSprite = theme != null ? theme.GetSuitSprite(c.Suit) : null;
 
             rankTop.text = c.RankLabel;

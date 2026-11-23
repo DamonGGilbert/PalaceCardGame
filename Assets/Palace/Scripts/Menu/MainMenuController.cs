@@ -24,7 +24,27 @@ namespace Palace
 
         private Image felt;
         private readonly List<CardView> decorBacks = new List<CardView>();
-        private GameObject mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel;
+        private GameObject mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel;
+        private CustomiseMenu customise;
+        private TextMeshProUGUI coinsLabel;
+
+        private void OpenCustomise()
+        {
+            Show(customisePanel);
+            customise.Open();
+        }
+
+        /// <summary>Something was bought or equipped: update the menu's felt, card backs and coins.</summary>
+        private void OnCosmeticsChanged()
+        {
+            if (this == null) return;
+            Cosmetics.ApplyThemes(tableTheme, cardTheme);
+            if (felt != null) felt.sprite = tableTheme.CurrentTable;
+            foreach (var b in decorBacks) if (b != null) b.Theme = cardTheme;
+            if (coinsLabel != null) coinsLabel.text = Cosmetics.Coins + " coins";
+        }
+
+        private void OnDestroy() => Cosmetics.Changed -= OnCosmeticsChanged;
         private TextMeshProUGUI opponentsLabel, tableSizeLabel;
 
         public void Configure(TableTheme tTheme, CardTheme cTheme, CardView card, RectTransform menuRoot)
@@ -38,6 +58,9 @@ namespace Palace
         private void Start()
         {
             UIKit.Init(tableTheme);
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-palace-showcase") >= 0) Cosmetics.ShowcaseForTesting();
+            Cosmetics.ApplyThemes(tableTheme, cardTheme); // equipped table / deck / card back
+            Cosmetics.Changed += OnCosmeticsChanged;
             GameSettings.ApplyFrameRate();
 
             felt = UIBuild.Image("Felt", root, tableTheme.CurrentTable, new Color(1f, 1f, 1f, 0.55f), new Vector2(1800f, 900f), new Vector2(0f, 20f));
@@ -49,6 +72,10 @@ namespace Palace
             BuildHowToPlay();
             BuildSettings();
             BuildCredits();
+            customisePanel = UIBuild.Stretch("CustomiseRoot", root).gameObject;
+            customise = gameObject.AddComponent<CustomiseMenu>();
+            customise.Build((RectTransform)customisePanel.transform, cardTheme, () => Show(mainPanel));
+            customisePanel.SetActive(false);
 
             if (!GameLaunch.SplashShown) StartCoroutine(Splash());
             else if (!string.IsNullOrEmpty(GameLaunch.MenuMessage)) OpenMultiplayer(GameLaunch.MenuMessage); // e.g. "The host left"
@@ -71,7 +98,7 @@ namespace Palace
 
         private void Show(GameObject panel)
         {
-            foreach (var p in new[] { mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel })
+            foreach (var p in new[] { mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel })
                 p.SetActive(p == panel);
         }
 
@@ -153,15 +180,22 @@ namespace Palace
             BuildFan(p, new Vector2(-600f, -60f), new[] { new Card(0, Rank.Queen, Suit.Hearts), new Card(1, Rank.King, Suit.Clubs) }, -1f);
             BuildFan(p, new Vector2(600f, -60f), new[] { new Card(2, Rank.Seven, Suit.Spades), new Card(3, Rank.Eight, Suit.Diamonds) }, 1f);
 
-            var size = new Vector2(440f, 78f);
-            UIKit.Button(p, "Single Player", size, new Vector2(0f, 110f), () => Show(singlePanel), true, 32f);
-            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, 18f), () => OpenMultiplayer());
-            UIKit.Button(p, "How to Play", size, new Vector2(0f, -74f), () => Show(howPanel));
-            UIKit.Button(p, "Settings", size, new Vector2(0f, -166f), () => Show(settingsPanel));
-            UIKit.Button(p, "Credits", size, new Vector2(0f, -258f), () => Show(creditsPanel));
+            var size = new Vector2(440f, 72f);
+            UIKit.Button(p, "Single Player", size, new Vector2(0f, 148f), () => Show(singlePanel), true, 32f);
+            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, 64f), () => OpenMultiplayer());
+            UIKit.Button(p, "Customise", size, new Vector2(0f, -20f), OpenCustomise);
+            UIKit.Button(p, "How to Play", size, new Vector2(0f, -104f), () => Show(howPanel));
+            UIKit.Button(p, "Settings", size, new Vector2(0f, -188f), () => Show(settingsPanel));
+            UIKit.Button(p, "Credits", size, new Vector2(0f, -272f), () => Show(creditsPanel));
+
+            coinsLabel = UIKit.Label(p, "", 32f, new Vector2(400f, 50f), new Vector2(0f, 0f), TextAlignmentOptions.Right, UIKit.Gold, true);
+            var crt = coinsLabel.rectTransform;
+            crt.anchorMin = crt.anchorMax = new Vector2(1f, 1f);
+            crt.anchoredPosition = new Vector2(-230f, -50f);
+            coinsLabel.text = Cosmetics.Coins + " coins";
 
             bool canQuit = Application.platform != RuntimePlatform.IPhonePlayer && Application.platform != RuntimePlatform.WebGLPlayer;
-            if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, -350f), Quit);
+            if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, -356f), Quit);
         }
 
         /// <summary>Decorative fan: a card back (shows the Settings choice) plus two face cards.</summary>
@@ -313,19 +347,8 @@ namespace Palace
             UIKit.Segmented(p, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y),
                 i => GameSettings.FrameRateIndex = i);
             y -= step;
-            Row(p, "Table", y);
-            UIKit.Segmented(p, GameSettings.TableColourNames, GameSettings.TableColour, controlSize, new Vector2(controlX, y), i =>
-            {
-                GameSettings.TableColour = i;
-                felt.sprite = tableTheme.CurrentTable;
-            });
-            y -= step;
-            Row(p, "Card back", y);
-            UIKit.Segmented(p, GameSettings.CardBackNames, GameSettings.CardBack, controlSize, new Vector2(controlX, y), i =>
-            {
-                GameSettings.CardBack = i;
-                foreach (var b in decorBacks) b.Theme = cardTheme; // re-applies the chosen back
-            });
+            UIKit.Label(p, "Table, cards and card backs are on the Customise screen.", 24f, new Vector2(900f, 40f),
+                new Vector2(0f, y + 10f), TextAlignmentOptions.Center, UIKit.Muted);
 
             void Row(Transform parent, string label, float rowY)
             {
@@ -380,13 +403,14 @@ namespace Palace
 
             var shots = new (GameObject panel, string name)[]
             {
-                (mainPanel, "menu_main"), (singlePanel, "menu_single"), (multiPanel, "menu_multiplayer"),
+                (mainPanel, "menu_main"), (customisePanel, "menu_customise"), (singlePanel, "menu_single"), (multiPanel, "menu_multiplayer"),
                 (howPanel, "menu_howto"), (settingsPanel, "menu_settings"), (creditsPanel, "menu_credits")
             };
             foreach (var shot in shots)
             {
                 Show(shot.panel);
                 if (shot.panel == multiPanel) multi.Open();
+                if (shot.panel == customisePanel) customise.Open();
                 yield return new WaitForSecondsRealtime(0.4f);
                 ScreenCapture.CaptureScreenshot(Path.Combine(dir, shot.name + ".png"));
                 yield return new WaitForSecondsRealtime(0.3f);

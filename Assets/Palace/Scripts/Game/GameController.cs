@@ -108,8 +108,13 @@ namespace Palace
             hand.CardDragged += (v, e) => OnDragging(e);
             hand.CardDropped += (v, e) => OnDropped(v, e, PlaySource.Hand, -1);
 
+            // Equipped cosmetics: table, deck, card back, effects (banner + name style are applied per seat).
+            Cosmetics.ApplyThemes(tableTheme, cardTheme);
+            table.ApplySkin();
             fx = TableFx.Attach(table);
+            fx.Style = Cosmetics.EffectStyle;
             ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
+            ring.SetStyle(fx.Style);
             BuildHud();
 
             if (NetSession.Active && NetSession.Instance.InGame) StartNetworked();
@@ -343,6 +348,11 @@ namespace Palace
 
             IReadOnlyList<SeatView> seats = table.BuildSeats(seatNames);
             for (int k = 0; k < n; k++) seats[k].SetPlayer(seatNames[k], PlayerAtSeat(k)); // same colours on every device
+            if (localPlayer >= 0)
+            {
+                seats[0].ApplyBanner(Cosmetics.Banner);       // your Customise choices on your own seat
+                seats[0].ApplyNameStyle(Cosmetics.NameStyle);
+            }
             for (int k = 0; k < HouseRules.TableCards; k++)
             {
                 int slot = k;
@@ -975,7 +985,8 @@ namespace Palace
                     shownPile.Clear();
                     table.SetDiscardPile(shownPile);
                     AudioManager.Play(Sfx.Burn);
-                    table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
+                    if (fx.Style == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
+                    else table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
                     yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale);
                     break;
                 }
@@ -1321,7 +1332,15 @@ namespace Palace
             int winner = s.FinishOrder[0];
             string title = winner == localPlayer ? "You win!" : s.Players[winner].Name + " wins!";
             UIKit.Label(panel.transform, title, 60f, new Vector2(700f, 80f), new Vector2(0f, top - 60f), TextAlignmentOptions.Center, UIKit.Gold, true);
-            UIKit.Label(panel.transform, n + " players", 26f, new Vector2(700f, 40f), new Vector2(0f, top - 112f), TextAlignmentOptions.Center, UIKit.Muted);
+            string subtitle = n + " players";
+            if (localPlayer >= 0)
+            {
+                // Coins for finishing, spent on the Customise screen.
+                int reward = Cosmetics.RewardFor(s.Players[localPlayer].FinishPosition, n);
+                Cosmetics.AddCoins(reward);
+                subtitle += "     +" + reward + " coins  (you have " + Cosmetics.Coins + ")";
+            }
+            UIKit.Label(panel.transform, subtitle, 26f, new Vector2(700f, 40f), new Vector2(0f, top - 112f), TextAlignmentOptions.Center, UIKit.Muted);
 
             for (int i = 0; i < s.FinishOrder.Count; i++)
             {
