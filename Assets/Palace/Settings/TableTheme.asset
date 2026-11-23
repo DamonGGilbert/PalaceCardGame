@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aebe941a85f1e274e99a9882f523161b, type: 3}
+  m_Name: TableTheme
+  m_EditorClassIdentifier: Assembly-CSharp::Palace.TableTheme
+  background: {fileID: 21300000, guid: d62e9e7c3e2f70b4abd02effc7e99cfd, type: 3}
+  table: {fileID: 21300000, guid: e222a9ed99e8f6547804f3c8781d580b, type: 3}
+  panel: {fileID: 21300000, guid: 53627649d8b62754ab62213075c514e3, type: 3}
+  circle: {fileID: 21300000, guid: 94955e0abb74ae14da87d9d84cb23a46, type: 3}
+  ring: {fileID: 21300000, guid: 8771f909861ca4d4d80ce05a05c589fc, type: 3}
+  softGlow: {fileID: 21300000, guid: 32946c8f8726ef349bde7959e7dea3d9, type: 3}
+  panelColor: {r: 0.03, g: 0.05, b: 0.04, a: 0.78}
+  panelTurnColor: {r: 0.42, g: 0.31, b: 0.09, a: 0.92}
+  textColor: {r: 0.95, g: 0.93, b: 0.89, a: 1}
+  mutedTextColor: {r: 0.72, g: 0.75, b: 0.7, a: 1}
+  accent: {r: 0.95, g: 0.76, b: 0.3, a: 1}
+  turnGlow: {r: 1, g: 0.78, b: 0.3, a: 0.55}
+  avatarColors:
+  - {r: 0.8, g: 0.33, b: 0.27, a: 1}
+  - {r: 0.25, g: 0.52, b: 0.8, a: 1}
+  - {r: 0.88, g: 0.64, b: 0.2, a: 1}
+  - {r: 0.45, g: 0.7, b: 0.36, a: 1}
+  - {r: 0.62, g: 0.4, b: 0.78, a: 1}
+  - {r: 0.2, g: 0.68, b: 0.66, a: 1}
+  - {r: 0.86, g: 0.45, b: 0.62, a: 1}
+  - {r: 0.55, g: 0.55, b: 0.6, a: 1}
+  - {r: 0.8, g: 0.52, b: 0.32, a: 1}
+  - {r: 0.38, g: 0.42, b: 0.8, a: 1}
+  font: {fileID: 0}
