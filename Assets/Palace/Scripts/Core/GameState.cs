@@ -11,7 +11,8 @@ namespace Palace.Core
         Playing,
         AwaitingSevenCall,   // a 7 was just played; that player must call HIGHER or LOWER
         AwaitingAceChoice,   // an Ace was just played; that player chooses "high" or "burn"
-        GameOver
+        GameOver,
+        Swapping             // optional "swap before play": everyone swaps hand / face-up cards, then presses Ready
     }
 
     public sealed class PlayerState
@@ -26,6 +27,9 @@ namespace Palace.Core
 
         /// <summary>1 = first to finish. 0 = still playing.</summary>
         public int FinishPosition;
+
+        /// <summary>Swap-before-play mode: this player has finished swapping.</summary>
+        public bool SwapReady;
 
         public PlayerState(int index, string name, bool isBot)
         {

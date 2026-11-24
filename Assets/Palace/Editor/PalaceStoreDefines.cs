@@ -8,6 +8,7 @@ namespace Palace.EditorTools
     /// (Window > Package Manager), and off again if it is removed:
     ///   In App Purchasing  -> PALACE_IAP        (real store purchases)
     ///   Cloud Save         -> PALACE_CLOUDSAVE  (progress backup / restore)
+    ///   Mobile Notifications -> PALACE_NOTIFICATIONS (optional daily streak reminders)
     /// The game always compiles either way; nothing to do by hand.
     /// </summary>
     [InitializeOnLoad]
@@ -16,7 +17,8 @@ namespace Palace.EditorTools
         private static readonly (string package, string define)[] Features =
         {
             ("com.unity.purchasing", "PALACE_IAP"),
-            ("com.unity.services.cloudsave", "PALACE_CLOUDSAVE")
+            ("com.unity.services.cloudsave", "PALACE_CLOUDSAVE"),
+            ("com.unity.mobile.notifications", "PALACE_NOTIFICATIONS")
         };
 
         static PalaceStoreDefines()

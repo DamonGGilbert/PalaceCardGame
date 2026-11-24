@@ -154,11 +154,15 @@ namespace Palace
                 net.CommandReceived += OnRemoteCommand;
                 net.ClientInGame += OnClientInGame;
                 net.ClientLeft += OnClientLeft;
+                net.RematchRequested += OnRematchRequested;
+                net.ReactionReceived += OnNetReaction;
                 StartCoroutine(HostWaitThenStart());
             }
             else
             {
                 botRng = new System.Random(Environment.TickCount);
+                net.RematchRequested += OnRematchRequested;
+                net.ReactionReceived += OnNetReaction;
                 net.ReportInGame();
             }
         }
@@ -185,7 +189,7 @@ namespace Palace
         {
             int player = net.PlayerIndexOf(item.client);
             if (player < 0 || takenOver.Contains(player) || Game == null) return;
-            if (Game.State.ActingPlayer != player)
+            if (Game.State.ActingPlayer != player && Game.State.Phase != GamePhase.Swapping) // everyone swaps at once
             {
                 net.SendError(item.client, "It isn't your turn");
                 return;
@@ -260,6 +264,8 @@ namespace Palace
             net.CommandReceived -= OnRemoteCommand;
             net.ClientInGame -= OnClientInGame;
             net.ClientLeft -= OnClientLeft;
+            net.RematchRequested -= OnRematchRequested;
+            net.ReactionReceived -= OnNetReaction;
         }
 
         /// <summary>Where a player sits on THIS screen: you are always seat 0 at the bottom.</summary>
@@ -297,6 +303,13 @@ namespace Palace
             ClosePileViewer();
             coach?.Dismiss();
             coach = null;
+            swapSlot = -1;
+            rematchNames.Clear();
+            rematchAsked = false;
+            rematchLabel = null;
+            foreach (var b in bubbles.Values) if (b != null) Destroy(b);
+            bubbles.Clear();
+            if (reactPanel != null) ToggleReactPanel();
             foreach (Transform flying in table.FxRoot) Destroy(flying.gameObject); // cards left mid-flight by a restart
         }
 
@@ -346,7 +359,9 @@ namespace Palace
             }
             else
             {
-                Game = PalaceGame.Create(names, isBot, new HouseRules(), seed);
+                // Optional "swap before play" mode: your Single Player choice, or the host's setting online.
+                bool swap = IsNetHost ? GameSettings.SwapMode : GameLaunch.SwapMode && !GameLaunch.SpectateOnly;
+                Game = PalaceGame.Create(names, isBot, new HouseRules { SwapBeforePlay = swap }, seed);
                 botLevel = IsNetworked ? BotLevel.Normal : (BotLevel)Mathf.Clamp(GameLaunch.BotLevel, 0, 2);
             }
             isTutorial = tutorial;
@@ -411,6 +426,11 @@ namespace Palace
             coach?.Tick();
             bool singlePlayerPause = !IsNetworked && (paused || viewingPile || (coach != null && coach.Holding));
             if (busy || singlePlayerPause || Game.State.Phase == GamePhase.GameOver) return;
+            if (Game.State.Phase == GamePhase.Swapping)
+            {
+                SwapPhaseComputers();
+                return;
+            }
 
             int actor = Game.State.ActingPlayer;
             bool autoPlayLocal = AutoPlayHarness.Active && actor == localPlayer && !HoldAutoPlay; // test builds only
@@ -434,6 +454,227 @@ namespace Palace
         private BotLevel botLevel = BotLevel.Normal;
         private bool isTutorial;
         private TutorialCoach coach;
+
+        // ==================================================================
+        // Swap before play (optional mode)
+        // ==================================================================
+
+        private Button readyButton;
+        private int swapSlot = -1; // a face-up card picked first, waiting for a hand card
+
+        /// <summary>The local player may still swap cards.</summary>
+        private bool LocalCanSwap =>
+            localPlayer >= 0 && !busy && !awaitingHost && Game != null && Game.State.Phase == GamePhase.Swapping
+            && !Game.State.Players[localPlayer].SwapReady;
+
+        /// <summary>Computer players (and players who left) make their swaps one at a time, then press Ready.</summary>
+        private void SwapPhaseComputers()
+        {
+            if (IsNetClient)
+            {
+                // Automated tests only: a client's own seat just presses Ready.
+                if (AutoPlayHarness.Active && !HoldAutoPlay && LocalCanSwap && BotReady()) Submit(new NetCommand { Type = NetCommandType.SwapDone });
+                return;
+            }
+
+            foreach (PlayerState p in Game.State.Players)
+            {
+                bool computer = p.IsBot || takenOver.Contains(p.Index) || (AutoPlayHarness.Active && p.Index == localPlayer && !HoldAutoPlay);
+                if (!computer || p.SwapReady) continue;
+                if (!BotReady()) return;
+
+                var all = new CommandResult { Ok = true };
+                BotLevel level = p.IsBot ? botLevel : BotLevel.Normal;
+                foreach (var (handId, slot) in BotBrain.DecideSwaps(p, level, botRng))
+                {
+                    CommandResult r = Game.SwapCards(p.Index, handId, slot);
+                    if (r.Ok) all.Events.AddRange(r.Events);
+                }
+                all.Events.AddRange(Game.FinishSwap(p.Index).Events);
+                Execute(all);
+                return; // one player per think, so it looks like people taking their time
+            }
+        }
+
+        private void SwapTapHand(Card card)
+        {
+            if (!LocalCanSwap) return;
+            if (swapSlot >= 0)
+            {
+                int slot = swapSlot;
+                swapSlot = -1;
+                SubmitSwap(card.Id, slot);
+                return;
+            }
+            bool was = selected.Contains(card.Id);
+            selected.Clear();
+            if (!was) selected.Add(card.Id);
+            selectedSource = PlaySource.Hand;
+            AudioManager.Play(Sfx.Select, 0.6f);
+            RefreshAll();
+        }
+
+        private void SwapTapFaceUp(int slot)
+        {
+            if (!LocalCanSwap || !Game.State.Players[localPlayer].FaceUp[slot].HasValue) return;
+            if (selected.Count == 1)
+            {
+                int id = selected.First();
+                SubmitSwap(id, slot);
+                return;
+            }
+            swapSlot = swapSlot == slot ? -1 : slot;
+            AudioManager.Play(Sfx.Select, 0.6f);
+            RefreshAll();
+        }
+
+        private void SubmitSwap(int handCardId, int slot)
+        {
+            var c = new NetCommand { Type = NetCommandType.Swap, Slot = slot };
+            c.CardIds.Add(handCardId);
+            selected.Clear();
+            Submit(c);
+        }
+
+        private void OnReadyPressed()
+        {
+            if (!LocalCanSwap) return;
+            selected.Clear();
+            swapSlot = -1;
+            Submit(new NetCommand { Type = NetCommandType.SwapDone });
+        }
+
+        // ==================================================================
+        // Quick reactions
+        // ==================================================================
+
+        private Button reactButton;
+        private RectTransform reactPanel;
+        private float reactReadyAt;
+        private float botReactAt;
+        private readonly Dictionary<int, GameObject> bubbles = new Dictionary<int, GameObject>();
+
+        private void ToggleReactPanel()
+        {
+            if (reactPanel != null)
+            {
+                Destroy(reactPanel.gameObject);
+                reactPanel = null;
+                return;
+            }
+            // A tap anywhere outside the phrases closes it.
+            reactPanel = UIKit.Layer(hudRoot, "Reactions", new Color(0f, 0f, 0f, 0.2f));
+            reactPanel.gameObject.AddComponent<Button>().onClick.AddListener(ToggleReactPanel);
+            var box = UIKit.Panel(reactPanel, new Vector2(840f, 380f), Vector2.zero);
+            var brt = box.rectTransform;
+            brt.anchorMin = brt.anchorMax = new Vector2(1f, 1f);
+            brt.anchoredPosition = new Vector2(-460f, -300f);
+            for (int i = 0; i < Reactions.Phrases.Length; i++)
+            {
+                int index = i;
+                int col = i % 3, row = i / 3;
+                UIKit.Button(box.transform, Reactions.Phrases[i], new Vector2(260f, 72f), new Vector2((col - 1) * 272f, 126f - row * 84f),
+                    () => SendReaction(index), false, 24f);
+            }
+        }
+
+        private void SendReaction(int index)
+        {
+            if (reactPanel != null) ToggleReactPanel();
+            if (localPlayer < 0 || Time.unscaledTime < reactReadyAt) return;
+            reactReadyAt = Time.unscaledTime + 2f; // no spamming
+            if (IsNetworked)
+            {
+                net.SendReaction(index); // the host shows it to everyone, including us
+                return;
+            }
+            ShowReaction(localPlayer, index);
+            // A computer player might answer, kindly.
+            int reply = Reactions.BotReply(index, botRng);
+            if (reply >= 0) StartCoroutine(BotReplyLater(reply));
+        }
+
+        private IEnumerator BotReplyLater(int index)
+        {
+            yield return new WaitForSecondsRealtime(UnityEngine.Random.Range(0.8f, 1.6f));
+            if (Game == null) yield break;
+            var bots = Game.State.Players.Where(p => p.IsBot).ToList();
+            if (bots.Count > 0) ShowReaction(bots[botRng.Next(bots.Count)].Index, index);
+        }
+
+        private void OnNetReaction(int player, int index)
+        {
+            if (this == null || Game == null || player < 0 || player >= Game.State.Players.Count) return;
+            ShowReaction(player, index);
+        }
+
+        /// <summary>Computer players react now and then to what happens (host / single player only).</summary>
+        private void MaybeBotReaction(GameEvent e)
+        {
+            if (IsNetClient || isTutorial || AutoPlayHarness.Active || Time.unscaledTime < botReactAt) return;
+            var (who, index) = Reactions.BotReaction(e, Game.State, botRng);
+            if (index < 0) return;
+            botReactAt = Time.unscaledTime + 4f;
+            if (IsNetHost) net.SendBotReaction(who, index);
+            else ShowReaction(who, index);
+        }
+
+        /// <summary>A speech bubble over the player's seat for a few seconds.</summary>
+        private void ShowReaction(int player, int index)
+        {
+            if (!GameSettings.ShowReactions || index < 0 || index >= Reactions.Phrases.Length) return;
+            if (bubbles.TryGetValue(player, out var old) && old != null) Destroy(old);
+
+            Vector2 seat = SeatPointFor(player);
+            Vector2 at = seat + new Vector2(0f, seat.y > 200f ? -150f : 130f); // below seats at the top, above the rest
+            at.x = Mathf.Clamp(at.x, -760f, 760f);
+            at.y = Mathf.Clamp(at.y, -420f, 440f);
+
+            var bubble = UIKit.Panel(tableHud, new Vector2(330f, 82f), at, new Color(0.98f, 0.95f, 0.86f, 0.97f));
+            bubble.raycastTarget = false;
+            var text = UIKit.Label(bubble.transform, Reactions.Phrases[index], 28f, new Vector2(310f, 70f), Vector2.zero, TextAlignmentOptions.Center, UIKit.Ink, true);
+            text.raycastTarget = false;
+            bubbles[player] = bubble.gameObject;
+            AudioManager.Play(Sfx.Select, 0.5f);
+            StartCoroutine(BubbleLife(bubble.rectTransform));
+        }
+
+        private IEnumerator BubbleLife(RectTransform rt)
+        {
+            var group = rt.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            yield return Tween.Run(0.18f, t => rt.localScale = Vector3.one * Mathf.Lerp(0.6f, 1f, t));
+            yield return new WaitForSecondsRealtime(2.6f);
+            if (rt == null) yield break;
+            yield return Tween.Fade(group, 1f, 0f, 0.3f);
+            if (rt != null) Destroy(rt.gameObject);
+        }
+
+        // ==================================================================
+        // Rematch
+        // ==================================================================
+
+        private readonly List<string> rematchNames = new List<string>();
+        private TextMeshProUGUI rematchLabel;
+        private bool rematchAsked;
+
+        private void OnRematchRequested(int player)
+        {
+            if (this == null || Game == null || player < 0 || player >= Game.State.Players.Count) return;
+            string name = Game.State.Players[player].Name;
+            if (!rematchNames.Contains(name)) rematchNames.Add(name);
+            if (player != localPlayer) Toast(Loc.F("{0} wants a rematch!", name));
+            if (rematchLabel != null) rematchLabel.text = Loc.T("Rematch:") + " " + string.Join(", ", rematchNames);
+        }
+
+        private void AskForRematch(Button button)
+        {
+            if (rematchAsked || !IsNetClient) return;
+            rematchAsked = true;
+            net.RequestRematch();
+            UIKit.SetButtonLabel(button, "Asked!");
+            button.interactable = false;
+        }
 
         /// <summary>True once a computer player has "thought" for long enough.</summary>
         private bool BotReady()
@@ -536,6 +777,11 @@ namespace Palace
                 return;
             }
             if (paused || resultsLayer != null) return;
+            if (Game != null && Game.State.Phase == GamePhase.Swapping)
+            {
+                if (KeyInput.Confirm()) OnReadyPressed(); // swapping is done by tapping cards
+                return;
+            }
             if (KeyInput.Pressed('v'))
             {
                 if (pileViewer != null) ClosePileViewer();
@@ -676,12 +922,22 @@ namespace Palace
 
         private void OnHandCardTapped(Card card)
         {
+            if (Game != null && Game.State.Phase == GamePhase.Swapping)
+            {
+                SwapTapHand(card);
+                return;
+            }
             if (!LocalCanAct || Game.State.Players[localPlayer].ActiveSource != PlaySource.Hand) return;
             ToggleSelection(card, PlaySource.Hand);
         }
 
         private void OnFaceUpTapped(int slot)
         {
+            if (Game != null && Game.State.Phase == GamePhase.Swapping)
+            {
+                SwapTapFaceUp(slot);
+                return;
+            }
             if (!LocalCanAct) return;
             PlayerState me = Game.State.Players[localPlayer];
             if (me.ActiveSource != PlaySource.FaceUp)
@@ -763,6 +1019,8 @@ namespace Palace
             IReadOnlyList<SeatView> seats = table.Seats;
             bool myTurn = LocalCanAct;
             PlaySource mySource = localPlayer >= 0 ? s.Players[localPlayer].ActiveSource : PlaySource.Hand;
+            bool swapping = s.Phase == GamePhase.Swapping;
+            bool canSwap = LocalCanSwap;
 
             for (int i = 0; i < seats.Count; i++)
             {
@@ -776,6 +1034,15 @@ namespace Palace
                     seat.SetFaceUpSlot(k, p.FaceUp[k]);
 
                     CardView up = seat.FaceUpCards[k];
+                    if (swapping)
+                    {
+                        bool canTap = mine && canSwap && p.FaceUp[k].HasValue;
+                        up.SetInteractable(canTap);
+                        up.SetSelected(canTap && swapSlot == k);
+                        up.SetDimmed(false);
+                        seat.FaceDownCards[k].SetInteractable(false);
+                        continue;
+                    }
                     bool upActive = mine && myTurn && mySource == PlaySource.FaceUp && p.FaceUp[k].HasValue;
                     up.SetInteractable(upActive);
                     up.SetSelected(upActive && selected.Contains(p.FaceUp[k].Value.Id));
@@ -787,7 +1054,8 @@ namespace Palace
 
                 seat.SetHandCount(p.Hand.Count);
                 seat.SetFinished(p.FinishPosition);
-                seat.SetTurn(s.Phase != GamePhase.GameOver && i == s.ActingPlayer);
+                // While swapping, everyone who isn't ready yet is highlighted.
+                seat.SetTurn(swapping ? !p.SwapReady : s.Phase != GamePhase.GameOver && i == s.ActingPlayer);
             }
 
             table.SetDeckCount(shownDeck);
@@ -807,8 +1075,11 @@ namespace Palace
                 shownHand.Clear();
                 shownHand.AddRange(cards);
                 bool handActive = myTurn && mySource == PlaySource.Hand;
-                hand.Show(cards, selected, handActive ? (Func<Card, bool>)(c => Game.CheckRank(c.Rank).Legal) : null, handActive);
+                if (swapping) hand.Show(cards, selected, canSwap ? (Func<Card, bool>)(c => true) : null, canSwap);
+                else hand.Show(cards, selected, handActive ? (Func<Card, bool>)(c => Game.CheckRank(c.Rank).Legal) : null, handActive);
             }
+            readyButton.gameObject.SetActive(canSwap);
+            if (reactButton != null) reactButton.gameObject.SetActive(localPlayer >= 0 && GameSettings.ShowReactions && s.Phase != GamePhase.GameOver);
 
             playButton.gameObject.SetActive(myTurn && selected.Count > 0);
             if (selected.Count > 0) UIKit.SetButtonLabel(playButton, selected.Count == 1 ? "PLAY CARD" : Loc.F("PLAY {0} CARDS", selected.Count));
@@ -829,6 +1100,7 @@ namespace Palace
             acePanel.SetActive(false);
             playButton.gameObject.SetActive(false);
             pickUpButton.gameObject.SetActive(false);
+            readyButton.gameObject.SetActive(false);
         }
 
         private void UpdateStatus()
@@ -850,6 +1122,16 @@ namespace Palace
             statusText.color = UIKit.Text;
             GameState s = Game.State;
             if (s.Phase == GamePhase.GameOver) { statusText.text = Loc.T("Game over"); return; }
+            if (s.Phase == GamePhase.Swapping)
+            {
+                int waiting = s.Players.Count(p => !p.SwapReady);
+                if (LocalCanSwap)
+                    statusText.text = Loc.T(selected.Count > 0 ? "Now tap a face-up card to swap with it"
+                        : swapSlot >= 0 ? "Now tap a card in your hand to swap with it"
+                        : "Swap cards: tap a hand card, then a face-up card. Press READY when you're happy.");
+                else statusText.text = waiting == 1 ? Loc.T("Waiting for 1 player to be ready...") : Loc.F("Waiting for {0} players to be ready...", waiting);
+                return;
+            }
 
             int actor = s.ActingPlayer;
             string name = s.Players[actor].Name;
@@ -1006,6 +1288,7 @@ namespace Palace
                 Progress.OnLocalEvent(e, localPlayer); // stats, achievements and daily challenges
             }
             coach?.OnEvent(e);
+            MaybeBotReaction(e);
             string who = e.Player >= 0 && e.Player < s.Players.Count ? s.Players[e.Player].Name : "";
             Vector2 centre = table.DiscardPoint + new Vector2(-120f, 210f); // above the "Next:" banner, below the top seats
 
@@ -1172,6 +1455,20 @@ namespace Palace
                     break;
                 }
 
+                case GameEventType.CardsSwapped:
+                    // The table already shows the swapped cards; a little sound and pause sells it.
+                    AudioManager.Play(Sfx.CardDraw, 0.6f);
+                    yield return Tween.Wait(Mathf.Max(0.05f, Tween.Scaled(0.15f)));
+                    break;
+
+                case GameEventType.PlayerReady:
+                    if (e.Player != localPlayer && Game.State.Phase == GamePhase.Swapping)
+                    {
+                        noticeMessage = Loc.F("{0} is ready", who);
+                        noticeUntil = Time.unscaledTime + 1.5f;
+                    }
+                    break;
+
                 case GameEventType.TurnChanged:
                     if (e.Player == localPlayer && s.Phase == GamePhase.Playing && Game.State.Current == localPlayer)
                     {
@@ -1260,6 +1557,7 @@ namespace Palace
             pickUpButton = UIKit.Button(tableHud, "PICK UP PILE", new Vector2(300f, 84f), new Vector2(735f, -462f), OnPickUpPressed, false, 30f);
             UIKit.SetButtonStyle(pickUpButton, false);
             ((Image)pickUpButton.targetGraphic).color = new Color(0.55f, 0.16f, 0.14f, 0.97f);
+            readyButton = UIKit.Button(tableHud, "READY", new Vector2(300f, 84f), new Vector2(735f, -462f), OnReadyPressed, true, 32f);
 
             sevenPanel = BuildChoice("You played a 7. The next player must play...", "HIGHER", () => OnSevenCall(SevenCall.Higher),
                 "LOWER", () => OnSevenCall(SevenCall.Lower));
@@ -1288,6 +1586,13 @@ namespace Palace
             srt.anchorMin = srt.anchorMax = new Vector2(1f, 1f);
             srt.anchoredPosition = new Vector2(-280f, -48f);
             speedButton.gameObject.SetActive(false);
+
+            // Quick reactions, just under the Menu button.
+            reactButton = UIKit.Button(hudRoot, "React", new Vector2(150f, 64f), Vector2.zero, ToggleReactPanel, false, 26f);
+            var rrt = (RectTransform)reactButton.transform;
+            rrt.anchorMin = rrt.anchorMax = new Vector2(1f, 1f);
+            rrt.anchoredPosition = new Vector2(-95f, -124f);
+            reactButton.gameObject.SetActive(false);
 
             pausePanel = UIKit.Layer(hudRoot, "PauseMenu", UIKit.Scrim).gameObject;
             var panel = UIKit.Panel(pausePanel.transform, new Vector2(520f, 470f), Vector2.zero);
@@ -1490,11 +1795,21 @@ namespace Palace
                 UIKit.Label(panel.transform, s.Players[p].Name + suffix, 30f, new Vector2(420f, 48f), new Vector2(60f, y), TextAlignmentOptions.Left, c, i == 0);
             }
 
+            // Rematch: the same players again. Online, the host starts it and the others can ask for one.
             if (IsNetClient)
-                UIKit.Label(panel.transform, "Waiting for the host...", 26f, new Vector2(300f, 80f), new Vector2(-165f, -top + 65f),
-                    TextAlignmentOptions.Center, UIKit.Muted);
+            {
+                Button ask = null;
+                ask = UIKit.Button(panel.transform, rematchAsked ? "Asked!" : "Ask for a rematch", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f),
+                    () => AskForRematch(ask), true, 26f);
+                ask.interactable = !rematchAsked;
+            }
             else
-                UIKit.Button(panel.transform, "Play Again", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f), StartNewGame, true);
+                UIKit.Button(panel.transform, isTutorial ? "Play a game" : "Rematch", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f), StartNewGame, true);
+            if (IsNetworked)
+            {
+                rematchLabel = UIKit.Label(panel.transform, rematchNames.Count > 0 ? Loc.T("Rematch:") + " " + string.Join(", ", rematchNames) : "",
+                    22f, new Vector2(700f, 36f), new Vector2(0f, -top + 130f), TextAlignmentOptions.Center, UIKit.Gold);
+            }
             UIKit.Button(panel.transform, IsNetworked ? "Leave game" : "Main Menu", new Vector2(300f, 80f), new Vector2(165f, -top + 65f), GoToMainMenu);
             AudioManager.Play(Sfx.Win);
         }

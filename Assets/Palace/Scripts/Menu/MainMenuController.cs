@@ -119,6 +119,7 @@ namespace Palace
             bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0;
             int streakCoins = automated ? 0 : Progress.CheckIn();
             if (streakCoins > 0) StartCoroutine(DailyRewardWhenReady(streakCoins));
+            StreakReminder.Refresh(GameSettings.StreakReminders); // moves tomorrow's reminder along, so it never nags after you've played
 
             if (!GameLaunch.SplashShown) StartCoroutine(Splash());
             else if (!string.IsNullOrEmpty(GameLaunch.MenuMessage)) OpenMultiplayer(GameLaunch.MenuMessage); // e.g. "The host left"
@@ -182,8 +183,31 @@ namespace Palace
             int day = Progress.DayStreak;
             string body = (day <= 1 ? Loc.T("Welcome back!") : Loc.F("Day {0} in a row!", day)) + "\n" + Loc.F("+{0} coins", coins) + "\n\n"
                           + Loc.F("Come back tomorrow for {0} coins.", Progress.StreakCoins(day + 1));
-            Popup(Loc.T("Daily reward"), body, "Collect", null);
+            // From day 2, offer (once) to remind them tomorrow so the streak isn't lost.
+            if (day >= 2 && !GameSettings.ReminderOffered && !GameSettings.StreakReminders)
+            {
+                GameSettings.ReminderOffered = true;
+                GameSettings.Save();
+                Popup(Loc.T("Daily reward"), body + "\n" + Loc.T("Want a reminder tomorrow so you keep your streak?"),
+                    "Remind me", TurnOnReminders, "No thanks", null);
+            }
+            else Popup(Loc.T("Daily reward"), body, "Collect", null);
             AudioManager.Play(Sfx.Win, 0.6f);
+        }
+
+        /// <summary>Daily reminder on: ask the phone for permission first (Android 13+ and iOS).</summary>
+        private void TurnOnReminders()
+        {
+            GameSettings.StreakReminders = true;
+            GameSettings.Save();
+            if (!StreakReminder.Supported) return; // PC / editor, or the Mobile Notifications package isn't installed yet
+            StreakReminder.RequestPermission(allowed =>
+            {
+                if (allowed || this == null) return;
+                GameSettings.StreakReminders = false;
+                GameSettings.Save();
+                Popup(Loc.T("Notifications are off"), Loc.T("Palace isn't allowed to send notifications. You can allow them in your phone's settings."), "OK", null);
+            });
         }
 
         /// <summary>Single Player: the first time, offer the guided game.</summary>
@@ -208,6 +232,7 @@ namespace Palace
             GameLaunch.Seed = 0;
             GameLaunch.BotCount = GameSettings.BotCount;   // used by "Play Again" afterwards
             GameLaunch.BotLevel = GameSettings.BotLevel;
+            GameLaunch.SwapMode = GameSettings.SwapMode;
             GameLaunch.Tutorial = true;
             SceneManager.LoadScene(GameLaunch.GameScene);
         }
@@ -377,33 +402,38 @@ namespace Palace
 
         private void BuildSinglePlayer()
         {
-            Transform p = BuildScreen("Single Player", new Vector2(900f, 640f), out singlePanel);
+            Transform p = BuildScreen("Single Player", new Vector2(900f, 740f), out singlePanel);
 
-            UIKit.Label(p, "Your name", 28f, new Vector2(300f, 50f), new Vector2(-250f, 172f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(160f, 172f), GameSettings.PlayerName, "Enter your name", 14,
+            UIKit.Label(p, "Your name", 28f, new Vector2(300f, 50f), new Vector2(-250f, 222f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(160f, 222f), GameSettings.PlayerName, "Enter your name", 14,
                 v => GameSettings.PlayerName = v);
 
-            opponentsLabel = UIKit.Label(p, "", 30f, new Vector2(700f, 50f), new Vector2(0f, 98f), TextAlignmentOptions.Center, UIKit.Text, true);
-            UIKit.Slider(p, new Vector2(640f, 44f), new Vector2(0f, 48f), 1, 9, GameSettings.BotCount, true, v =>
+            opponentsLabel = UIKit.Label(p, "", 30f, new Vector2(700f, 50f), new Vector2(0f, 148f), TextAlignmentOptions.Center, UIKit.Text, true);
+            UIKit.Slider(p, new Vector2(640f, 44f), new Vector2(0f, 98f), 1, 9, GameSettings.BotCount, true, v =>
             {
                 GameSettings.BotCount = Mathf.RoundToInt(v);
                 RefreshOpponents();
             });
-            tableSizeLabel = UIKit.Label(p, "", 24f, new Vector2(700f, 40f), new Vector2(0f, 4f), TextAlignmentOptions.Center, UIKit.Muted);
+            tableSizeLabel = UIKit.Label(p, "", 24f, new Vector2(700f, 40f), new Vector2(0f, 54f), TextAlignmentOptions.Center, UIKit.Muted);
             RefreshOpponents();
 
             // How well the computers play (same rules at every level).
-            UIKit.Label(p, "Computer skill", 28f, new Vector2(260f, 50f), new Vector2(-280f, -70f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.Segmented(p, GameSettings.BotLevelNames, GameSettings.BotLevel, new Vector2(500f, 60f), new Vector2(130f, -70f), i =>
+            UIKit.Label(p, "Computer skill", 28f, new Vector2(260f, 50f), new Vector2(-280f, -20f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.Segmented(p, GameSettings.BotLevelNames, GameSettings.BotLevel, new Vector2(500f, 60f), new Vector2(130f, -20f), i =>
             {
                 GameSettings.BotLevel = i;
                 RefreshSkillNote();
             });
-            skillNote = UIKit.Label(p, "", 22f, new Vector2(780f, 36f), new Vector2(0f, -118f), TextAlignmentOptions.Center, UIKit.Muted);
+            skillNote = UIKit.Label(p, "", 22f, new Vector2(780f, 36f), new Vector2(0f, -68f), TextAlignmentOptions.Center, UIKit.Muted);
             RefreshSkillNote();
 
-            UIKit.Button(p, "Start Game", new Vector2(340f, 80f), new Vector2(-185f, -180f), StartSinglePlayer, true, 34f);
-            UIKit.Button(p, "Guided game", new Vector2(300f, 80f), new Vector2(180f, -180f), StartTutorial, false, 28f);
+            // Optional game mode: swap hand and face-up cards before play.
+            UIKit.Label(p, "Swap before play", 28f, new Vector2(300f, 50f), new Vector2(-260f, -130f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.Segmented(p, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(230f, -130f),
+                i => GameSettings.SwapMode = i == 1);
+
+            UIKit.Button(p, "Start Game", new Vector2(340f, 80f), new Vector2(-185f, -225f), StartSinglePlayer, true, 34f);
+            UIKit.Button(p, "Guided game", new Vector2(300f, 80f), new Vector2(180f, -225f), StartTutorial, false, 28f);
         }
 
         private TextMeshProUGUI skillNote;
@@ -431,6 +461,7 @@ namespace Palace
             GameLaunch.PlayerName = GameSettings.PlayerName;
             GameLaunch.BotCount = GameSettings.BotCount;
             GameLaunch.BotLevel = GameSettings.BotLevel;
+            GameLaunch.SwapMode = GameSettings.SwapMode;
             GameLaunch.Tutorial = false;
             GameLaunch.SpectateOnly = false;
             GameLaunch.Seed = 0;
@@ -478,6 +509,7 @@ namespace Palace
             "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
             "2. Then play your face-up cards.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
+            "<b><color=#F2C24D>Optional: Swap before play</color></b>\nTurn it on in Single Player (or as the host in a game room). After the deal, swap any of your hand cards with your face-up cards: tap a hand card, then a face-up card. Press READY when you're happy; play starts when everyone is ready.\n\n" +
             "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play. Tap the pile to see every card in it.\n\n" +
             "<b><color=#F2C24D>Keyboard (PC)</color></b>\n1-9 pick a card, Enter or Space plays, P picks up the pile, H or L calls higher or lower, J Q K A or 2-9 choose an Ace's value (B burns), S sorts your hand, V shows the pile, F speeds up once you've finished, Esc opens the menu.";
 
@@ -523,6 +555,13 @@ namespace Palace
             y -= step;
             Row(a, "Computer speed", y);
             UIKit.Segmented(a, GameSettings.BotSpeedNames, GameSettings.BotSpeed, controlSize, new Vector2(controlX, y), i => GameSettings.BotSpeed = i);
+            y -= step;
+            Row(a, "Daily reminder", y);
+            UIKit.Segmented(a, GameSettings.OnOffNames, GameSettings.StreakReminders ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
+            {
+                if (i == 1) TurnOnReminders();
+                else GameSettings.StreakReminders = false;
+            });
 
             // ---- Display
             Transform d = tabs[1];
@@ -556,11 +595,12 @@ namespace Palace
             Row(d, "Frame rate", y);
             UIKit.Segmented(d, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y), i => GameSettings.FrameRateIndex = i);
             y -= step;
-            var note = UIKit.Label(d, "4 colours: diamonds are blue and clubs are green, so every suit stands out.", 22f, new Vector2(960f, 60f),
-                new Vector2(0f, y + 4f), TextAlignmentOptions.Center, UIKit.Muted);
+            Row(d, "Reactions", y);
+            UIKit.Segmented(d, GameSettings.OnOffNames, GameSettings.ShowReactions ? 1 : 0, controlSize, new Vector2(controlX, y), i => GameSettings.ShowReactions = i == 1);
+            y -= step;
+            var note = UIKit.Label(d, "4 colours: diamonds are blue and clubs are green, so every suit stands out. Reactions Off hides everyone's quick reactions.",
+                22f, new Vector2(960f, 60f), new Vector2(0f, y + 10f), TextAlignmentOptions.Center, UIKit.Muted);
             note.textWrappingMode = TextWrappingModes.Normal;
-            UIKit.Label(d, "Table, cards and card backs are on the Customise screen.", 22f, new Vector2(960f, 40f),
-                new Vector2(0f, y - 46f), TextAlignmentOptions.Center, UIKit.Muted);
 
             // ---- Cloud save
             Transform c = tabs[2];

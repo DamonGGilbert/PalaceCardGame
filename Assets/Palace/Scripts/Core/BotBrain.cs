@@ -103,6 +103,39 @@ namespace Palace.Core
             }
         }
 
+        // ------------------------------------------------------------------ swap before play
+
+        /// <summary>
+        /// Swap-before-play mode: which hand cards to swap with which face-up slots. Face-up cards are
+        /// played late in the game, so Normal and Hard bots put their strongest cards (10s, 2s, Aces,
+        /// then high cards) face up and keep low cards in hand. Easy bots usually don't bother.
+        /// </summary>
+        public static List<(int handCardId, int faceUpSlot)> DecideSwaps(PlayerState p, BotLevel level, Random rng)
+        {
+            var swaps = new List<(int, int)>();
+            if (level == BotLevel.Easy && rng.NextDouble() < 0.6) return swaps;
+
+            var hand = new List<Card>(p.Hand);
+            var up = (Card?[])p.FaceUp.Clone();
+            for (int guard = 0; guard < 6; guard++)
+            {
+                int bestHand = -1, worstSlot = -1;
+                for (int i = 0; i < hand.Count; i++)
+                    if (bestHand < 0 || SwapValue(hand[i].Rank) > SwapValue(hand[bestHand].Rank)) bestHand = i;
+                for (int k = 0; k < up.Length; k++)
+                    if (up[k].HasValue && (worstSlot < 0 || SwapValue(up[k].Value.Rank) < SwapValue(up[worstSlot].Value.Rank))) worstSlot = k;
+                if (bestHand < 0 || worstSlot < 0 || SwapValue(hand[bestHand].Rank) <= SwapValue(up[worstSlot].Value.Rank)) break;
+
+                swaps.Add((hand[bestHand].Id, worstSlot));
+                Card h = hand[bestHand];
+                hand[bestHand] = up[worstSlot].Value;
+                up[worstSlot] = h;
+            }
+            return swaps;
+        }
+
+        private static int SwapValue(Rank r) => r == Rank.Ten ? 30 : r == Rank.Two ? 29 : r == Rank.Ace ? 28 : (int)r;
+
         private static bool IsSpecial(Rank r) => r == Rank.Two || r == Rank.Ten || r == Rank.Ace;
 
         private static int Cost(Rank rank)

@@ -636,6 +636,61 @@ namespace Palace
             Add("Daily challenges done", "Ukończone wyzwania dnia", "Retos diarios completados");
             Add("Best day streak", "Najdłuższa seria dni", "Mejor racha de días");
 
+            // ---------------------------------------------------------- quick reactions
+            Add("React", "Reaguj", "Reaccionar");
+            Add("Reactions", "Reakcje", "Reacciones");
+            Add("Nice one!", "Niezłe!", "¡Buena esa!");
+            Add("Well played!", "Dobrze zagrane!", "¡Bien jugado!");
+            Add("Unlucky!", "Pech!", "¡Mala suerte!");
+            Add("Ouch, sorry!", "Auć, sorki!", "¡Uy, perdona!");
+            Add("Good game!", "Dobra gra!", "¡Buena partida!");
+            Add("So close!", "Było blisko!", "¡Casi!");
+            Add("Big brain move!", "Ale mózg!", "¡Jugada de genio!");
+            Add("You're on fire!", "Ale jesteś w formie!", "¡Estás que lo petas!");
+            Add("Not the pile!", "Tylko nie stos!", "¡El montón no!");
+            Add("Respect!", "Szacun!", "¡Respeto!");
+            Add("Hehe, oops!", "Hehe, ups!", "¡Jeje, ups!");
+            Add("My turn to shine!", "Teraz moja kolej!", "¡Ahora me toca brillar!");
+            Add("4 colours: diamonds are blue and clubs are green, so every suit stands out. Reactions Off hides everyone's quick reactions.",
+                "4 kolory: karo są niebieskie, a trefle zielone, więc każdy kolor się wyróżnia. Reakcje wyłączone ukrywają szybkie reakcje wszystkich graczy.",
+                "4 colores: los diamantes son azules y los tréboles verdes, así cada palo destaca. Con Reacciones en No se ocultan las reacciones rápidas de todos.");
+
+            // ---------------------------------------------------------- swap before play
+            Add("Swap before play", "Zamiana przed grą", "Intercambio antes de jugar");
+            Add("READY", "GOTOWE", "LISTO");
+            Add("Swap cards: tap a hand card, then a face-up card. Press READY when you're happy.",
+                "Zamień karty: dotknij karty w ręce, a potem odkrytej karty. Naciśnij GOTOWE, gdy skończysz.",
+                "Cambia cartas: toca una carta de la mano y luego una boca arriba. Pulsa LISTO cuando quieras.");
+            Add("Now tap a face-up card to swap with it", "Teraz dotknij odkrytej karty, aby ją zamienić", "Ahora toca una carta boca arriba para cambiarla");
+            Add("Now tap a card in your hand to swap with it", "Teraz dotknij karty w ręce, aby ją zamienić", "Ahora toca una carta de tu mano para cambiarla");
+            Add("Waiting for 1 player to be ready...", "Czekamy, aż 1 gracz będzie gotowy...", "Esperando a que 1 jugador esté listo...");
+            Add("Waiting for {0} players to be ready...", "Czekamy na gotowość graczy: {0}...", "Esperando a que {0} jugadores estén listos...");
+            Add("{0} is ready", "{0} jest gotowy", "{0} está listo");
+            Add("Swapping is over", "Zamiana się skończyła", "El intercambio ha terminado");
+            Add("No such player", "Nie ma takiego gracza", "Ese jugador no existe");
+            Add("You've already pressed Ready", "Już naciśnięto Gotowe", "Ya has pulsado Listo");
+
+            // ---------------------------------------------------------- rematch
+            Add("Rematch", "Rewanż", "Revancha");
+            Add("Rematch:", "Rewanż:", "Revancha:");
+            Add("Ask for a rematch", "Poproś o rewanż", "Pedir la revancha");
+            Add("Asked!", "Wysłano!", "¡Pedida!");
+            Add("{0} wants a rematch!", "{0} chce rewanżu!", "¡{0} quiere la revancha!");
+            Add("Play a game", "Zagraj grę", "Jugar una partida");
+
+            // ---------------------------------------------------------- streak reminders
+            Add("Daily reminder", "Codzienne przypomnienie", "Recordatorio diario");
+            Add("Want a reminder tomorrow so you keep your streak?", "Przypomnieć Ci jutro, żebyś nie stracił serii?", "¿Te lo recordamos mañana para que no pierdas la racha?");
+            Add("Remind me", "Przypomnij mi", "Recuérdamelo");
+            Add("No thanks", "Nie, dzięki", "No, gracias");
+            Add("Notifications are off", "Powiadomienia są wyłączone", "Las notificaciones están desactivadas");
+            Add("Palace isn't allowed to send notifications. You can allow them in your phone's settings.",
+                "Palace nie może wysyłać powiadomień. Możesz na nie zezwolić w ustawieniach telefonu.",
+                "Palace no tiene permiso para enviar notificaciones. Puedes permitirlas en los ajustes del móvil.");
+            Add("OK", "OK", "Vale");
+            Add("Your daily reward is waiting. Fancy a quick game?", "Czeka na Ciebie dzienna nagroda. Szybka partyjka?", "Tu recompensa diaria te espera. ¿Una partida rápida?");
+            Add("Keep your streak going! Day {0} pays {1} coins.", "Nie przerywaj serii! Dzień {0} to {1} monet.", "¡Sigue la racha! El día {0} da {1} monedas.");
+
             // ---------------------------------------------------------- how to play
             Add(MainMenuController.RulesText,
                 "<b><color=#F2C24D>Cel</color></b>\nPozbądź się wszystkich kart. Gra toczy się, aż wszyscy skończą, więc liczy się każde miejsce od 1. do ostatniego.\n\n" +
@@ -650,6 +705,7 @@ namespace Palace
                 "<b>As</b>  Wybierz, jako co się liczy: dowolna wartość równa lub wyższa od stosu (na Walecie może być W, D, K lub A, nigdy 9). Na NIŻEJ niż 7 może być 2-6. Albo użyj go jako 10, by spalić stos.\n\n" +
                 "<b><color=#F2C24D>Trzy etapy</color></b>\n1. Graj z ręki, aż skończy się talia i opróżnisz rękę.\n" +
                 "2. Potem zagraj odkryte karty.\n3. Na końcu zakryte karty, odkrywane po jednej bez patrzenia. Jeśli karty nie można zagrać, bierzesz z nią stos i musisz znowu opróżnić rękę.\n\n" +
+                "<b><color=#F2C24D>Opcjonalnie: Zamiana przed grą</color></b>\nWłącz ją w trybie Jeden gracz (lub jako gospodarz pokoju). Po rozdaniu możesz zamieniać karty z ręki z odkrytymi kartami: dotknij karty w ręce, a potem odkrytej karty. Naciśnij GOTOWE, gdy skończysz; gra zaczyna się, gdy wszyscy są gotowi.\n\n" +
                 "<b><color=#F2C24D>Sterowanie</color></b>\nPrzeciągnij kartę na stos, aby ją zagrać. Albo dotknij kart, aby je wybrać (dotknij ponownie, aby odznaczyć) i naciśnij ZAGRAJ. Aby zagrać kilka kart tej samej wartości, dotknij wszystkich i przeciągnij jedną. Karty, których nie możesz zagrać, są przyciemnione; dotknij jednej, aby zobaczyć dlaczego. Strzałki wokół stołu pokazują kierunek gry. Dotknij stosu, aby zobaczyć wszystkie jego karty.\n\n" +
                 "<b><color=#F2C24D>Klawiatura (PC)</color></b>\n1-9 wybiera kartę, Enter lub Spacja zagrywa, P bierze stos, H lub L wybiera wyżej lub niżej, J Q K A lub 2-9 ustala wartość Asa (B spala), S sortuje rękę, V pokazuje stos, F przyspiesza grę po Twoim końcu, Esc otwiera menu.",
                 "<b><color=#F2C24D>Objetivo</color></b>\nQuédate sin cartas. La partida sigue hasta que todos terminan, así que cada puesto, del 1.º al último, cuenta.\n\n" +
@@ -664,6 +720,7 @@ namespace Palace
                 "<b>As</b>  Elige cuánto vale: cualquier valor que iguale o supere el montón (sobre una Jota puede ser J, Q, K o A, nunca 9). Sobre un 7 MENOR puede ser 2-6. O úsalo como un 10 para quemar el montón.\n\n" +
                 "<b><color=#F2C24D>Las tres fases</color></b>\n1. Juega de tu mano hasta que se acabe el mazo y vacíes la mano.\n" +
                 "2. Luego juega tus cartas boca arriba.\n3. Por último tus cartas boca abajo, girándolas de una en una sin mirar. Si la carta no se puede jugar, recoges el montón con ella y debes vaciar la mano otra vez.\n\n" +
+                "<b><color=#F2C24D>Opcional: Intercambio antes de jugar</color></b>\nActívalo en Un jugador (o como anfitrión en una sala). Tras el reparto, cambia las cartas de tu mano por tus cartas boca arriba: toca una carta de la mano y luego una boca arriba. Pulsa LISTO cuando quieras; la partida empieza cuando todos están listos.\n\n" +
                 "<b><color=#F2C24D>Controles</color></b>\nArrastra una carta al montón para jugarla. O toca cartas para elegirlas (toca otra vez para quitarlas) y pulsa JUGAR. Para jugar varias del mismo valor, tócalas todas y arrastra una. Las cartas que no puedes jugar se ven oscuras; toca una para ver por qué. Las flechas alrededor de la mesa muestran el sentido del juego. Toca el montón para ver todas sus cartas.\n\n" +
                 "<b><color=#F2C24D>Teclado (PC)</color></b>\n1-9 elige una carta, Enter o Espacio juega, P recoge el montón, H o L canta mayor o menor, J Q K A o 2-9 eligen el valor del As (B quema), S ordena tu mano, V muestra el montón, F acelera cuando ya has terminado, Esc abre el menú.");
 

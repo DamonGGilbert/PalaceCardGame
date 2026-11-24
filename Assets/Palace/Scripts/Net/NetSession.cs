@@ -56,6 +56,8 @@ namespace Palace.Net
         public event Action<ulong> ClientInGame;                   // host
         public event Action<ulong> ClientLeft;                     // host
         public event Action<string> ErrorReceived;                 // client
+        public event Action<int, int> ReactionReceived;            // both: (player, reaction index)
+        public event Action<int> RematchRequested;                 // both: player who wants a rematch
 
         private NetworkManager net;
         private UnityTransport transport;
@@ -331,6 +333,40 @@ namespace Palace.Net
         /// <summary>Client: tell the host the table is ready to receive the game.</summary>
         public void ReportInGame() => SendTo(NetworkManager.ServerClientId, NetProtocol.InGame());
 
+        /// <summary>Send a quick reaction. The host passes it on to everyone (and shows it itself).</summary>
+        public void SendReaction(int index)
+        {
+            if (IsHost) RelayReaction(PlayerIndexOf(net.LocalClientId), index);
+            else SendTo(NetworkManager.ServerClientId, NetProtocol.Reaction(-1, index));
+        }
+
+        /// <summary>Host: a computer player's reaction, shown on every device.</summary>
+        public void SendBotReaction(int player, int index)
+        {
+            if (IsHost) RelayReaction(player, index);
+        }
+
+        /// <summary>Client: ask the host for a rematch.</summary>
+        public void RequestRematch() => SendTo(NetworkManager.ServerClientId, NetProtocol.Rematch(-1));
+
+        private void RelayReaction(int player, int index)
+        {
+            if (player < 0) return;
+            byte[] data = NetProtocol.Reaction(player, index);
+            foreach (var s in Seats)
+                if (!s.IsBot && s.ClientId != net.LocalClientId) SendTo(s.ClientId, data);
+            ReactionReceived?.Invoke(player, index);
+        }
+
+        private void RelayRematch(int player)
+        {
+            if (player < 0) return;
+            byte[] data = NetProtocol.Rematch(player);
+            foreach (var s in Seats)
+                if (!s.IsBot && s.ClientId != net.LocalClientId) SendTo(s.ClientId, data);
+            RematchRequested?.Invoke(player);
+        }
+
         /// <summary>Client: next update from the host, if one has arrived.</summary>
         public bool TryTakeUpdate(out List<GameEvent> events, out GameState state)
         {
@@ -423,8 +459,25 @@ namespace Palace.Net
                 case MsgType.Command:
                     CommandReceived?.Invoke(sender, NetProtocol.ReadCommand(r));
                     break;
+                case MsgType.Reaction:
+                {
+                    r.ReadInt32(); // the sender can't choose who it's from
+                    int index = r.ReadByte();
+                    // At most one reaction every 1.5 seconds per player, and only known phrases.
+                    float now = Time.unscaledTime;
+                    if (index >= Reactions.Phrases.Length) break;
+                    if (lastReaction.TryGetValue(sender, out float last) && now - last < 1.5f) break;
+                    lastReaction[sender] = now;
+                    RelayReaction(PlayerIndexOf(sender), index);
+                    break;
+                }
+                case MsgType.Rematch:
+                    if (InGame) RelayRematch(PlayerIndexOf(sender));
+                    break;
             }
         }
+
+        private readonly Dictionary<ulong, float> lastReaction = new Dictionary<ulong, float>();
 
         private void HandleAsClient(MsgType type, BinaryReader r)
         {
@@ -452,6 +505,16 @@ namespace Palace.Net
                 }
                 case MsgType.Error:
                     ErrorReceived?.Invoke(r.ReadString());
+                    break;
+                case MsgType.Reaction:
+                {
+                    int player = r.ReadInt32();
+                    int index = r.ReadByte();
+                    if (index < Reactions.Phrases.Length) ReactionReceived?.Invoke(player, index);
+                    break;
+                }
+                case MsgType.Rematch:
+                    RematchRequested?.Invoke(r.ReadInt32());
                     break;
                 case MsgType.Closing:
                     pendingClose = r.ReadString();

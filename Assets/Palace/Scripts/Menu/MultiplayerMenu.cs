@@ -22,6 +22,7 @@ namespace Palace
         private RectTransform foundList, seatList;
         private TMP_InputField addressInput, codeInput;
         private Button readyButton, startButton, addBotButton, removeBotButton;
+        private GameObject swapRow;
         private bool localReady;
         private bool lookingForGames;
         private float nextListRefresh;
@@ -118,6 +119,12 @@ namespace Palace
             addBotButton = UIKit.Button(p, "+ Computer player", new Vector2(300f, 70f), new Vector2(-330f, -350f), () => Net.AddBot());
             removeBotButton = UIKit.Button(p, "- Computer player", new Vector2(300f, 70f), new Vector2(-10f, -350f), () => Net.RemoveBot());
             startButton = UIKit.Button(p, "Start game", new Vector2(280f, 70f), new Vector2(320f, -350f), () => Net.StartGame(), true);
+            // Host only: the optional "swap before play" mode for this room.
+            swapRow = UIBuild.Rect("SwapMode", p, new Vector2(700f, 70f), new Vector2(170f, -420f)).gameObject;
+            UIKit.Label(swapRow.transform, "Swap before play", 26f, new Vector2(300f, 50f), new Vector2(-190f, 0f), TextAlignmentOptions.Right, UIKit.Muted, true);
+            UIKit.Segmented(swapRow.transform, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(150f, 0f),
+                i => { GameSettings.SwapMode = i == 1; GameSettings.Save(); });
+
             readyButton = UIKit.Button(p, "I'm ready", new Vector2(300f, 70f), new Vector2(160f, -350f), () =>
             {
                 localReady = !localReady;
@@ -268,6 +275,7 @@ namespace Palace
 
             bool host = net.IsHost;
             addBotButton.gameObject.SetActive(host);
+            swapRow.SetActive(host);
             removeBotButton.gameObject.SetActive(host);
             startButton.gameObject.SetActive(host);
             readyButton.gameObject.SetActive(!host);

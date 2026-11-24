@@ -87,6 +87,34 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.botlevel", Mathf.Clamp(value, 0, 2));
         }
 
+        /// <summary>Optional game mode: swap hand and face-up cards before play starts.</summary>
+        public static bool SwapMode
+        {
+            get => PlayerPrefs.GetInt("palace.swapmode", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.swapmode", value ? 1 : 0);
+        }
+
+        /// <summary>Show quick reactions (yours and other players'). Off hides them completely.</summary>
+        public static bool ShowReactions
+        {
+            get => PlayerPrefs.GetInt("palace.reactions", 1) == 1;
+            set => PlayerPrefs.SetInt("palace.reactions", value ? 1 : 0);
+        }
+
+        /// <summary>A phone notification the day after you play, so you don't lose your streak. Off until chosen.</summary>
+        public static bool StreakReminders
+        {
+            get => PlayerPrefs.GetInt("palace.reminders", 0) == 1;
+            set { PlayerPrefs.SetInt("palace.reminders", value ? 1 : 0); StreakReminder.Refresh(value); }
+        }
+
+        /// <summary>Has the player been asked about streak reminders yet?</summary>
+        public static bool ReminderOffered
+        {
+            get => PlayerPrefs.GetInt("palace.reminderoffered", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.reminderoffered", value ? 1 : 0);
+        }
+
         /// <summary>Has the guided first game been finished (or skipped) on this device?</summary>
         public static bool TutorialDone
         {

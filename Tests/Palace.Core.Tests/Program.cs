@@ -17,6 +17,7 @@ internal static class Program
         NetworkMessages();
         Simulations();
         BotLevelsAndTutorial();
+        SwapBeforePlay();
         Console.WriteLine();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");
         return failed == 0 ? 0 : 1;
@@ -623,6 +624,95 @@ internal static class Program
             if (g.State.Phase != GamePhase.GameOver) tutorialEnds = false;
         }
         Check(tutorialEnds, "guided game: 300 played-out games all end normally");
+    }
+
+    // ------------------------------------------------------------------ part 4
+
+    private static void SwapBeforePlay()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Optional mode: swap before play");
+
+        var names = new List<string> { "A", "B", "C" };
+        var bots = new List<bool> { false, true, true };
+        var g = PalaceGame.Create(names, bots, new HouseRules { SwapBeforePlay = true }, 42);
+        var s = g.State;
+        Check(s.Phase == GamePhase.Swapping, "the game starts in the swap phase");
+        Check(!g.StartEvents.Any(e => e.Type == GameEventType.TurnChanged), "no first turn until everyone is ready");
+        var me = s.Players[0];
+        Check(!g.PlayCards(s.Current, PlaySource.Hand, new List<int> { s.Players[s.Current].Hand[0].Id }).Ok, "nobody can play while swapping");
+
+        Card hand0 = me.Hand[0], up1 = me.FaceUp[1].Value;
+        var r = g.SwapCards(0, hand0.Id, 1);
+        Check(r.Ok && me.FaceUp[1].Value.Id == hand0.Id && me.Hand.Any(c => c.Id == up1.Id), "a hand card and a face-up card change places");
+        Check(r.Events.Count == 1 && r.Events[0].Type == GameEventType.CardsSwapped, "the swap is reported as one event");
+        Check(!g.SwapCards(0, 99999, 0).Ok, "a card you don't hold can't be swapped");
+        Check(!g.SwapCards(0, me.Hand[0].Id, 5).Ok, "a face-up slot that doesn't exist is refused");
+        Check(me.Hand.Count == 3 && me.FaceUpCount == 3 && CountCards(s) == 52, "no card is created or lost by swapping");
+
+        Check(g.FinishSwap(0).Ok && !g.FinishSwap(0).Ok, "Ready can only be pressed once");
+        Check(!g.SwapCards(0, me.Hand[0].Id, 0).Ok, "no more swaps after pressing Ready");
+        Check(s.Phase == GamePhase.Swapping, "still swapping while others aren't ready");
+        g.FinishSwap(1);
+        var last = g.FinishSwap(2);
+        Check(s.Phase == GamePhase.Playing && last.Events.Any(e => e.Type == GameEventType.TurnChanged && e.Player == s.Current),
+            "when the last player is ready, the first turn begins");
+
+        // Bots put their best cards face up.
+        var p = new PlayerState(0, "Bot", true);
+        p.Hand.AddRange(new[] { C(Rank.Ten), C(Rank.Ace), C(Rank.Three) });
+        p.FaceUp[0] = C(Rank.Four); p.FaceUp[1] = C(Rank.King); p.FaceUp[2] = C(Rank.Five);
+        var swaps = BotBrain.DecideSwaps(p, BotLevel.Normal, new Random(1));
+        foreach (var (id, slot) in swaps)
+        {
+            int i = p.Hand.FindIndex(c => c.Id == id);
+            Card t = p.Hand[i]; p.Hand[i] = p.FaceUp[slot].Value; p.FaceUp[slot] = t;
+        }
+        var upRanks = p.FaceUp.Select(c => c.Value.Rank).OrderBy(x => x).ToList();
+        Check(upRanks.SequenceEqual(new[] { Rank.Ten, Rank.King, Rank.Ace }), "a bot moves its 10 and Ace face up and keeps the low cards");
+
+        // Full games in swap mode, every level, many table sizes.
+        var rng = new Random(2024);
+        bool allEnd = true, legal = true, conserved = true;
+        for (int k = 0; k < 600; k++)
+        {
+            int n = 2 + k % 9;
+            var game = PalaceGame.Create(Enumerable.Range(0, n).Select(i => "P" + i).ToList(), Enumerable.Repeat(true, n).ToList(),
+                new HouseRules { SwapBeforePlay = true }, rng.Next());
+            BotLevel level = (BotLevel)(k % 3);
+            foreach (var pl in game.State.Players)
+            {
+                foreach (var (id, slot) in BotBrain.DecideSwaps(pl, level, rng))
+                    if (!game.SwapCards(pl.Index, id, slot).Ok) legal = false;
+                if (!game.FinishSwap(pl.Index).Ok) legal = false;
+            }
+            if (CountCards(game.State) != game.State.TotalCards) conserved = false;
+            int actions = 0;
+            while (game.State.Phase != GamePhase.GameOver && actions < 5000)
+            {
+                int actor = game.State.ActingPlayer;
+                if (!BotBrain.Execute(game, actor, BotBrain.Decide(game, actor, rng, level)).Ok) { legal = false; break; }
+                actions++;
+            }
+            if (game.State.Phase != GamePhase.GameOver) allEnd = false;
+        }
+        Check(legal, "swap mode: bots only make legal swaps and moves");
+        Check(conserved, "swap mode: every card is still there after swapping");
+        Check(allEnd, "swap mode: 600 games at every level and table size all end");
+
+        // Online: the swap phase and who is ready travel to every device; swap commands reach the host intact.
+        var g2 = PalaceGame.Create(names, bots, new HouseRules { SwapBeforePlay = true }, 7);
+        g2.FinishSwap(1);
+        byte[] bytes = Palace.Net.NetProtocol.Update(g2.State, new List<GameEvent>(), 0);
+        var (_, _, view) = Decode(bytes);
+        Check(view.Phase == GamePhase.Swapping && view.Players[1].SwapReady && !view.Players[0].SwapReady, "the swap phase and Ready flags reach other devices");
+        var mirror = new PalaceGame(view, new HouseRules(), 0);
+        var cmd = new Palace.Net.NetCommand { Type = Palace.Net.NetCommandType.Swap, Slot = 2 };
+        cmd.CardIds.Add(view.Players[0].Hand[0].Id);
+        byte[] cb = Palace.Net.NetProtocol.Command(cmd);
+        var back = Palace.Net.NetProtocol.ReadCommand(new BinaryReader(new MemoryStream(cb, 1, cb.Length - 1)));
+        Check(back.ApplyTo(g2, 0).Ok && g2.State.Players[0].FaceUp[2].Value.Id == cmd.CardIds[0], "a swap sent from a phone is applied by the host");
+        Check(mirror.State.Phase == GamePhase.Swapping, "a phone's copy of the game knows it's the swap phase");
     }
 
     private static int CountCards(GameState s)

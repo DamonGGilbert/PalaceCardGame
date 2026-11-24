@@ -14,6 +14,7 @@ namespace Palace
     ///   -palace-shots DIR     save screenshots into DIR
     ///   -palace-botlevel L    computer skill: 0 Easy, 1 Normal, 2 Hard
     ///   -palace-tutorial      play the guided game (tips are dismissed automatically)
+    ///   -palace-swap          play with the optional swap-before-play mode
     /// Logs a summary line per game and any errors, then quits. Used to test real builds.
     /// </summary>
     public class AutoPlayHarness : MonoBehaviour
@@ -40,6 +41,7 @@ namespace Palace
             GameLaunch.BotCount = Mathf.Clamp(IntArg(args, "-palace-players", 4), 2, 10) - 1;
             GameLaunch.BotLevel = Mathf.Clamp(IntArg(args, "-palace-botlevel", 1), 0, 2);
             GameLaunch.Tutorial = Array.IndexOf(args, "-palace-tutorial") >= 0; // the guided game, tips auto-dismissed
+            GameLaunch.SwapMode = Array.IndexOf(args, "-palace-swap") >= 0;    // the optional swap-before-play mode
             GameSettings.AnimationOverride = GameSettings.AnimationSpeed.Fast; // not saved to the player's settings
 
             var harness = controller.gameObject.AddComponent<AutoPlayHarness>();

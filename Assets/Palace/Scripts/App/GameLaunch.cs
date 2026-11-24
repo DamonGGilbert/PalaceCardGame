@@ -15,6 +15,7 @@ namespace Palace
         public static int Seed;            // 0 = random
         public static int BotLevel = 1;    // 0 Easy, 1 Normal, 2 Hard
         public static bool Tutorial;       // the guided first game
+        public static bool SwapMode;       // optional "swap before play" mode
 
         /// <summary>Shown on the Multiplayer screen after returning from a game (e.g. "The host left").</summary>
         public static string MenuMessage;

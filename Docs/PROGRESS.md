@@ -88,6 +88,19 @@
 - [x] 2-player 8s stalemate fixed: with only 2 players left an 8 is a normal card (your choice, Q24 in DESIGN.md)
 - All reward numbers (XP, coins, targets) are in the tables at the top of `Scripts/App/Progress.cs`
 
+## Reactions, swap mode, rematch, streak reminders ✅ (code) — needs a check in the editor
+- [x] Quick reactions: 12 friendly preset phrases ("Nice one!", "Unlucky!", "Good game!", "Big brain move!"...) in a
+      speech bubble over your seat. Presets only, no typing, so nothing needs moderating. One every 2 seconds, and the
+      host enforces a limit online. Computer players react kindly now and then. Settings → Display → Reactions Off hides them all
+- [x] Optional mode **Swap before play** (Single Player screen, or the host's toggle in a game room): after the deal,
+      tap a hand card then a face-up card to swap them, then press READY. Play starts when everyone is ready. Normal and Hard
+      bots put their 10s, 2s, Aces and high cards face up. Engine-tested, including online sync
+- [x] Rematch button on the results screen. Online, the host starts the rematch for everyone, and the other players can
+      press "Ask for a rematch" (the host sees who asked)
+- [x] Daily streak reminder (optional, off by default): one notification the next day at 6pm
+- [ ] **You:** to switch reminders on, install the Mobile Notifications package (Docs/Notifications-Setup.md)
+- [ ] **You:** try a Swap-before-play game and check the swapping feels clear
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong

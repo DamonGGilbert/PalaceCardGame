@@ -32,6 +32,13 @@ namespace Palace.Core
         /// </summary>
         public bool EightSkipsWithTwoLeft = false;
 
+        /// <summary>
+        /// Optional game mode "Swap before play" (not part of the school rules, off by default): after the
+        /// deal, everyone may swap any of their hand cards with their face-up cards, then presses Ready.
+        /// Play starts once everyone is ready.
+        /// </summary>
+        public bool SwapBeforePlay = false;
+
         /// <summary>Q20: four cards of the same rank burn the pile. Not part of the school rules.</summary>
         public bool FourOfAKindBurns = false;
 

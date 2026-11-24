@@ -81,7 +81,8 @@ namespace Palace.Core
 
             state.Current = firstPlayer >= 0 && firstPlayer < n ? firstPlayer : game.rng.Next(n); // Q6: random first player
             game.startEvents.Add(new GameEvent { Type = GameEventType.GameStarted });
-            game.startEvents.Add(new GameEvent { Type = GameEventType.TurnChanged, Player = state.Current });
+            if (rules.SwapBeforePlay) state.Phase = GamePhase.Swapping; // the first turn starts when everyone is ready
+            else game.startEvents.Add(new GameEvent { Type = GameEventType.TurnChanged, Player = state.Current });
             return game;
         }
 
@@ -342,6 +343,50 @@ namespace Palace.Core
             var result = new CommandResult { Ok = true };
             Collect(result, player);
             SetTurn(result, NextActiveFrom(player)); // Q8: play passes on
+            return result;
+        }
+
+        // ------------------------------------------------------------------ swap before play (optional mode)
+
+        /// <summary>Swap one hand card with one face-up card. Only before play starts, and only until you're ready.</summary>
+        public CommandResult SwapCards(int player, int handCardId, int faceUpSlot)
+        {
+            if (State.Phase != GamePhase.Swapping) return CommandResult.Fail("Swapping is over");
+            if (player < 0 || player >= State.Players.Count) return CommandResult.Fail("No such player");
+            PlayerState p = State.Players[player];
+            if (p.SwapReady) return CommandResult.Fail("You've already pressed Ready");
+            if (faceUpSlot < 0 || faceUpSlot >= p.FaceUp.Length || !p.FaceUp[faceUpSlot].HasValue) return CommandResult.Fail("No card there");
+            int i = p.Hand.FindIndex(c => c.Id == handCardId);
+            if (i < 0) return CommandResult.Fail("That card isn't available");
+
+            Card fromHand = p.Hand[i], fromTable = p.FaceUp[faceUpSlot].Value;
+            p.Hand[i] = fromTable;
+            p.FaceUp[faceUpSlot] = fromHand;
+            var result = new CommandResult { Ok = true };
+            result.Events.Add(new GameEvent
+            {
+                Type = GameEventType.CardsSwapped, Player = player, Source = PlaySource.Hand,
+                Cards = new List<Card> { fromHand, fromTable }, Slots = new List<int> { faceUpSlot }
+            });
+            return result;
+        }
+
+        /// <summary>Done swapping. When everyone is ready, the first turn begins.</summary>
+        public CommandResult FinishSwap(int player)
+        {
+            if (State.Phase != GamePhase.Swapping) return CommandResult.Fail("Swapping is over");
+            if (player < 0 || player >= State.Players.Count) return CommandResult.Fail("No such player");
+            PlayerState p = State.Players[player];
+            if (p.SwapReady) return CommandResult.Fail("You've already pressed Ready");
+
+            p.SwapReady = true;
+            var result = new CommandResult { Ok = true };
+            result.Events.Add(new GameEvent { Type = GameEventType.PlayerReady, Player = player });
+            if (State.Players.TrueForAll(x => x.SwapReady))
+            {
+                State.Phase = GamePhase.Playing;
+                result.Events.Add(new GameEvent { Type = GameEventType.TurnChanged, Player = State.Current });
+            }
             return result;
         }
 

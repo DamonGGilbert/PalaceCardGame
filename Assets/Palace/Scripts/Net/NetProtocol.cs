@@ -15,7 +15,9 @@ namespace Palace.Net
         Update = 6,       // host -> client: events + the table as THIS player may see it
         Command = 7,      // client -> host: a move
         Error = 8,        // host -> client: that move was refused
-        Closing = 9       // host -> clients: the host has left
+        Closing = 9,      // host -> clients: the host has left
+        Reaction = 10,    // client -> host: a quick reaction; host -> clients: who sent which reaction
+        Rematch = 11      // client -> host: I want a rematch; host -> clients: who wants one
     }
 
     public sealed class LobbySeat
@@ -26,7 +28,7 @@ namespace Palace.Net
         public bool Ready;
     }
 
-    public enum NetCommandType : byte { PlayCards, PlayFaceDown, PickUp, DeclareSeven, ChooseAce }
+    public enum NetCommandType : byte { PlayCards, PlayFaceDown, PickUp, DeclareSeven, ChooseAce, Swap, SwapDone }
 
     public sealed class NetCommand
     {
@@ -46,6 +48,8 @@ namespace Palace.Net
                 case NetCommandType.PlayFaceDown: return game.PlayFaceDown(player, Slot);
                 case NetCommandType.PickUp: return game.PickUp(player);
                 case NetCommandType.DeclareSeven: return game.DeclareSeven(player, Call);
+                case NetCommandType.Swap: return game.SwapCards(player, CardIds.Count > 0 ? CardIds[0] : -1, Slot);
+                case NetCommandType.SwapDone: return game.FinishSwap(player);
                 default: return game.ChooseAce(player, Burn, AceValue);
             }
         }
@@ -65,6 +69,10 @@ namespace Palace.Net
         public static byte[] InGame() => Build(MsgType.InGame, w => { });
         public static byte[] Closing(string reason) => Build(MsgType.Closing, w => w.Write(reason ?? ""));
         public static byte[] Error(string error) => Build(MsgType.Error, w => w.Write(error ?? ""));
+
+        /// <summary>A quick reaction (index into Reactions.Phrases) from a player; the host fills in who sent it.</summary>
+        public static byte[] Reaction(int player, int index) => Build(MsgType.Reaction, w => { w.Write(player); w.Write((byte)index); });
+        public static byte[] Rematch(int player) => Build(MsgType.Rematch, w => w.Write(player));
 
         public static byte[] Lobby(IReadOnlyList<LobbySeat> seats) => Build(MsgType.Lobby, w =>
         {
@@ -188,6 +196,7 @@ namespace Palace.Net
                 w.Write(p.Name ?? "");
                 w.Write(p.IsBot);
                 w.Write(p.FinishPosition);
+                w.Write(p.SwapReady);
                 bool hideHand = p.Index != viewer;
                 w.Write(p.Hand.Count);
                 foreach (var c in p.Hand) WriteCard(w, c, hideHand);
@@ -220,7 +229,7 @@ namespace Palace.Net
             int n = r.ReadInt32();
             for (int i = 0; i < n; i++)
             {
-                var p = new PlayerState(i, r.ReadString(), r.ReadBoolean()) { FinishPosition = r.ReadInt32() };
+                var p = new PlayerState(i, r.ReadString(), r.ReadBoolean()) { FinishPosition = r.ReadInt32(), SwapReady = r.ReadBoolean() };
                 int h = r.ReadInt32();
                 for (int k = 0; k < h; k++) p.Hand.Add(ReadCard(r));
                 for (int k = 0; k < p.FaceUp.Length; k++) p.FaceUp[k] = ReadSlot(r);
