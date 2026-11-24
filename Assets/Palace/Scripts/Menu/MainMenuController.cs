@@ -472,7 +472,7 @@ namespace Palace
             "<b><color=#F2C24D>Special cards</color></b>\n" +
             "<b>2</b>  Reset. Can go on anything; the next player can play any card.\n" +
             "<b>7</b>  Call HIGHER or LOWER. The next player must play higher or lower than 7.\n" +
-            "<b>8</b>  Skip. Each 8 skips one player (two 8s skip two players).\n" +
+            "<b>8</b>  Skip. Each 8 skips one player (two 8s skip two players). With only 2 players left, an 8 is a normal card.\n" +
             "<b>10</b>  Burn. Removes the pile from the game and you go again.\n" +
             "<b>Queen</b>  Reverses the direction of play.\n" +
             "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +

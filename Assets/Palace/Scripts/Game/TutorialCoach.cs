@@ -48,7 +48,7 @@ namespace Palace
                 case "draw": return "While there are cards in the deck, you draw back up to 3 cards after your turn.";
                 case "two": return "2 is a reset card. It can go on anything, and the next player can then play any card.";
                 case "seven": return "7: whoever plays it calls HIGHER or LOWER. The next player must then play higher than 7, or lower than 7.";
-                case "eight": return "8 skips the next player. Two 8s together skip two players.";
+                case "eight": return "8 skips the next player. Two 8s together skip two players. With only 2 players left, an 8 is a normal card.";
                 case "ten": return "10 burns the pile: it's removed from the game and the same player goes again. A 10 can go on anything (except after LOWER on a 7).";
                 case "queen": return "A Queen reverses the direction of play. The arrows around the table show which way it's going.";
                 case "ace": return "An Ace is the highest card. When you play one you choose what it counts as (any value that matches or beats the pile), or use it as a 10 to burn the pile.";

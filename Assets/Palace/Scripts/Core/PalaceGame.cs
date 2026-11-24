@@ -446,6 +446,12 @@ namespace Palace.Core
             {
                 case Rank.Eight:
                 {
+                    // Q24: with only 2 players left an 8 is a normal card (no skip back to yourself).
+                    if (State.ActivePlayerCount <= 2 && !Rules.EightSkipsWithTwoLeft)
+                    {
+                        next = NextActiveFrom(player);
+                        break;
+                    }
                     // Each 8 skips one player (wrapping round the table if needed).
                     var skipped = new List<int>();
                     int pos = player;

@@ -490,9 +490,9 @@ namespace Palace
             Add("7: whoever plays it calls HIGHER or LOWER. The next player must then play higher than 7, or lower than 7.",
                 "7: kto ją zagra, wybiera WYŻEJ lub NIŻEJ. Następny gracz musi zagrać kartę wyższą lub niższą niż 7.",
                 "7: quien lo juega elige MAYOR o MENOR. El siguiente jugador debe jugar más alto que 7, o más bajo que 7.");
-            Add("8 skips the next player. Two 8s together skip two players.",
-                "8 pomija następnego gracza. Dwie 8 naraz pomijają dwóch graczy.",
-                "El 8 salta al siguiente jugador. Dos 8 juntos saltan a dos jugadores.");
+            Add("8 skips the next player. Two 8s together skip two players. With only 2 players left, an 8 is a normal card.",
+                "8 pomija następnego gracza. Dwie 8 naraz pomijają dwóch graczy. Gdy zostało tylko 2 graczy, 8 jest zwykłą kartą.",
+                "El 8 salta al siguiente jugador. Dos 8 juntos saltan a dos jugadores. Si solo quedan 2 jugadores, el 8 es una carta normal.");
             Add("10 burns the pile: it's removed from the game and the same player goes again. A 10 can go on anything (except after LOWER on a 7).",
                 "10 spala stos: znika z gry, a ten sam gracz gra jeszcze raz. 10 można położyć na wszystko (oprócz NIŻEJ na 7).",
                 "El 10 quema el montón: sale del juego y el mismo jugador vuelve a jugar. El 10 va sobre cualquier carta (salvo tras MENOR en un 7).");
@@ -644,7 +644,7 @@ namespace Palace
                 "<b><color=#F2C24D>Karty specjalne</color></b>\n" +
                 "<b>2</b>  Reset. Można ją położyć na wszystko; następny gracz może zagrać dowolną kartę.\n" +
                 "<b>7</b>  Wybierz WYŻEJ lub NIŻEJ. Następny gracz musi zagrać wyżej lub niżej niż 7.\n" +
-                "<b>8</b>  Pominięcie. Każda 8 pomija jednego gracza (dwie 8 pomijają dwóch).\n" +
+                "<b>8</b>  Pominięcie. Każda 8 pomija jednego gracza (dwie 8 pomijają dwóch). Gdy zostało tylko 2 graczy, 8 jest zwykłą kartą.\n" +
                 "<b>10</b>  Spalenie. Usuwa stos z gry, a Ty grasz jeszcze raz.\n" +
                 "<b>Dama</b>  Zmienia kierunek gry.\n" +
                 "<b>As</b>  Wybierz, jako co się liczy: dowolna wartość równa lub wyższa od stosu (na Walecie może być W, D, K lub A, nigdy 9). Na NIŻEJ niż 7 może być 2-6. Albo użyj go jako 10, by spalić stos.\n\n" +
@@ -658,7 +658,7 @@ namespace Palace
                 "<b><color=#F2C24D>Cartas especiales</color></b>\n" +
                 "<b>2</b>  Reinicio. Va sobre cualquier carta; el siguiente jugador puede jugar lo que quiera.\n" +
                 "<b>7</b>  Canta MAYOR o MENOR. El siguiente jugador debe jugar más alto o más bajo que 7.\n" +
-                "<b>8</b>  Salto. Cada 8 salta a un jugador (dos 8 saltan a dos).\n" +
+                "<b>8</b>  Salto. Cada 8 salta a un jugador (dos 8 saltan a dos). Si solo quedan 2 jugadores, el 8 es una carta normal.\n" +
                 "<b>10</b>  Quemar. Retira el montón del juego y vuelves a jugar.\n" +
                 "<b>Reina</b>  Cambia el sentido del juego.\n" +
                 "<b>As</b>  Elige cuánto vale: cualquier valor que iguale o supere el montón (sobre una Jota puede ser J, Q, K o A, nunca 9). Sobre un 7 MENOR puede ser 2-6. O úsalo como un 10 para quemar el montón.\n\n" +

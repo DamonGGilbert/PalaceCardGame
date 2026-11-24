@@ -85,7 +85,7 @@
 - [x] Results screen shows the XP bar filling, level-ups and everything earned that game
 - [x] Stats, XP and achievements are included in the cloud backup
 - [ ] **You:** play the guided game once and check the tips read well and appear at the right moments
-- [ ] **You:** decide the 2-player 8s stalemate (see Known limitations)
+- [x] 2-player 8s stalemate fixed: with only 2 players left an 8 is a normal card (your choice, Q24 in DESIGN.md)
 - All reward numbers (XP, coins, targets) are in the tables at the top of `Scripts/App/Progress.cs`
 
 ## Waiting on you
@@ -104,10 +104,6 @@
 
 ## Known limitations / notes
 - The hand area is positioned relative to the table, so 4:3 tablets have spare space below it.
-- **Rules question — 2-player stalemate with 8s.** With 2 players, an 8 skips the other player, so you go again
-  and must follow it with an 8 or higher. If both players are left holding an 8 with only low cards to follow it
-  (no 2, 10 or Ace left in play), each player keeps playing their 8 and picking it straight back up. The game can
-  then never end. It is rare (0 to 3 times in 13,000 test games, depending on how the bots play), but it can happen
-  with people too. Possible fixes, for you to choose: (a) in a 2-player game an 8 is just a normal card; (b) when you're skipped back to
-  yourself you may play any card; (c) the game ends after N turns with nobody finishing.
+- **2-player 8s (decided, Q24):** with only 2 players left an 8 is a normal card. Skipping the only other player could
+  trap both players in an endless loop. `HouseRules.EightSkipsWithTwoLeft` turns the old behaviour back on.
 - `AutoPlayHarness` only runs when the game is launched with `-palace-autoplay` (used for automated testing).

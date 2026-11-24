@@ -165,6 +165,30 @@ internal static class Program
             Check(g.CheckRank(Rank.Seven).Legal == false && g.CheckRank(Rank.Eight).Legal, "next player must beat the 8");
         }
 
+        Section("8 with only 2 players left is a normal card (Q24)");
+        {
+            var g = Table(2);
+            var hand = Give(g, 0, Rank.Eight, Rank.Four);
+            var r = g.PlayCards(0, PlaySource.Hand, Ids(hand.Take(1)));
+            Check(r.Ok && !r.Events.Any(e => e.Type == GameEventType.PlayersSkipped), "2 players: an 8 skips nobody");
+            Check(g.State.Current == 1, "2 players: the other player is next");
+            Check(!g.CheckRank(Rank.Seven).Legal && g.CheckRank(Rank.Eight).Legal, "2 players: the 8 still has to be beaten");
+
+            var g3 = Table(3);
+            g3.State.Players[2].FaceDown[0] = null; // player 3 has finished
+            g3.State.Players[2].FinishPosition = 1;
+            g3.State.FinishOrder.Add(2);
+            var h3 = Give(g3, 0, Rank.Eight, Rank.Eight, Rank.Four);
+            g3.PlayCards(0, PlaySource.Hand, Ids(h3.Take(2)));
+            Check(g3.State.Current == 1, "3 players with one finished: two 8s skip nobody");
+
+            var g4 = Table(2);
+            g4.Rules.EightSkipsWithTwoLeft = true;
+            var h4 = Give(g4, 0, Rank.Eight, Rank.Four);
+            g4.PlayCards(0, PlaySource.Hand, Ids(h4.Take(1)));
+            Check(g4.State.Current == 0, "switch on: the 8 skips the other player as before");
+        }
+
         Section("10 burns and gives another turn");
         {
             var g = Table(3);
@@ -569,7 +593,7 @@ internal static class Program
         Console.WriteLine($"  6 players, Easy against 5 Hard: Easy wins {easyVsHard6:P0} (fair share 17%)");
         Console.WriteLine($"  stalemates: {stalemates} of {played} games");
         Check(allLegal, "every skill level only makes legal moves");
-        Check(stalemates * 500 < played, "stalemates are very rare (under 1 in 500 games)");
+        Check(stalemates == 0, "no game ever gets stuck (the 2-player 8s loop is gone)");
         Check(hardVsEasy > 0.6, "Hard beats Easy most of the time");
         Check(normalVsEasy > 0.55, "Normal beats Easy more often than not");
         Check(hardVsNormal > 0.53, "Hard beats Normal more often than not");

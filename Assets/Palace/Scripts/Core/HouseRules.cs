@@ -25,6 +25,13 @@ namespace Palace.Core
         /// </summary>
         public bool AceValueMayEqualTop = true;
 
+        /// <summary>
+        /// Q24: with only 2 players still in, does an 8 skip? Skipping the only other player means you go
+        /// again and must beat your own 8, which can leave both players stuck forever. Default: no,
+        /// with 2 players left an 8 is just a normal card (it still has to be beaten as an 8).
+        /// </summary>
+        public bool EightSkipsWithTwoLeft = false;
+
         /// <summary>Q20: four cards of the same rank burn the pile. Not part of the school rules.</summary>
         public bool FourOfAKindBurns = false;
 
