@@ -670,6 +670,14 @@ namespace Palace
             Add("No such player", "Nie ma takiego gracza", "Ese jugador no existe");
             Add("You've already pressed Ready", "Już naciśnięto Gotowe", "Ya has pulsado Listo");
 
+            Add(UIKit.SwapInfoText,
+                "Opcjonalny tryb gry. Po rozdaniu, a przed pierwszą turą, każdy może zamieniać karty między ręką a odkrytymi kartami.\n\n" +
+                "Dotknij karty w ręce, a potem jednej z odkrytych kart, aby je zamienić. Naciśnij GOTOWE, gdy skończysz. Gra zaczyna się, gdy wszyscy są gotowi.\n\n" +
+                "Wskazówka: mocne karty (10, 2, Asy i wysokie karty) połóż odkryte na koniec gry, a niskie zostaw w ręce, by zagrać je wcześnie.",
+                "Un modo de juego opcional. Tras el reparto, y antes del primer turno, todos pueden cambiar cartas entre su mano y sus cartas boca arriba.\n\n" +
+                "Toca una carta de tu mano y luego una de tus cartas boca arriba para cambiarlas. Pulsa LISTO cuando quieras. La partida empieza cuando todos están listos.\n\n" +
+                "Consejo: pon las cartas fuertes (10, 2, Ases y cartas altas) boca arriba para el final, y guarda las bajas en la mano para jugarlas pronto.");
+
             // ---------------------------------------------------------- rematch
             Add("Rematch", "Rewanż", "Revancha");
             Add("Rematch:", "Rewanż:", "Revancha:");

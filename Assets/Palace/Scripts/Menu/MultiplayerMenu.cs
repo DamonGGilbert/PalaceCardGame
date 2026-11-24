@@ -122,7 +122,8 @@ namespace Palace
             // Host only: the optional "swap before play" mode for this room.
             swapRow = UIBuild.Rect("SwapMode", p, new Vector2(700f, 70f), new Vector2(170f, -420f)).gameObject;
             UIKit.Label(swapRow.transform, "Swap before play", 26f, new Vector2(300f, 50f), new Vector2(-190f, 0f), TextAlignmentOptions.Right, UIKit.Muted, true);
-            UIKit.Segmented(swapRow.transform, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(150f, 0f),
+            UIKit.InfoButton(swapRow.transform, new Vector2(-10f, 0f), UIKit.SwapInfoTitle, UIKit.SwapInfoText);
+            UIKit.Segmented(swapRow.transform, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(180f, 0f),
                 i => { GameSettings.SwapMode = i == 1; GameSettings.Save(); });
 
             readyButton = UIKit.Button(p, "I'm ready", new Vector2(300f, 70f), new Vector2(160f, -350f), () =>

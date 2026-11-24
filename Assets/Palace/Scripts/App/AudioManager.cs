@@ -69,7 +69,17 @@ namespace Palace
         private void UseTrack(int track)
         {
             if (track == 2) { musicSource.Stop(); return; }   // Off
-            AudioClip clip = track == 0 ? (fireside != null ? fireside : fireside = MakeFireside()) : (lounge != null ? lounge : lounge = MakeMusic());
+            AudioClip clip;
+            try
+            {
+                clip = track == 0 ? (fireside != null ? fireside : fireside = MakeFireside()) : (lounge != null ? lounge : lounge = MakeMusic());
+            }
+            catch (System.Exception e)
+            {
+                // Music is never worth breaking the game over: log it and carry on in silence.
+                Debug.LogException(e);
+                return;
+            }
             if (musicSource.clip != clip)
             {
                 musicSource.Stop();
@@ -265,6 +275,8 @@ namespace Palace
 
             int length = Mathf.Min(buffer.Length, Mathf.RoundToInt(2.6f * SampleRate));
             int total = buffer.Length;
+            // Timing jitter can put the first note a hair before 0: wrap it to the end of the loop.
+            start = ((start % total) + total) % total;
             int idx = 0;
             for (int n = 0; n < length; n++)
             {

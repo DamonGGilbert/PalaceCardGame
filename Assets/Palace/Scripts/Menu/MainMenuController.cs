@@ -429,6 +429,7 @@ namespace Palace
 
             // Optional game mode: swap hand and face-up cards before play.
             UIKit.Label(p, "Swap before play", 28f, new Vector2(300f, 50f), new Vector2(-260f, -130f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.InfoButton(p, new Vector2(-75f, -130f), UIKit.SwapInfoTitle, UIKit.SwapInfoText);
             UIKit.Segmented(p, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(230f, -130f),
                 i => GameSettings.SwapMode = i == 1);
 

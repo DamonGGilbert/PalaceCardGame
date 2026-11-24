@@ -93,6 +93,42 @@ namespace Palace
             return button;
         }
 
+        /// <summary>A small round "i" button that opens a pop-up explaining something.</summary>
+        public static Button InfoButton(Transform parent, Vector2 position, string title, string body)
+        {
+            var img = UIBuild.Image("Info", parent, CircleSprite, Gold, new Vector2(48f, 48f), position);
+            img.raycastTarget = true;
+            var button = img.gameObject.AddComponent<Button>();
+            button.targetGraphic = img;
+            UIBuild.Text("i", img.transform, "i", 32f, Ink, new Vector2(48f, 48f), Vector2.zero, TextAlignmentOptions.Center, Font, true, false);
+            button.onClick.AddListener(() =>
+            {
+                AudioManager.Play(Sfx.Button, 0.7f);
+                var canvas = button.GetComponentInParent<Canvas>();
+                InfoPopup(canvas != null ? canvas.rootCanvas.transform : parent, title, body);
+            });
+            return button;
+        }
+
+        /// <summary>A pop-up with a title, some text and an OK button. Tapping outside also closes it.</summary>
+        public static void InfoPopup(Transform parent, string title, string body)
+        {
+            var layer = Layer(parent, "InfoPopup", Scrim);
+            layer.SetAsLastSibling();
+            layer.gameObject.AddComponent<Button>().onClick.AddListener(() => UnityEngine.Object.Destroy(layer.gameObject));
+            var panel = Panel(layer, new Vector2(980f, 520f), Vector2.zero);
+            Label(panel.transform, title, 46f, new Vector2(900f, 64f), new Vector2(0f, 190f), TextAlignmentOptions.Center, Gold, true);
+            var text = Label(panel.transform, body, 28f, new Vector2(900f, 290f), new Vector2(0f, 10f), TextAlignmentOptions.Center, Text);
+            text.textWrappingMode = TextWrappingModes.Normal;
+            Button(panel.transform, "OK", new Vector2(240f, 76f), new Vector2(0f, -190f), () => UnityEngine.Object.Destroy(layer.gameObject), true);
+        }
+
+        public const string SwapInfoTitle = "Swap before play";
+        public const string SwapInfoText =
+            "An optional game mode. After the deal, and before the first turn, everyone can swap cards between their hand and their face-up cards.\n\n" +
+            "Tap a card in your hand, then one of your face-up cards, to swap them. Press READY when you're happy. Play starts when everyone is ready.\n\n" +
+            "Tip: put strong cards (10s, 2s, Aces and high cards) face up for the end of the game, and keep low cards in your hand to play early.";
+
         public static void SetButtonStyle(Button button, bool primary)
         {
             var image = (Image)button.targetGraphic;
