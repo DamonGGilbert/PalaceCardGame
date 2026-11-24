@@ -13,8 +13,8 @@ namespace Palace
     /// </summary>
     public class CustomiseMenu : MonoBehaviour
     {
-        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects", "Picture", "Shop" };
-        private const int PictureTab = 6, ShopTab = 7;
+        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects", "Font", "Win", "Picture", "Shop" };
+        private const int PictureTab = 8, ShopTab = 9; // tabs 0-7 match CosmeticCategory
         private bool pictureTab, shownPicture;
         private bool shopTab;
 
@@ -273,12 +273,103 @@ namespace Palace
                     text.outlineColor = style.outline;
                     break;
                 }
+                case FontSkin font:
+                {
+                    // Your name in that font (Aa underneath shows the letter shapes).
+                    var text = UIBuild.Text("Name", tile, GameSettings.PlayerName, 46f * font.sizeScale, UIKit.Text, new Vector2(300f, 90f), centre + new Vector2(0f, 20f),
+                        TextAlignmentOptions.Center, font.font != null ? font.font : UIKit.Font, false, false);
+                    text.enableAutoSizing = true;
+                    text.fontSizeMax = 46f * font.sizeScale;
+                    text.fontSizeMin = 18f;
+                    UIBuild.Text("Sample", tile, "Aa Bb 123", 28f * font.sizeScale, UIKit.Muted, new Vector2(300f, 44f), centre + new Vector2(0f, -42f),
+                        TextAlignmentOptions.Center, font.font != null ? font.font : UIKit.Font, false, false);
+                    break;
+                }
+                case EffectSkin effect when effect.preview == null:
+                    EffectPreview(tile, effect.style, area, centre);
+                    break;
+                case CelebrationSkin win:
+                    CelebrationPreview(tile, win.style, area, centre);
+                    break;
                 default:
                 {
                     var img = UIBuild.Image("Preview", tile, item.preview, Color.white, area, centre);
                     img.preserveAspect = true;
                     break;
                 }
+            }
+        }
+
+        /// <summary>A still of the burn effect: a glowing edge with that style's particles rising off it.</summary>
+        private static void EffectPreview(Transform tile, FxStyle style, Vector2 area, Vector2 centre)
+        {
+            var (sprite, hot, cool, edge, rainbow) = TableFx.Palette(style);
+            var box = UIBuild.Image("Preview", tile, UIKit.PanelSprite, new Color(0.04f, 0.05f, 0.05f, 0.95f), area, centre);
+            box.type = Image.Type.Sliced;
+            box.gameObject.AddComponent<RectMask2D>();
+            UIBuild.Image("Edge", box.transform, FxSprites.Dot, edge, new Vector2(260f, 46f), new Vector2(0f, -48f));
+            var rng = new System.Random((int)style * 101 + 7);
+            for (int i = 0; i < 22; i++)
+            {
+                float k = (float)rng.NextDouble();
+                Color c = rainbow ? TableFx.BrightColour(rng.Next(6)) : Color.Lerp(hot, cool, k * 0.8f);
+                if (rainbow) c.a = 1f - k * 0.5f;
+                float size = Mathf.Lerp(26f, 10f, k);
+                var p = UIBuild.Image("P", box.transform, sprite, c,
+                    sprite == null ? new Vector2(size, size * 0.55f) : new Vector2(size, size),
+                    new Vector2((float)rng.NextDouble() * 240f - 120f, -40f + k * 100f));
+                p.rectTransform.localEulerAngles = new Vector3(0f, 0f, sprite == FxSprites.Dot ? 0f : rng.Next(360));
+            }
+        }
+
+        /// <summary>A still of the win celebration.</summary>
+        private static void CelebrationPreview(Transform tile, CelebrationStyle style, Vector2 area, Vector2 centre)
+        {
+            var box = UIBuild.Image("Preview", tile, UIKit.PanelSprite, new Color(0.04f, 0.05f, 0.05f, 0.95f), area, centre);
+            box.type = Image.Type.Sliced;
+            box.gameObject.AddComponent<RectMask2D>();
+            var rng = new System.Random((int)style * 53 + 3);
+            Image Dot(Sprite s, Color c, float size, Vector2 at, float aspect = 1f)
+            {
+                var img = UIBuild.Image("P", box.transform, s, c, new Vector2(size, size * aspect), at);
+                img.rectTransform.localEulerAngles = new Vector3(0f, 0f, s == FxSprites.Dot ? 0f : rng.Next(360));
+                return img;
+            }
+            switch (style)
+            {
+                case CelebrationStyle.Fireworks:
+                    for (int b = 0; b < 3; b++)
+                    {
+                        Vector2 at = new Vector2(-90f + b * 90f, b == 1 ? 25f : -5f);
+                        Color c = TableFx.BrightColour(b * 2 + 1);
+                        for (int i = 0; i < 14; i++)
+                        {
+                            float a = i / 14f * Mathf.PI * 2f;
+                            Dot(FxSprites.Dot, c, 12f, at + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 38f);
+                        }
+                        Dot(FxSprites.Dot, Color.white, 14f, at);
+                    }
+                    break;
+                case CelebrationStyle.CoinShower:
+                    for (int i = 0; i < 16; i++)
+                        Dot(FxSprites.Coin, new Color(1f, 0.84f, 0.3f), 34f, new Vector2(rng.Next(-130, 130), rng.Next(-60, 60)), 0.55f + (float)rng.NextDouble() * 0.45f);
+                    break;
+                case CelebrationStyle.Starburst:
+                    for (int i = 0; i < 16; i++)
+                    {
+                        float a = i / 16f * Mathf.PI * 2f;
+                        Dot(FxSprites.Sparkle, new Color(1f, 0.92f, 0.55f), i % 2 == 0 ? 30f : 20f, new Vector2(Mathf.Cos(a) * 110f, Mathf.Sin(a) * 52f));
+                    }
+                    Dot(FxSprites.Sparkle, Color.white, 54f, Vector2.zero);
+                    break;
+                case CelebrationStyle.Bubbles:
+                    for (int i = 0; i < 16; i++)
+                        Dot(FxSprites.Ring, new Color(0.8f, 0.95f, 1f, 0.9f), rng.Next(16, 46), new Vector2(rng.Next(-130, 130), rng.Next(-60, 60)));
+                    break;
+                default:
+                    for (int i = 0; i < 34; i++)
+                        Dot(null, TableFx.BrightColour(rng.Next(6)), 14f, new Vector2(rng.Next(-135, 135), rng.Next(-65, 65)), 0.55f);
+                    break;
             }
         }
 

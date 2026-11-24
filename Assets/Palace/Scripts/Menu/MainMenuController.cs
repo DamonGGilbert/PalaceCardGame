@@ -684,6 +684,7 @@ namespace Palace
                 Loc.T("Game design and house rules") + "\n<b>Damon Gilbert</b>\n\n" +
                 Loc.T("Programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
                 Loc.T("Made with Unity") + "\n" + Loc.T("Fonts: Alegreya and Liberation Sans (SIL Open Font License)") + "\n" +
+                Loc.T("Name fonts: Google Fonts (SIL Open Font License and Apache License 2.0)") + "\n" +
                 Loc.T("All card art, table art and sounds are generated in code for this game.") + "\n" +
                 Loc.T("Translations: English, Polski, Español"),
                 28f, new Vector2(900f, 440f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);

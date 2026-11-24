@@ -227,13 +227,13 @@ namespace Palace
             Add("Midnight Pack", "Pakiet Północ", "Pack Medianoche");
             Add("Remove Ads", "Usuń reklamy", "Quitar anuncios");
             Add("Supporter Pack", "Pakiet Wspierającego", "Pack Mecenas");
-            Add("500 coins", "500 monet", "500 monedas");
-            Add("1,500 coins", "1500 monet", "1.500 monedas");
-            Add("4,000 coins: best value", "4000 monet: najlepsza oferta", "4.000 monedas: la mejor oferta");
+            Add("6,000 coins", "6000 monet", "6.000 monedas");
+            Add("18,000 coins", "18 000 monet", "18.000 monedas");
+            Add("50,000 coins: best value", "50 000 monet: najlepsza oferta", "50.000 monedas: la mejor oferta");
             Add("Lagoon table + Water effects", "Stół Laguna + efekty wody", "Mesa Laguna + efectos de agua");
             Add("Midnight Gold deck, back and table", "Talia, rewers i stół Złota Północ", "Baraja, reverso y mesa Oro Medianoche");
             Add("Collect bonus coins without watching ads", "Odbieraj bonusowe monety bez reklam", "Consigue monedas extra sin ver anuncios");
-            Add("5,000 coins + exclusive Supporter banner and Royal name", "5000 monet + baner Wspierającego i królewskie imię", "5.000 monedas + cartel de Mecenas y nombre Real exclusivos");
+            Add("60,000 coins + exclusive Supporter banner and Royal name", "60 000 monet + baner Wspierającego i królewskie imię", "60.000 monedas + cartel de Mecenas y nombre Real exclusivos");
             Add("Connecting to the store...", "Łączenie ze sklepem...", "Conectando con la tienda...");
             Add("The store is unavailable right now.", "Sklep jest teraz niedostępny.", "La tienda no está disponible ahora.");
             Add("Couldn't load the shop.", "Nie udało się wczytać sklepu.", "No se pudo cargar la tienda.");
@@ -759,6 +759,27 @@ namespace Palace
             Add("Clover", "Koniczyna", "Trébol de la suerte");
             Add("Crown", "Korona", "Corona");
             Add("Rainbow", "Tęcza", "Arcoíris");
+
+            // ---------------------------------------------------------- fonts, effects, win celebrations
+            Add("Font", "Czcionka", "Fuente");
+            Add("Win", "Wygrana", "Victoria");
+            Add("Classic", "Klasyczna", "Clásica");
+            Add("Typewriter", "Maszyna do pisania", "Máquina de escribir");
+            Add("Marker", "Flamaster", "Rotulador");
+            Add("Pixel", "Piksel", "Píxel");
+            Add("Gold Rush", "Gorączka złota", "Fiebre del oro");
+            Add("Galaxy", "Galaktyka", "Galaxia");
+            Add("Toxic", "Toksyczny", "Tóxico");
+            Add("Party", "Impreza", "Fiesta");
+            Add("Shadow", "Cień", "Sombra");
+            Add("Confetti", "Konfetti", "Confeti");
+            Add("Fireworks", "Fajerwerki", "Fuegos artificiales");
+            Add("Coin Shower", "Deszcz monet", "Lluvia de monedas");
+            Add("Starburst", "Wybuch gwiazd", "Estallido de estrellas");
+            Add("Bubbles", "Bańki", "Burbujas");
+            Add("Name fonts: Google Fonts (SIL Open Font License and Apache License 2.0)",
+                "Czcionki imion: Google Fonts (licencje SIL Open Font License i Apache 2.0)",
+                "Fuentes de nombres: Google Fonts (licencias SIL Open Font License y Apache 2.0)");
 
             // ---------------------------------------------------------- how to play
             Add(MainMenuController.RulesText,

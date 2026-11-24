@@ -7,9 +7,11 @@ using UnityEngine.UI;
 namespace Palace
 {
     /// <summary>
-    /// Visual effects for the special cards: ripples, the skip symbol, the 7 arrow, and the
-    /// burn (cards spread out and are eaten from the bottom by a glowing flame edge, throwing
-    /// off embers). Everything respects the Animations setting; "Off" skips the effects.
+    /// Visual effects for the special cards: ripples, the skip symbol, the 7 arrow, the burn (cards
+    /// spread out and are eaten from the bottom by a glowing edge, throwing off particles) and the
+    /// win celebrations. Each burn style (Customise > Effects) has its own colours, particle shape
+    /// and movement, and every player's burns use their own style, so friends see each other's
+    /// effects online. Everything respects the Animations setting: "Off" skips the effects.
     /// </summary>
     public class TableFx : MonoBehaviour
     {
@@ -17,18 +19,105 @@ namespace Palace
         {
             public Image Image;
             public Vector2 Velocity;
-            public float Life, MaxLife, Size;
+            public float Life, MaxLife, Size, Gravity, Spin, Wobble, Aspect = 1f;
+            public Color Hot, Cool;
         }
 
-        private static readonly Color EmberHot = new Color(1f, 0.92f, 0.55f, 1f);
-        private static readonly Color EmberCool = new Color(0.85f, 0.22f, 0.05f, 0f);
-        private static readonly Color BubbleHot = new Color(0.9f, 0.98f, 1f, 0.95f);
-        private static readonly Color BubbleCool = new Color(0.35f, 0.75f, 1f, 0f);
+        /// <summary>How one burn style looks.</summary>
+        private struct Look
+        {
+            public Color Edge, Ripple, Hot, Cool;
+            public Sprite Sprite;
+            public Vector2 SpeedX, SpeedY, Life, Size;
+            public float Gravity, Wobble, Spin;
+            public bool Rainbow;   // each particle gets its own bright colour (confetti)
+        }
 
-        /// <summary>Effect theme from the Customise screen: fire and embers, or water.</summary>
+        /// <summary>Colours and particle shape of a burn style, for the Customise screen preview.</summary>
+        public static (Sprite sprite, Color hot, Color cool, Color edge, bool rainbow) Palette(FxStyle style)
+        {
+            Look l = LookOf(style);
+            return (l.Sprite, l.Hot, l.Cool, l.Edge, l.Rainbow);
+        }
+
+        public static Color BrightColour(int i) => Bright[((i % Bright.Length) + Bright.Length) % Bright.Length];
+
+        private static Look LookOf(FxStyle style)
+        {
+            switch (style)
+            {
+                case FxStyle.Water: return new Look
+                {
+                    Edge = new Color(0.6f, 0.9f, 1f, 0.9f), Ripple = new Color(0.5f, 0.85f, 1f, 0.9f),
+                    Hot = new Color(0.9f, 0.98f, 1f, 0.95f), Cool = new Color(0.35f, 0.75f, 1f, 0f), Sprite = FxSprites.Ring,
+                    SpeedX = new Vector2(-25f, 25f), SpeedY = new Vector2(40f, 110f), Life = new Vector2(0.6f, 1.1f), Size = new Vector2(14f, 32f), Gravity = 40f, Wobble = 60f
+                };
+                case FxStyle.Neon: return new Look
+                {
+                    Edge = new Color(0.3f, 1f, 1f, 0.95f), Ripple = new Color(1f, 0.3f, 0.9f, 0.95f),
+                    Hot = new Color(1f, 0.35f, 0.95f, 1f), Cool = new Color(0.2f, 0.95f, 1f, 0f), Sprite = FxSprites.Dot,
+                    SpeedX = new Vector2(-70f, 70f), SpeedY = new Vector2(60f, 170f), Life = new Vector2(0.4f, 0.9f), Size = new Vector2(10f, 22f), Gravity = 30f, Wobble = 90f
+                };
+                case FxStyle.Frost: return new Look
+                {
+                    Edge = new Color(0.85f, 0.97f, 1f, 0.95f), Ripple = new Color(0.7f, 0.9f, 1f, 0.9f),
+                    Hot = Color.white, Cool = new Color(0.55f, 0.8f, 1f, 0f), Sprite = FxSprites.Sparkle,
+                    SpeedX = new Vector2(-35f, 35f), SpeedY = new Vector2(15f, 70f), Life = new Vector2(0.8f, 1.4f), Size = new Vector2(14f, 30f), Gravity = 10f, Wobble = 40f, Spin = 90f
+                };
+                case FxStyle.GoldRush: return new Look
+                {
+                    Edge = new Color(1f, 0.85f, 0.35f, 0.95f), Ripple = new Color(1f, 0.82f, 0.3f, 0.95f),
+                    Hot = new Color(1f, 0.96f, 0.65f, 1f), Cool = new Color(0.95f, 0.6f, 0.1f, 0f), Sprite = FxSprites.Sparkle,
+                    SpeedX = new Vector2(-55f, 55f), SpeedY = new Vector2(80f, 210f), Life = new Vector2(0.5f, 1f), Size = new Vector2(12f, 28f), Gravity = -60f, Wobble = 50f, Spin = 140f
+                };
+                case FxStyle.Galaxy: return new Look
+                {
+                    Edge = new Color(0.65f, 0.45f, 1f, 0.95f), Ripple = new Color(0.55f, 0.4f, 1f, 0.9f),
+                    Hot = new Color(0.9f, 0.85f, 1f, 1f), Cool = new Color(0.25f, 0.2f, 0.85f, 0f), Sprite = FxSprites.Sparkle,
+                    SpeedX = new Vector2(-55f, 55f), SpeedY = new Vector2(30f, 140f), Life = new Vector2(0.7f, 1.3f), Size = new Vector2(8f, 26f), Gravity = 20f, Wobble = 70f, Spin = 60f
+                };
+                case FxStyle.Toxic: return new Look
+                {
+                    Edge = new Color(0.55f, 1f, 0.35f, 0.95f), Ripple = new Color(0.5f, 1f, 0.4f, 0.9f),
+                    Hot = new Color(0.8f, 1f, 0.45f, 1f), Cool = new Color(0.15f, 0.7f, 0.15f, 0f), Sprite = FxSprites.Ring,
+                    SpeedX = new Vector2(-30f, 30f), SpeedY = new Vector2(30f, 100f), Life = new Vector2(0.7f, 1.2f), Size = new Vector2(12f, 30f), Gravity = 30f, Wobble = 80f
+                };
+                case FxStyle.Confetti: return new Look
+                {
+                    Edge = new Color(1f, 0.9f, 0.5f, 0.9f), Ripple = new Color(1f, 0.6f, 0.9f, 0.9f), Hot = Color.white, Cool = Color.white,
+                    Sprite = null, Rainbow = true,
+                    SpeedX = new Vector2(-130f, 130f), SpeedY = new Vector2(150f, 300f), Life = new Vector2(0.9f, 1.5f), Size = new Vector2(9f, 15f), Gravity = -420f, Wobble = 40f, Spin = 420f
+                };
+                case FxStyle.Lightning: return new Look
+                {
+                    Edge = new Color(1f, 1f, 0.75f, 1f), Ripple = new Color(0.85f, 0.9f, 1f, 1f),
+                    Hot = new Color(1f, 1f, 0.85f, 1f), Cool = new Color(0.55f, 0.65f, 1f, 0f), Sprite = FxSprites.Dot,
+                    SpeedX = new Vector2(-170f, 170f), SpeedY = new Vector2(100f, 320f), Life = new Vector2(0.15f, 0.35f), Size = new Vector2(6f, 14f), Gravity = 0f, Wobble = 400f
+                };
+                case FxStyle.Shadow: return new Look
+                {
+                    Edge = new Color(0.5f, 0.25f, 0.7f, 0.9f), Ripple = new Color(0.35f, 0.15f, 0.5f, 0.9f),
+                    Hot = new Color(0.45f, 0.28f, 0.65f, 0.9f), Cool = new Color(0.05f, 0.02f, 0.1f, 0f), Sprite = FxSprites.Dot,
+                    SpeedX = new Vector2(-30f, 30f), SpeedY = new Vector2(25f, 90f), Life = new Vector2(0.8f, 1.4f), Size = new Vector2(22f, 46f), Gravity = 15f, Wobble = 50f
+                };
+                default: return new Look // Classic: fire and embers
+                {
+                    Edge = new Color(1f, 0.6f, 0.15f, 0.9f), Ripple = new Color(1f, 0.55f, 0.15f, 0.9f),
+                    Hot = new Color(1f, 0.92f, 0.55f, 1f), Cool = new Color(0.85f, 0.22f, 0.05f, 0f), Sprite = FxSprites.Dot,
+                    SpeedX = new Vector2(-40f, 40f), SpeedY = new Vector2(70f, 190f), Life = new Vector2(0.35f, 0.8f), Size = new Vector2(10f, 24f), Gravity = 40f, Wobble = 60f
+                };
+            }
+        }
+
+        private static readonly Color[] Bright =
+        {
+            new Color(1f, 0.3f, 0.35f), new Color(1f, 0.75f, 0.2f), new Color(0.35f, 0.85f, 0.4f),
+            new Color(0.3f, 0.6f, 1f), new Color(0.85f, 0.4f, 1f), new Color(1f, 0.55f, 0.85f)
+        };
+
+        /// <summary>Your own effect theme (used for the direction ring); each burn passes the burner's style.</summary>
         public FxStyle Style = FxStyle.Classic;
-        private bool IsWater => Style == FxStyle.Water;
-        private const int MaxParticles = 260;
+        private const int MaxParticles = 320;
 
         private TableView table;
         private readonly List<Particle> live = new List<Particle>();
@@ -120,10 +209,11 @@ namespace Palace
 
         // ------------------------------------------------------------------ burn
 
-        /// <summary>The pile spreads into a row and burns away from the bottom up.</summary>
-        public IEnumerator Burn(IReadOnlyList<Card> cards, Vector2 pile, float scale)
+        /// <summary>The pile spreads into a row and burns away from the bottom up, in the burner's style.</summary>
+        public IEnumerator Burn(IReadOnlyList<Card> cards, Vector2 pile, float scale, FxStyle style)
         {
             if (!Enabled || cards.Count == 0) yield break;
+            Look look = LookOf(style);
 
             int n = cards.Count;
             float w = CardView.Width * scale, h = CardView.Height * scale;
@@ -157,13 +247,13 @@ namespace Palace
             {
                 for (int i = 0; i < n; i++) holders[i].anchoredPosition = Vector2.LerpUnclamped(start, targets[i], t);
             });
-            Ripple(pile + new Vector2(0f, 50f), IsWater ? new Color(0.5f, 0.85f, 1f, 0.9f) : new Color(1f, 0.55f, 0.15f, 0.9f));
+            Ripple(pile + new Vector2(0f, 50f), look.Ripple);
+            if (style == FxStyle.Lightning) Ripple(pile + new Vector2(0f, 50f), new Color(1f, 1f, 1f, 0.8f), 0.08f);
 
             // 2. Burn from the bottom up
             var flames = new List<Image>();
             foreach (var _ in holders)
-                flames.Add(UIBuild.Image(IsWater ? "Wave" : "Flame", Layer, FxSprites.Dot,
-                    IsWater ? new Color(0.6f, 0.9f, 1f, 0.9f) : new Color(1f, 0.6f, 0.15f, 0.9f), new Vector2(w * 1.4f, 56f), Vector2.zero));
+                flames.Add(UIBuild.Image("Edge", Layer, FxSprites.Dot, look.Edge, new Vector2(w * 1.4f, 56f), Vector2.zero));
 
             float duration = Mathf.Max(0.55f, Tween.Scaled(1.0f));
             float time = 0f;
@@ -179,14 +269,15 @@ namespace Palace
                     Vector2 edge = holders[i].anchoredPosition - new Vector2(0f, remaining);
                     var flameRt = flames[i].rectTransform;
                     flameRt.anchoredPosition = edge;
-                    float flicker = 0.75f + 0.25f * Mathf.Sin(time * 38f + i * 1.7f);
+                    float flicker = style == FxStyle.Lightning
+                        ? (Random.value < 0.3f ? 1.4f : 0.6f)
+                        : 0.75f + 0.25f * Mathf.Sin(time * 38f + i * 1.7f);
                     flameRt.localScale = new Vector3(flicker, 0.8f + 0.4f * flicker, 1f);
-                    flames[i].color = IsWater
-                        ? new Color(0.55f + 0.2f * flicker, 0.88f, 1f, 0.9f * (1f - t * 0.3f))
-                        : new Color(1f, 0.55f + 0.2f * flicker, 0.15f, 0.9f * (1f - t * 0.3f));
+                    Color e = look.Edge;
+                    flames[i].color = new Color(e.r, e.g, e.b, e.a * Mathf.Clamp01(0.75f + 0.25f * flicker) * (1f - t * 0.3f));
 
-                    Spawn(edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
-                    if (Random.value < 0.5f) Spawn(edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
+                    Spawn(look, edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
+                    if (Random.value < 0.5f) Spawn(look, edge + new Vector2(Random.Range(-w * 0.5f, w * 0.5f), 0f));
                 }
                 yield return null;
             }
@@ -195,9 +286,102 @@ namespace Palace
             foreach (var flame in flames) Destroy(flame.gameObject);
         }
 
-        // ------------------------------------------------------------------ embers
+        // ------------------------------------------------------------------ win celebrations
 
-        private void Spawn(Vector2 at)
+        /// <summary>Plays a win celebration around a point (usually the winner's seat).</summary>
+        public void Celebrate(Vector2 at, CelebrationStyle style)
+        {
+            if (Enabled) StartCoroutine(CelebrateRoutine(at, style));
+        }
+
+        private IEnumerator CelebrateRoutine(Vector2 at, CelebrationStyle style)
+        {
+            switch (style)
+            {
+                case CelebrationStyle.Fireworks:
+                    for (int burst = 0; burst < 5; burst++)
+                    {
+                        Vector2 p = at + new Vector2(Random.Range(-320f, 320f), Random.Range(60f, 300f));
+                        Color c = Bright[Random.Range(0, Bright.Length)];
+                        Ripple(p, new Color(c.r, c.g, c.b, 0.7f));
+                        AudioManager.Play(Sfx.Burn, 0.25f);
+                        for (int i = 0; i < 36; i++)
+                        {
+                            float a = i / 36f * Mathf.PI * 2f;
+                            float speed = Random.Range(180f, 300f);
+                            Emit(p, FxSprites.Dot, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * speed, Random.Range(0.8f, 1.2f), Random.Range(10f, 18f),
+                                Color.Lerp(Color.white, c, 0.4f), new Color(c.r, c.g, c.b, 0f), -160f, 0f, 20f);
+                        }
+                        yield return new WaitForSecondsRealtime(0.28f);
+                    }
+                    break;
+
+                case CelebrationStyle.CoinShower:
+                    for (int i = 0; i < 70; i++)
+                    {
+                        Vector2 p = at + new Vector2(Random.Range(-420f, 420f), Random.Range(260f, 420f));
+                        Emit(p, FxSprites.Coin, new Vector2(Random.Range(-40f, 40f), Random.Range(-60f, 0f)), Random.Range(1.4f, 2f), Random.Range(26f, 40f),
+                            new Color(1f, 0.85f, 0.3f, 1f), new Color(1f, 0.7f, 0.15f, 0f), -520f, Random.Range(-200f, 200f), 10f, 0.55f);
+                        if (i % 6 == 0) AudioManager.Play(Sfx.CardDraw, 0.2f);
+                        yield return new WaitForSecondsRealtime(0.02f);
+                    }
+                    break;
+
+                case CelebrationStyle.Starburst:
+                    Ripple(at, new Color(1f, 0.85f, 0.4f, 0.9f));
+                    Ripple(at, new Color(1f, 1f, 1f, 0.7f), 0.12f);
+                    for (int ring = 0; ring < 2; ring++)
+                    {
+                        for (int i = 0; i < 28; i++)
+                        {
+                            float a = (i + ring * 0.5f) / 28f * Mathf.PI * 2f;
+                            float speed = ring == 0 ? 340f : 220f;
+                            Emit(at, FxSprites.Sparkle, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * speed, 1f, ring == 0 ? 30f : 22f,
+                                new Color(1f, 0.97f, 0.7f, 1f), new Color(1f, 0.7f, 0.2f, 0f), 0f, 180f, 0f);
+                        }
+                        yield return new WaitForSecondsRealtime(0.15f);
+                    }
+                    break;
+
+                case CelebrationStyle.Bubbles:
+                    for (int i = 0; i < 60; i++)
+                    {
+                        Vector2 p = at + new Vector2(Random.Range(-380f, 380f), Random.Range(-140f, 40f));
+                        Emit(p, FxSprites.Ring, new Vector2(Random.Range(-20f, 20f), Random.Range(60f, 140f)), Random.Range(1.3f, 2.2f), Random.Range(16f, 44f),
+                            new Color(0.9f, 0.98f, 1f, 0.9f), new Color(0.5f, 0.85f, 1f, 0f), 30f, 0f, 70f);
+                        yield return new WaitForSecondsRealtime(0.025f);
+                    }
+                    break;
+
+                default: // confetti
+                    for (int i = 0; i < 130; i++)
+                    {
+                        Color c = Bright[Random.Range(0, Bright.Length)];
+                        float a = Random.Range(0.15f, 0.85f) * Mathf.PI;
+                        Emit(at, null, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * Random.Range(250f, 560f), Random.Range(1.3f, 2.1f), Random.Range(10f, 16f),
+                            c, new Color(c.r, c.g, c.b, 0f), -600f, Random.Range(-500f, 500f), 50f, 0.55f);
+                    }
+                    break;
+            }
+        }
+
+        // ------------------------------------------------------------------ particles
+
+        private void Spawn(Look look, Vector2 at)
+        {
+            Color hot = look.Hot, cool = look.Cool;
+            if (look.Rainbow)
+            {
+                hot = Bright[Random.Range(0, Bright.Length)];
+                cool = new Color(hot.r, hot.g, hot.b, 0f);
+            }
+            Emit(at, look.Sprite, new Vector2(Random.Range(look.SpeedX.x, look.SpeedX.y), Random.Range(look.SpeedY.x, look.SpeedY.y)),
+                Random.Range(look.Life.x, look.Life.y), Random.Range(look.Size.x, look.Size.y), hot, cool, look.Gravity,
+                look.Spin > 0f ? Random.Range(-look.Spin, look.Spin) : 0f, look.Wobble, look.Rainbow ? 0.55f : 1f);
+        }
+
+        private void Emit(Vector2 at, Sprite sprite, Vector2 velocity, float life, float size, Color hot, Color cool,
+            float gravity, float spin, float wobble, float aspect = 1f)
         {
             if (live.Count >= MaxParticles) return;
             Particle p = null;
@@ -206,18 +390,22 @@ namespace Palace
                 p = spare.Pop();
                 if (p.Image == null) p = null; // destroyed when a new game cleared the effects layer
             }
-            if (p == null)
-            {
-                p = new Particle { Image = UIBuild.Image("Ember", Layer, FxSprites.Dot, EmberHot, Vector2.one * 16f, Vector2.zero) };
-            }
+            if (p == null) p = new Particle { Image = UIBuild.Image("Particle", Layer, null, Color.white, Vector2.one * 16f, Vector2.zero) };
             p.Image.gameObject.SetActive(true);
-            p.Image.sprite = IsWater ? FxSprites.Ring : FxSprites.Dot; // bubbles are hollow rings
-            p.Image.rectTransform.SetAsLastSibling();
-            p.Image.rectTransform.anchoredPosition = at;
-            // Embers fly up fast and small; bubbles drift up slower and bigger.
-            p.Velocity = IsWater ? new Vector2(Random.Range(-25f, 25f), Random.Range(40f, 110f)) : new Vector2(Random.Range(-40f, 40f), Random.Range(70f, 190f));
-            p.MaxLife = p.Life = IsWater ? Random.Range(0.6f, 1.1f) : Random.Range(0.35f, 0.8f);
-            p.Size = IsWater ? Random.Range(14f, 32f) : Random.Range(10f, 24f);
+            p.Image.sprite = sprite; // null = a plain square (confetti)
+            var rt = p.Image.rectTransform;
+            rt.SetAsLastSibling();
+            rt.anchoredPosition = at;
+            rt.localEulerAngles = new Vector3(0f, 0f, sprite == FxSprites.Dot ? 0f : Random.Range(0f, 360f));
+            p.Velocity = velocity;
+            p.MaxLife = p.Life = life;
+            p.Size = size;
+            p.Hot = hot;
+            p.Cool = cool;
+            p.Gravity = gravity;
+            p.Spin = spin;
+            p.Wobble = wobble;
+            p.Aspect = aspect;
             live.Add(p);
         }
 
@@ -237,11 +425,14 @@ namespace Palace
                 }
 
                 float age = 1f - p.Life / p.MaxLife;
-                p.Velocity += new Vector2(Random.Range(-60f, 60f), 40f) * dt; // drift and rise
+                p.Velocity += new Vector2(Random.Range(-p.Wobble, p.Wobble), p.Gravity) * dt; // drift, and rise or fall
                 var rt = p.Image.rectTransform;
                 rt.anchoredPosition += p.Velocity * dt;
-                rt.sizeDelta = Vector2.one * p.Size * (1f - age * 0.6f);
-                p.Image.color = IsWater ? Color.Lerp(BubbleHot, BubbleCool, age) : Color.Lerp(EmberHot, EmberCool, age);
+                if (p.Spin != 0f) rt.localEulerAngles += new Vector3(0f, 0f, p.Spin * dt);
+                bool keepsSize = p.Aspect < 1f; // confetti and coins don't shrink, they fade at the end
+                float s = p.Size * (keepsSize ? 1f : 1f - age * 0.6f);
+                rt.sizeDelta = new Vector2(s, s * p.Aspect);
+                p.Image.color = Color.Lerp(p.Hot, p.Cool, keepsSize ? Mathf.Max(0f, age * 2f - 1f) : age);
             }
         }
     }

@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace Palace
 {
-    public enum CosmeticCategory { Table, Deck, CardBack, Banner, NameStyle, Effects }
+    public enum CosmeticCategory { Table, Deck, CardBack, Banner, NameStyle, Effects, Font, Celebration }
 
-    public enum FxStyle { Classic, Water }
+    /// <summary>Burn effects. Add new ones at the end (online play sends the item id, saves keep ids).</summary>
+    public enum FxStyle { Classic, Water, Neon, Frost, GoldRush, Galaxy, Toxic, Confetti, Lightning, Shadow }
+
+    /// <summary>What plays when a player wins the round.</summary>
+    public enum CelebrationStyle { Confetti, Fireworks, CoinShower, Starburst, Bubbles }
 
     [Serializable]
     public class CosmeticItem
@@ -55,6 +60,18 @@ namespace Palace
         public FxStyle style;
     }
 
+    /// <summary>A font for your name on your seat (shown to everyone at the table, online too).</summary>
+    [Serializable] public class FontSkin : CosmeticItem
+    {
+        public TMP_FontAsset font;
+        public float sizeScale = 1f;   // some display fonts run large or small
+    }
+
+    [Serializable] public class CelebrationSkin : CosmeticItem
+    {
+        public CelebrationStyle style;
+    }
+
     /// <summary>
     /// Every cosmetic in the game. Lives at Assets/Palace/Resources/CosmeticLibrary.asset and is
     /// filled in by Palace > Setup > 2 - Generate Art. To add an item: add an entry here (or in the
@@ -69,6 +86,8 @@ namespace Palace
         public List<BannerSkin> banners = new List<BannerSkin>();
         public List<NameStyle> nameStyles = new List<NameStyle>();
         public List<EffectSkin> effects = new List<EffectSkin>();
+        public List<FontSkin> fonts = new List<FontSkin>();
+        public List<CelebrationSkin> celebrations = new List<CelebrationSkin>();
 
         [Tooltip("Tileable light-ripple texture for animated water tables.")]
         public Texture2D waterCaustics;
@@ -81,9 +100,58 @@ namespace Palace
         {
             get
             {
-                if (loaded == null) loaded = Resources.Load<CosmeticLibrary>("CosmeticLibrary");
+                if (loaded == null)
+                {
+                    loaded = Resources.Load<CosmeticLibrary>("CosmeticLibrary");
+                    if (loaded != null) loaded.AddBuiltIns();
+                }
                 return loaded;
             }
+        }
+
+        /// <summary>
+        /// Effects and celebrations are drawn entirely in code, so they're listed here rather than by
+        /// Generate Art: they appear straight away without regenerating anything. Prices are before
+        /// Cosmetics.PriceMultiplier (x10), so 400 here = 4,000 coins in the game.
+        /// </summary>
+        private static readonly (string id, string name, int price, FxStyle style)[] CodeEffects =
+        {
+            ("fx_neon", "Neon", 400, FxStyle.Neon),
+            ("fx_frost", "Frost", 400, FxStyle.Frost),
+            ("fx_gold", "Gold Rush", 600, FxStyle.GoldRush),
+            ("fx_galaxy", "Galaxy", 600, FxStyle.Galaxy),
+            ("fx_toxic", "Toxic", 450, FxStyle.Toxic),
+            ("fx_confetti", "Party", 500, FxStyle.Confetti),
+            ("fx_lightning", "Lightning", 700, FxStyle.Lightning),
+            ("fx_shadow", "Shadow", 700, FxStyle.Shadow)
+        };
+
+        private static readonly (string id, string name, int price, CelebrationStyle style)[] CodeCelebrations =
+        {
+            ("win_confetti", "Confetti", 0, CelebrationStyle.Confetti),
+            ("win_fireworks", "Fireworks", 500, CelebrationStyle.Fireworks),
+            ("win_coins", "Coin Shower", 500, CelebrationStyle.CoinShower),
+            ("win_starburst", "Starburst", 400, CelebrationStyle.Starburst),
+            ("win_bubbles", "Bubbles", 350, CelebrationStyle.Bubbles)
+        };
+
+        private void AddBuiltIns()
+        {
+            if (!fonts.Exists(f => f.id == "font_default")) // the game's own font, free (the name fonts come from Generate Art)
+                fonts.Insert(0, new FontSkin { id = "font_default", displayName = "Classic", price = 0, font = null });
+            foreach (var (id, name, price, style) in CodeEffects)
+                if (!effects.Exists(e => e.id == id))
+                    effects.Add(new EffectSkin { id = id, displayName = name, price = price, style = style });
+            foreach (var (id, name, price, style) in CodeCelebrations)
+                if (!celebrations.Exists(c => c.id == id))
+                    celebrations.Add(new CelebrationSkin { id = id, displayName = name, price = price, style = style });
+        }
+
+        public CosmeticItem Find(CosmeticCategory category, string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            foreach (var item in Items(category)) if (item.id == id) return item;
+            return null;
         }
 
         public IReadOnlyList<CosmeticItem> Items(CosmeticCategory category)
@@ -95,6 +163,8 @@ namespace Palace
                 case CosmeticCategory.CardBack: return backs;
                 case CosmeticCategory.Banner: return banners;
                 case CosmeticCategory.NameStyle: return nameStyles;
+                case CosmeticCategory.Font: return fonts;
+                case CosmeticCategory.Celebration: return celebrations;
                 default: return effects;
             }
         }

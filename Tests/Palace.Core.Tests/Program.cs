@@ -742,6 +742,19 @@ internal static class Program
         var back = Palace.Net.NetProtocol.ReadCommand(new BinaryReader(new MemoryStream(cb, 1, cb.Length - 1)));
         Check(back.ApplyTo(g2, 0).Ok && g2.State.Players[0].FaceUp[2].Value.Id == cmd.CardIds[0], "a swap sent from a phone is applied by the host");
         Check(mirror.State.Phase == GamePhase.Swapping, "a phone's copy of the game knows it's the swap phase");
+
+        // Online: each player's picture and cosmetics reach everyone in the game room.
+        var seats = new List<Palace.Net.LobbySeat>
+        {
+            new Palace.Net.LobbySeat { ClientId = 0, Name = "Host", Ready = true, Avatar = 4, Banner = "banner_flag_poland", NameStyle = "name_neon",
+                Font = "font_bangers", Effect = "fx_galaxy", Celebration = "win_fireworks" },
+            new Palace.Net.LobbySeat { Name = "Bot", IsBot = true, Ready = true }
+        };
+        byte[] lobby = Palace.Net.NetProtocol.Lobby(seats);
+        var got = Palace.Net.NetProtocol.ReadLobby(new BinaryReader(new MemoryStream(lobby, 1, lobby.Length - 1)));
+        Check(got.Count == 2 && got[0].Avatar == 4 && got[0].Banner == "banner_flag_poland" && got[0].NameStyle == "name_neon" && got[0].Font == "font_bangers"
+              && got[0].Effect == "fx_galaxy" && got[0].Celebration == "win_fireworks" && got[1].IsBot && got[1].Avatar == -1 && got[1].Effect == "",
+            "pictures, banners, name styles, fonts, effects and celebrations reach every device");
     }
 
     private static int CountCards(GameState s)

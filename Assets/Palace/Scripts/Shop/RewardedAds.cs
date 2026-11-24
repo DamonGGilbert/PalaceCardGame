@@ -19,7 +19,7 @@ namespace Palace
     /// </summary>
     public static class RewardedAds
     {
-        public const int Reward = 50;
+        public const int Reward = 500;
         public const int DailyLimit = 5;
 
         private static IRewardedAdBackend backend;

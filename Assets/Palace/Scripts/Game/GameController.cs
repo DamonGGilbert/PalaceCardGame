@@ -283,6 +283,76 @@ namespace Palace
 
         private SeatView SeatFor(int player) => table.Seats[SeatOf(player)];
 
+        // ------------------------------------------------------------------ what each player wears
+
+        private sealed class PlayerLook
+        {
+            public BannerSkin Banner;
+            public NameStyle NameStyle;
+            public FontSkin Font;
+            public FxStyle Effect = FxStyle.Classic;
+            public CelebrationStyle Celebration = CelebrationStyle.Confetti;
+        }
+
+        private readonly List<PlayerLook> looks = new List<PlayerLook>();
+
+        private FxStyle FxOf(int player) => player >= 0 && player < looks.Count ? looks[player].Effect : Cosmetics.EffectStyle;
+        private CelebrationStyle CelebrationOf(int player) =>
+            player >= 0 && player < looks.Count ? looks[player].Celebration : CelebrationStyle.Confetti;
+
+        /// <summary>
+        /// You wear your own choices; friends online wear theirs (sent through the game room); computer
+        /// players wear a random but steady mix, which also shows off what's in the Customise screen.
+        /// </summary>
+        private PlayerLook LookFor(int player)
+        {
+            var lib = CosmeticLibrary.Instance;
+            if (player == localPlayer || lib == null)
+            {
+                return player == localPlayer ? new PlayerLook
+                {
+                    Banner = Cosmetics.Banner, NameStyle = Cosmetics.NameStyle, Font = Cosmetics.Font, Effect = Cosmetics.EffectStyle,
+                    Celebration = Cosmetics.Celebration != null ? Cosmetics.Celebration.style : CelebrationStyle.Confetti
+                } : new PlayerLook();
+            }
+
+            if (IsNetworked && player < net.Seats.Count && !net.Seats[player].IsBot)
+            {
+                LobbySeat seat = net.Seats[player];
+                var fx = lib.Find(CosmeticCategory.Effects, seat.Effect) as EffectSkin;
+                var win = lib.Find(CosmeticCategory.Celebration, seat.Celebration) as CelebrationSkin;
+                return new PlayerLook
+                {
+                    Banner = lib.Find(CosmeticCategory.Banner, seat.Banner) as BannerSkin,
+                    NameStyle = lib.Find(CosmeticCategory.NameStyle, seat.NameStyle) as NameStyle,
+                    Font = lib.Find(CosmeticCategory.Font, seat.Font) as FontSkin,
+                    Effect = fx != null ? fx.style : FxStyle.Classic,
+                    Celebration = win != null ? win.style : CelebrationStyle.Confetti
+                };
+            }
+
+            if (!Game.State.Players[player].IsBot) return new PlayerLook();
+
+            // A computer player: the same look every game (seeded by its name), about half of it premium.
+            int seed = 17;
+            foreach (char ch in Game.State.Players[player].Name) seed = seed * 31 + ch;
+            var rng = new System.Random(seed);
+            T Pick<T>(List<T> items) where T : CosmeticItem
+            {
+                var choices = items.Where(i => !i.storeOnly).ToList();
+                if (choices.Count == 0) return null;
+                return rng.NextDouble() < 0.5 ? choices[0] : choices[rng.Next(choices.Count)];
+            }
+            var botFx = Pick(lib.effects);
+            var botWin = Pick(lib.celebrations);
+            return new PlayerLook
+            {
+                Banner = Pick(lib.banners), NameStyle = Pick(lib.nameStyles), Font = Pick(lib.fonts),
+                Effect = botFx != null ? botFx.style : FxStyle.Classic,
+                Celebration = botWin != null ? botWin.style : CelebrationStyle.Confetti
+            };
+        }
+
         // Computer players each have their own profile picture: cat, ghost, flame, moon, sun, clover...
         private static readonly int[] BotPictures = { 10, 11, 6, 8, 9, 12, 7, 13, 2 };
 
@@ -404,10 +474,15 @@ namespace Palace
                 seats[k].SetPlayer(seatNames[k], PlayerAtSeat(k)); // same colours on every device
                 seats[k].SetPicture(AvatarArt.Get(PictureOf(PlayerAtSeat(k))));
             }
-            if (localPlayer >= 0)
+            // Everyone's look: your Customise choices, your friends' choices online, and a random mix for computers.
+            looks.Clear();
+            for (int p = 0; p < n; p++) looks.Add(LookFor(p));
+            for (int k = 0; k < n; k++)
             {
-                seats[0].ApplyBanner(Cosmetics.Banner);       // your Customise choices on your own seat
-                seats[0].ApplyNameStyle(Cosmetics.NameStyle);
+                PlayerLook look = looks[PlayerAtSeat(k)];
+                if (look.Banner != null) seats[k].ApplyBanner(look.Banner);
+                if (look.NameStyle != null) seats[k].ApplyNameStyle(look.NameStyle);
+                seats[k].ApplyFont(look.Font);
             }
             for (int k = 0; k < HouseRules.TableCards; k++)
             {
@@ -1478,9 +1553,10 @@ namespace Palace
                     table.SetDiscardPile(shownPile);
                     AudioManager.Play(Sfx.Burn);
                     Haptics.Buzz();
-                    if (fx.Style == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
+                    FxStyle burnStyle = FxOf(e.Player); // everyone burns in their own style
+                    if (burnStyle == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
                     else table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
-                    yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale);
+                    yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale, burnStyle);
                     break;
                 }
 
@@ -1540,6 +1616,7 @@ namespace Palace
                         : (last ? Loc.F("{0} is the Shedhead!", who) : Loc.F("{0} finishes {1}!", who, Loc.Ordinal(e.Position)));
                     table.Announce(text, UIKit.Gold, table.DiscardPoint + new Vector2(-120f, -10f), 56f);
                     if (e.Position == 1 || e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
+                    if (e.Position == 1) fx.Celebrate(SeatPointFor(e.Player) + new Vector2(0f, 40f), CelebrationOf(e.Player)); // the winner's celebration
                     RefreshAll();
                     yield return Tween.Wait(Mathf.Max(0.4f, Tween.Scaled(0.9f)));
                     break;

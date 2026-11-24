@@ -22,6 +22,26 @@ namespace Palace
         public static Sprite NoEntry => noEntry != null ? noEntry : noEntry = Make("fx_no_entry", 128, (x, y) =>
             Mathf.Min(Mathf.Abs(Length(x - 64, y - 64) - 50f) - 9f, Segment(x, y, 30, 98, 98, 30) - 9f));
 
+        private static Sprite sparkle, coin;
+
+        /// <summary>A four-pointed twinkle (frost, gold, galaxy, starburst).</summary>
+        public static Sprite Sparkle => sparkle != null ? sparkle : sparkle = MakeAlpha("fx_sparkle", 64, (x, y) =>
+        {
+            float dx = Mathf.Abs(x - 32f) / 32f, dy = Mathf.Abs(y - 32f) / 32f;
+            float star = 1f - Mathf.Clamp01(Mathf.Sqrt(dx) + Mathf.Sqrt(dy));          // pinched four-point shape
+            float core = Mathf.Clamp01(1f - Length(x - 32f, y - 32f) / 9f);
+            return Mathf.Clamp01(star * 2.2f + core);
+        });
+
+        /// <summary>A coin: a solid disc with a lighter rim (tint it gold).</summary>
+        public static Sprite Coin => coin != null ? coin : coin = MakeAlpha("fx_coin", 64, (x, y) =>
+        {
+            float r = Length(x - 32f, y - 32f);
+            float disc = Mathf.Clamp01(29.5f - r);
+            float groove = Mathf.Abs(r - 22f) < 1.6f ? 0.55f : 1f;   // the inner ring reads as a coin edge
+            return disc * groove;
+        });
+
         /// <summary>Soft round glow, used for embers and flames.</summary>
         public static Sprite Dot
         {

@@ -144,3 +144,14 @@
 ## Prices
 - All cosmetic prices are x10 (`Cosmetics.PriceMultiplier`): flag tables 2,500 coins, flag backs 1,500, flag banners
   1,000, Water effect 5,000, Lagoon table 4,000, Midnight Gold deck 3,000. Coin rewards and coin packs are unchanged.
+
+## Heavy customisation round ✅ (code) — needs Generate Art / Rebuild Name Fonts once
+- [x] Coin packs scaled up: 6,000 / 18,000 / 50,000 coins, Supporter Pack 60,000; rewarded ad 500 coins
+      (product ids unchanged, so nothing to redo in the stores)
+- [x] **Font** tab: 12 name fonts from Google Fonts (licences in Assets/Palace/Fonts/Names): Righteous, Bangers,
+      Luckiest Guy, Marker, Lobster, Pacifico, Typewriter, Black Ops, Bungee, Creepster, Monoton, Pixel (1,500–2,500 coins).
+      Accented letters fall back to the game font. Run **Palace → Setup → Rebuild Name Fonts** (Unity offers it)
+- [x] 8 more burn effects (10 in all): Neon, Frost, Gold Rush, Galaxy, Toxic, Party, Lightning, Shadow (4,000–7,000 coins)
+- [x] **Win** tab: celebrations when you win: Confetti (free), Fireworks, Coin Shower, Starburst, Bubbles
+- [x] Online, friends see each other's banner, name style, font, burn effect, win celebration and picture
+- [x] Computer players wear a steady random mix of items, which shows off what's in the Customise screen

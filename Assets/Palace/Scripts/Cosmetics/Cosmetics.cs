@@ -108,6 +108,18 @@ namespace Palace
         public static NameStyle NameStyle => Library != null ? Equipped(CosmeticCategory.NameStyle, Library.nameStyles) : null;
         public static EffectSkin Effect => Library != null ? Equipped(CosmeticCategory.Effects, Library.effects) : null;
         public static FxStyle EffectStyle => Effect != null ? Effect.style : FxStyle.Classic;
+        public static FontSkin Font => Library != null ? Equipped(CosmeticCategory.Font, Library.fonts) : null;
+        public static CelebrationSkin Celebration => Library != null ? Equipped(CosmeticCategory.Celebration, Library.celebrations) : null;
+
+        /// <summary>The id of what you have equipped in a category (owned, or the free default), for sending online.</summary>
+        public static string WornId(CosmeticCategory category)
+        {
+            var list = Library != null ? Library.Items(category) : null;
+            if (list == null || list.Count == 0) return "";
+            string id = EquippedId(category);
+            CosmeticItem current = list.FirstOrDefault(i => i.id == id && Owns(i)) ?? list[0];
+            return current.id;
+        }
 
         public static bool IsEquipped(CosmeticCategory category, CosmeticItem item)
         {

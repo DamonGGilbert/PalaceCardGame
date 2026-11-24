@@ -575,6 +575,7 @@ namespace Palace.EditorTools
             lib.waterCaustics = AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/water_caustics.png");
             lib.feltMask = LoadSprite("felt_mask");
             PalaceFlagArt.AddToLibrary(lib);
+            PalaceNameFonts.AddToLibrary(lib);
             EditorUtility.SetDirty(lib);
         }
 

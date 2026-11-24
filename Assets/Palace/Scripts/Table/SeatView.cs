@@ -165,6 +165,25 @@ namespace Palace
         }
 
         /// <summary>Your name lettering from the Customise screen.</summary>
+        private TMPro.TMP_FontAsset defaultNameFont;
+        private float defaultNameSize;
+
+        /// <summary>A name font from the Customise screen (null or the default puts the game font back).</summary>
+        public void ApplyFont(FontSkin skin)
+        {
+            EnsureBuilt();
+            if (defaultNameFont == null)
+            {
+                defaultNameFont = nameText.font;
+                defaultNameSize = nameText.fontSize;
+            }
+            bool custom = skin != null && skin.font != null;
+            nameText.font = custom ? skin.font : defaultNameFont;
+            float size = defaultNameSize * (custom ? skin.sizeScale : 1f);
+            nameText.fontSize = size;
+            if (nameText.enableAutoSizing) nameText.fontSizeMax = size;
+        }
+
         public void ApplyNameStyle(NameStyle style)
         {
             EnsureBuilt();

@@ -212,7 +212,11 @@ namespace Palace.Net
         {
             Connected = true;
             Seats.Clear();
-            Seats.Add(new LobbySeat { ClientId = net.LocalClientId, Name = name, Ready = true, Avatar = GameSettings.AvatarIfUnlocked });
+            var me = MyLook();
+            me.ClientId = net.LocalClientId;
+            me.Name = name;
+            me.Ready = true;
+            Seats.Add(me);
             LocalPlayerIndex = 0;
             BroadcastLobby();
         }
@@ -340,6 +344,17 @@ namespace Palace.Net
             else SendTo(NetworkManager.ServerClientId, NetProtocol.Reaction(-1, index));
         }
 
+        /// <summary>What this device's player wears, to show the others at the table.</summary>
+        private static LobbySeat MyLook() => new LobbySeat
+        {
+            Avatar = GameSettings.AvatarIfUnlocked,
+            Banner = Cosmetics.WornId(CosmeticCategory.Banner),
+            NameStyle = Cosmetics.WornId(CosmeticCategory.NameStyle),
+            Font = Cosmetics.WornId(CosmeticCategory.Font),
+            Effect = Cosmetics.WornId(CosmeticCategory.Effects),
+            Celebration = Cosmetics.WornId(CosmeticCategory.Celebration)
+        };
+
         /// <summary>Host: a computer player's reaction, shown on every device.</summary>
         public void SendBotReaction(int player, int index)
         {
@@ -430,6 +445,8 @@ namespace Palace.Net
                 {
                     string name = r.ReadString();
                     int picture = r.BaseStream.Position < r.BaseStream.Length ? r.ReadSByte() : -1;
+                    var look = new LobbySeat();
+                    if (r.BaseStream.Position < r.BaseStream.Length) look.ReadLook(r);
                     if (InGame || Seats.Count >= MaxPlayers)
                     {
                         SendTo(sender, NetProtocol.Closing(InGame ? "That game has already started." : "That game is full."));
@@ -439,7 +456,10 @@ namespace Palace.Net
                     {
                         name = string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
                         if (name.Length > 14) name = name.Substring(0, 14);
-                        Seats.Add(new LobbySeat { ClientId = sender, Name = name, Ready = false, Avatar = picture < AvatarArt.Count ? picture : -1 });
+                        look.ClientId = sender;
+                        look.Name = name;
+                        look.Avatar = picture < AvatarArt.Count ? picture : -1;
+                        Seats.Add(look);
                     }
                     BroadcastLobby();
                     break;
@@ -530,7 +550,7 @@ namespace Palace.Net
         private void OnClientConnected(ulong clientId)
         {
             if (!IsHost && clientId == net.LocalClientId)
-                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName, GameSettings.AvatarIfUnlocked)); // ask for a seat
+                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName, GameSettings.AvatarIfUnlocked, MyLook())); // ask for a seat
         }
 
         private void OnClientDisconnected(ulong clientId)

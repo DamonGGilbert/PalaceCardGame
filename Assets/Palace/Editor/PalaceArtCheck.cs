@@ -27,7 +27,16 @@ namespace Palace.EditorTools
 
             bool library = File.Exists(PalaceArtGenerator.LibraryPath);
             bool flags = File.Exists(PalaceArtGenerator.ArtFolder + "/flag_back_chile.png"); // the newest flags
-            if (library && flags) return;
+            if (library && flags)
+            {
+                // Only the name fonts are missing: that's quick to fix on its own.
+                var lib = AssetDatabase.LoadAssetAtPath<CosmeticLibrary>(PalaceArtGenerator.LibraryPath);
+                if (lib != null && lib.fonts.Count <= 1 &&
+                    EditorUtility.DisplayDialog("Palace: add the name fonts?",
+                        "New name fonts are ready to add to the Customise screen (a few seconds).", "Add them", "Later"))
+                    PalaceNameFonts.RebuildMenu();
+                return;
+            }
 
             bool go = EditorUtility.DisplayDialog("Palace: generate the art?",
                 "The painted art hasn't been generated yet (or is missing the newest items, such as the country flags).\n\n" +

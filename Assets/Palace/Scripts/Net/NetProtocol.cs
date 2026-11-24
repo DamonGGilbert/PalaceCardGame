@@ -27,6 +27,21 @@ namespace Palace.Net
         public bool IsBot;
         public bool Ready;
         public int Avatar = -1;  // profile picture (AvatarArt), -1 = initial letter
+        // What this player wears (cosmetic ids), so everyone at the table sees it. Empty = the default.
+        public string Banner = "", NameStyle = "", Font = "", Effect = "", Celebration = "";
+
+        public void WriteLook(BinaryWriter w)
+        {
+            w.Write(Banner ?? ""); w.Write(NameStyle ?? ""); w.Write(Font ?? ""); w.Write(Effect ?? ""); w.Write(Celebration ?? "");
+        }
+
+        public void ReadLook(BinaryReader r)
+        {
+            Banner = Clip(r.ReadString()); NameStyle = Clip(r.ReadString()); Font = Clip(r.ReadString());
+            Effect = Clip(r.ReadString()); Celebration = Clip(r.ReadString());
+        }
+
+        private static string Clip(string id) => id != null && id.Length <= 48 ? id : "";
     }
 
     public enum NetCommandType : byte { PlayCards, PlayFaceDown, PickUp, DeclareSeven, ChooseAce, Swap, SwapDone }
@@ -65,7 +80,12 @@ namespace Palace.Net
     {
         // ------------------------------------------------------------------ lobby
 
-        public static byte[] Hello(string name, int avatar = -1) => Build(MsgType.Hello, w => { w.Write(name ?? "Player"); w.Write((sbyte)avatar); });
+        public static byte[] Hello(string name, int avatar = -1, LobbySeat look = null) => Build(MsgType.Hello, w =>
+        {
+            w.Write(name ?? "Player");
+            w.Write((sbyte)avatar);
+            (look ?? new LobbySeat()).WriteLook(w);
+        });
         public static byte[] Ready(bool ready) => Build(MsgType.Ready, w => w.Write(ready));
         public static byte[] InGame() => Build(MsgType.InGame, w => { });
         public static byte[] Closing(string reason) => Build(MsgType.Closing, w => w.Write(reason ?? ""));
@@ -85,6 +105,7 @@ namespace Palace.Net
                 w.Write(s.IsBot);
                 w.Write(s.Ready);
                 w.Write((sbyte)s.Avatar);
+                s.WriteLook(w);
             }
         });
 
@@ -93,7 +114,11 @@ namespace Palace.Net
             int n = r.ReadInt32();
             var seats = new List<LobbySeat>(n);
             for (int i = 0; i < n; i++)
-                seats.Add(new LobbySeat { ClientId = r.ReadUInt64(), Name = r.ReadString(), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean(), Avatar = r.ReadSByte() });
+                {
+                var seat = new LobbySeat { ClientId = r.ReadUInt64(), Name = r.ReadString(), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean(), Avatar = r.ReadSByte() };
+                seat.ReadLook(r);
+                seats.Add(seat);
+            }
             return seats;
         }
 
