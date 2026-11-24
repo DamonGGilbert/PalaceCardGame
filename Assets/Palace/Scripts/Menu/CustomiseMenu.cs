@@ -20,7 +20,32 @@ namespace Palace
         private RectTransform root;
         private Action backToMain;
         private GameObject screen;
-        private RectTransform grid;
+        private RectTransform grid, extras;
+        private ScrollRect scroll;
+        private GameObject restoreButton;
+        private float contentHeight = 640f;
+        private CosmeticCategory? shownCategory;
+        private bool shownShop;
+
+        private const float Columns = 4, RowHeight = 320f, TopRow = 160f;
+
+        /// <summary>Sizes the scrolling area for this many tiles (and jumps to the top on a new tab).</summary>
+        private void LayoutGrid(int count)
+        {
+            int rows = Mathf.CeilToInt(count / Columns);
+            contentHeight = Mathf.Max(640f, rows * RowHeight);
+            grid.sizeDelta = new Vector2(1560f, contentHeight);
+            bool newTab = shownShop != shopTab || shownCategory != category;
+            shownShop = shopTab;
+            shownCategory = category;
+            if (newTab) grid.anchoredPosition = Vector2.zero;
+        }
+
+        private Vector2 SlotPosition(int i)
+        {
+            int col = i % (int)Columns, row = i / (int)Columns;
+            return new Vector2((col - (Columns - 1) * 0.5f) * 380f, contentHeight * 0.5f - TopRow - row * RowHeight);
+        }
         private TextMeshProUGUI coinsLabel, message;
         private CosmeticCategory category = CosmeticCategory.Table;
 
@@ -45,7 +70,20 @@ namespace Palace
             Shop.Changed += OnShopChanged;
             Shop.Message += OnShopMessage;
 
-            grid = UIBuild.Rect("Items", p, new Vector2(1560f, 640f), new Vector2(0f, -20f));
+            // The item grid scrolls (there are lots of tables now); extras like "Restore purchases" sit outside it.
+            extras = UIBuild.Rect("Items", p, new Vector2(1560f, 640f), new Vector2(0f, -20f));
+            var view = UIBuild.StretchImage("Viewport", extras, null, new Color(0f, 0f, 0f, 0.001f));
+            view.raycastTarget = true;
+            view.gameObject.AddComponent<RectMask2D>();
+            grid = UIBuild.Rect("Content", view.transform, new Vector2(1560f, 640f), Vector2.zero);
+            grid.anchorMin = grid.anchorMax = new Vector2(0.5f, 1f);
+            grid.pivot = new Vector2(0.5f, 1f);
+            scroll = view.gameObject.AddComponent<ScrollRect>();
+            scroll.content = grid;
+            scroll.viewport = view.rectTransform;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.scrollSensitivity = 60f;
             message = UIKit.Label(p, "", 26f, new Vector2(1400f, 40f), new Vector2(0f, -370f), TextAlignmentOptions.Center, UIKit.Muted);
             UIKit.Button(p, "Back", new Vector2(220f, 70f), new Vector2(0f, -435f), () =>
             {
@@ -64,17 +102,29 @@ namespace Palace
             Refresh();
         }
 
+        /// <summary>TESTING ONLY (menu screenshots): show a category scrolled to a point (1 = top, 0 = bottom).</summary>
+        public void TestShow(CosmeticCategory c, float scrollTo)
+        {
+            screen.SetActive(true);
+            shopTab = false;
+            category = c;
+            Refresh();
+            Canvas.ForceUpdateCanvases();
+            scroll.verticalNormalizedPosition = scrollTo;
+        }
+
         public void Open()
         {
             screen.SetActive(true);
-            message.text = "Win games to earn coins: 1st place pays 50, and every finish earns something.";
+            message.text = Loc.T("Win games to earn coins: 1st place pays 50, and every finish earns something.");
             Refresh();
         }
 
         private void Refresh()
         {
-            coinsLabel.text = Cosmetics.Coins + " coins";
+            coinsLabel.text = Loc.F("{0} coins", Cosmetics.Coins);
             foreach (Transform child in grid) Destroy(child.gameObject);
+            if (restoreButton != null) Destroy(restoreButton);
             if (shopTab)
             {
                 BuildShop();
@@ -84,18 +134,13 @@ namespace Palace
             var lib = CosmeticLibrary.Instance;
             if (lib == null)
             {
-                message.text = "Run Palace > Setup > Run Full Setup to create the cosmetics.";
+                message.text = Loc.T("Run Palace > Setup > Run Full Setup to create the cosmetics.");
                 return;
             }
 
             IReadOnlyList<CosmeticItem> items = lib.Items(category);
-            const int columns = 4;
-            for (int i = 0; i < items.Count; i++)
-            {
-                int col = i % columns, row = i / columns;
-                var pos = new Vector2((col - (columns - 1) * 0.5f) * 380f, 160f - row * 320f);
-                BuildTile(items[i], pos);
-            }
+            LayoutGrid(items.Count);
+            for (int i = 0; i < items.Count; i++) BuildTile(items[i], SlotPosition(i));
         }
 
         private void BuildTile(CosmeticItem item, Vector2 pos)
@@ -124,8 +169,8 @@ namespace Palace
             else
             {
                 bool affordable = Cosmetics.Coins >= item.price;
-                var buy = UIKit.Button(t, "Buy  " + item.price, new Vector2(220f, 60f), new Vector2(0f, -112f), () => Buy(item), affordable, 26f);
-                if (!affordable) UIKit.SetButtonLabel(buy, item.price + " coins");
+                var buy = UIKit.Button(t, Loc.F("Buy  {0}", item.price), new Vector2(220f, 60f), new Vector2(0f, -112f), () => Buy(item), affordable, 26f);
+                if (!affordable) UIKit.SetButtonLabel(buy, Loc.F("{0} coins", item.price));
             }
         }
 
@@ -143,21 +188,26 @@ namespace Palace
                     var icon = deck.king != null ? deck.king : deck.hearts;
                     UIBuild.Image("King", face.transform, icon, deck.red, new Vector2(64f, 64f), new Vector2(0f, 8f)).preserveAspect = true;
                     UIBuild.Text("K", face.transform, "K", 24f, deck.red, new Vector2(30f, 30f), new Vector2(-34f, 55f),
-                        TextAlignmentOptions.Center, UIKit.Font, true);
+                        TextAlignmentOptions.Center, UIKit.Font, true, false);
                     break;
                 }
                 case BannerSkin banner:
                 {
                     var plate = UIBuild.Image("Banner", tile, banner.plate, banner.tint, new Vector2(300f, 60f), centre);
                     plate.type = Image.Type.Sliced;
-                    UIBuild.Text("Name", plate.transform, GameSettings.PlayerName, 28f, banner.text, new Vector2(280f, 56f), Vector2.zero,
-                        TextAlignmentOptions.Center, UIKit.Font, true);
+                    var name = UIBuild.Text("Name", plate.transform, GameSettings.PlayerName, 28f, banner.text, new Vector2(280f, 56f), Vector2.zero,
+                        TextAlignmentOptions.Center, UIKit.Font, true, false);
+                    if (banner.textOutline > 0f)
+                    {
+                        name.outlineWidth = banner.textOutline;
+                        name.outlineColor = new Color32(20, 12, 6, 255);
+                    }
                     break;
                 }
                 case NameStyle style:
                 {
                     var text = UIBuild.Text("Name", tile, GameSettings.PlayerName, 46f, style.face, area, centre,
-                        TextAlignmentOptions.Center, UIKit.Font, true);
+                        TextAlignmentOptions.Center, UIKit.Font, true, false);
                     text.outlineWidth = style.outlineWidth;
                     text.outlineColor = style.outline;
                     break;
@@ -179,21 +229,18 @@ namespace Palace
         {
             Shop.Initialize();
             var products = ShopCatalog.Products;
-            const int columns = 4;
+            LayoutGrid(products.Length + 1);
             int slot = 0;
 
             // Free bonus coins first: watch an optional ad (or claim instantly with Remove Ads).
-            BuildBonusTile(SlotPosition(slot++, columns));
-            foreach (var product in products) BuildProductTile(product, SlotPosition(slot++, columns));
+            BuildBonusTile(SlotPosition(slot++));
+            foreach (var product in products) BuildProductTile(product, SlotPosition(slot++));
 
             string status = Shop.Backend != null && !string.IsNullOrEmpty(Shop.Backend.StatusMessage) ? Shop.Backend.StatusMessage : "";
-            message.text = !string.IsNullOrEmpty(shopNote) ? shopNote : status;
+            message.text = Loc.T(!string.IsNullOrEmpty(shopNote) ? shopNote : status);
 
-            UIKit.Button(grid, "Restore purchases", new Vector2(270f, 52f), new Vector2(-600f, 445f), Shop.Restore, false, 22f);
+            restoreButton = UIKit.Button(extras, "Restore purchases", new Vector2(270f, 52f), new Vector2(-600f, 445f), Shop.Restore, false, 22f).gameObject;
         }
-
-        private static Vector2 SlotPosition(int i, int columns) =>
-            new Vector2((i % columns - (columns - 1) * 0.5f) * 380f, 160f - (i / columns) * 320f);
 
         private void BuildBonusTile(Vector2 pos)
         {
@@ -211,7 +258,7 @@ namespace Palace
                 RewardedAds.Claim(ok =>
                 {
                     if (this == null) return;
-                    message.text = ok ? "+" + RewardedAds.Reward + " coins!" : "No bonus available right now.";
+                    message.text = ok ? Loc.F("+{0} coins!", RewardedAds.Reward) : Loc.T("No bonus available right now.");
                     Refresh();
                 });
             }, true, 26f);
@@ -241,7 +288,7 @@ namespace Palace
         private void OnShopMessage(string text)
         {
             shopNote = text;
-            if (this != null && message != null) message.text = text;
+            if (this != null && message != null) message.text = Loc.T(text);
         }
 
         private void OnDestroy()
@@ -254,7 +301,7 @@ namespace Palace
         {
             Cosmetics.Equip(category, item);
             AudioManager.Play(Sfx.Select);
-            message.text = item.displayName + " equipped.";
+            message.text = Loc.F("{0} equipped.", Loc.T(item.displayName));
             Refresh();
         }
 
@@ -262,12 +309,12 @@ namespace Palace
         {
             if (!Cosmetics.TryBuy(item))
             {
-                message.text = "You need " + (item.price - Cosmetics.Coins) + " more coins for " + item.displayName + ".";
+                message.text = Loc.F("You need {0} more coins for {1}.", item.price - Cosmetics.Coins, Loc.T(item.displayName));
                 return;
             }
             AudioManager.Play(Sfx.Win, 0.7f);
             Cosmetics.Equip(category, item);
-            message.text = "Unlocked " + item.displayName + "!";
+            message.text = Loc.F("Unlocked {0}!", Loc.T(item.displayName));
             Refresh();
         }
     }

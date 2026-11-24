@@ -78,6 +78,59 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.bots", Mathf.Clamp(value, 1, 9));
         }
 
+        // ------------------------------------------------------------------ polish + accessibility
+
+        public static readonly string[] OnOffNames = { "Off", "On" };
+        public static readonly string[] CardColourNames = { "2 colours", "4 colours" };
+        public static readonly string[] TextSizeNames = { "Normal", "Large" };
+        public static readonly string[] HandOrderNames = { "By rank", "By suit" };
+        public static readonly string[] MusicTrackNames = { "Fireside", "Lounge", "Off" };
+        public static readonly string[] LanguageNames = { "English", "Polski", "Español" };
+
+        /// <summary>Phone buzzes on burns, pick-ups and your turn (phones and tablets only).</summary>
+        public static bool Vibration
+        {
+            get => PlayerPrefs.GetInt("palace.vibrate", 1) == 1;
+            set => PlayerPrefs.SetInt("palace.vibrate", value ? 1 : 0);
+        }
+
+        /// <summary>Four-colour deck: diamonds blue and clubs green, so every suit is easy to tell apart.</summary>
+        public static bool FourColourDeck
+        {
+            get => PlayerPrefs.GetInt("palace.fourcolour", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.fourcolour", value ? 1 : 0);
+        }
+
+        /// <summary>Larger text everywhere (where it fits).</summary>
+        public static bool LargeText
+        {
+            get => PlayerPrefs.GetInt("palace.largetext", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.largetext", value ? 1 : 0);
+        }
+
+        public static float TextScale => LargeText ? 1.18f : 1f;
+
+        /// <summary>0 = sort the hand by rank, 1 = group it by suit.</summary>
+        public static int HandOrder
+        {
+            get => PlayerPrefs.GetInt("palace.handorder", 0);
+            set => PlayerPrefs.SetInt("palace.handorder", Mathf.Clamp(value, 0, 1));
+        }
+
+        /// <summary>0 Fireside (guitar), 1 Lounge (soft chords), 2 Off.</summary>
+        public static int MusicTrack
+        {
+            get => PlayerPrefs.GetInt("palace.musictrack", 0);
+            set { PlayerPrefs.SetInt("palace.musictrack", Mathf.Clamp(value, 0, 2)); AudioManager.ApplyTrack(); }
+        }
+
+        /// <summary>0 English, 1 Polish, 2 Spanish.</summary>
+        public static int Language
+        {
+            get => PlayerPrefs.GetInt("palace.language", Loc.DeviceDefault());
+            set { PlayerPrefs.SetInt("palace.language", Mathf.Clamp(value, 0, LanguageNames.Length - 1)); Loc.Refresh(); }
+        }
+
         /// <summary>Temporary speed used by automated tests; never saved.</summary>
         public static AnimationSpeed? AnimationOverride;
 

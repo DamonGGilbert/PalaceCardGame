@@ -230,7 +230,7 @@ namespace Palace
             {
                 if (kv.Value != client) continue;
                 takenOver.Add(kv.Key);
-                if (Game != null) Toast(Game.State.Players[kv.Key].Name + " left. A computer player takes over.");
+                if (Game != null) Toast(Loc.F("{0} left. A computer player takes over.", Game.State.Players[kv.Key].Name));
             }
         }
 
@@ -383,10 +383,11 @@ namespace Palace
 
             if (Game == null)
             {
-                if (statusText != null) statusText.text = IsNetClient ? "Waiting for the host to deal..." : "";
+                if (statusText != null) statusText.text = IsNetClient ? Loc.T("Waiting for the host to deal...") : "";
                 return;
             }
             if (statusText != null) UpdateStatus();
+            HandleKeyboard();
             bool singlePlayerPause = !IsNetworked && (paused || viewingPile);
             if (busy || singlePlayerPause || Game.State.Phase == GamePhase.GameOver) return;
 
@@ -482,7 +483,77 @@ namespace Palace
         {
             speedIndex = index;
             Tween.SpeedMultiplier = Speeds[index];
-            if (speedButton != null) UIKit.SetButtonLabel(speedButton, "Speed " + Speeds[index] + "x");
+            if (speedButton != null) UIKit.SetButtonLabel(speedButton, Loc.F("Speed {0}x", Speeds[index]));
+        }
+
+        // ------------------------------------------------------------------ keyboard (PC)
+
+        private readonly List<Card> shownHand = new List<Card>();   // the hand in on-screen order
+
+        /// <summary>
+        /// PC shortcuts: 1-9 / 0 pick a card, Enter or Space plays, P picks up, H / L call a 7,
+        /// J Q K A or 2-9 choose an Ace's value (B burns), S sorts the hand, V views the pile,
+        /// F speeds up the bots once you've finished, Esc opens the menu.
+        /// </summary>
+        private void HandleKeyboard()
+        {
+            if (KeyInput.Escape())
+            {
+                if (pileViewer != null) ClosePileViewer();
+                else if (resultsLayer == null) TogglePause();
+                return;
+            }
+            if (paused || resultsLayer != null) return;
+            if (KeyInput.Pressed('v'))
+            {
+                if (pileViewer != null) ClosePileViewer();
+                else OpenPileViewer();
+                return;
+            }
+            if (pileViewer != null) return;
+            if (KeyInput.Pressed('s'))
+            {
+                GameSettings.HandOrder = 1 - GameSettings.HandOrder;
+                Toast(GameSettings.HandOrder == 0 ? Loc.T("Hand sorted by rank") : Loc.T("Hand sorted by suit"));
+                RefreshAll();
+            }
+            if (KeyInput.Pressed('f') && CanFastForward) CycleSpeed();
+
+            GameState s = Game.State;
+            bool myChoice = !busy && localPlayer >= 0 && s.PendingPlayer == localPlayer;
+            if (myChoice && s.Phase == GamePhase.AwaitingSevenCall)
+            {
+                if (KeyInput.Pressed('h')) OnSevenCall(SevenCall.Higher);
+                else if (KeyInput.Pressed('l')) OnSevenCall(SevenCall.Lower);
+                return;
+            }
+            if (myChoice && s.Phase == GamePhase.AwaitingAceChoice)
+            {
+                if (KeyInput.Pressed('b') && s.PendingAceBurnAllowed) { OnAceChoice(true, Rank.Ace); return; }
+                foreach (Rank value in s.PendingAceValues)
+                {
+                    char key = value == Rank.Jack ? 'j' : value == Rank.Queen ? 'q' : value == Rank.King ? 'k' : value == Rank.Ace ? 'a' : (char)('0' + (int)value);
+                    if ((int)value <= 9 || value >= Rank.Jack)
+                        if (KeyInput.Pressed(key)) { OnAceChoice(false, value); return; }
+                }
+                return;
+            }
+            if (!LocalCanAct) return;
+
+            PlayerState me = s.Players[localPlayer];
+            int digit = KeyInput.Digit();
+            if (digit > 0)
+            {
+                if (me.ActiveSource == PlaySource.Hand && digit <= shownHand.Count) ToggleSelection(shownHand[digit - 1], PlaySource.Hand);
+                else if (me.ActiveSource == PlaySource.FaceUp && digit <= HouseRules.TableCards) OnFaceUpTapped(digit - 1);
+                else if (me.ActiveSource == PlaySource.FaceDown && digit <= HouseRules.TableCards && me.FaceDown[digit - 1].HasValue) OnFaceDownTapped(digit - 1);
+            }
+            if (KeyInput.Pressed('p')) OnPickUpPressed();
+            else if (KeyInput.Confirm())
+            {
+                if (selected.Count > 0) OnPlayPressed();
+                else if (Game.MustPickUp(localPlayer)) OnPickUpPressed();
+            }
         }
 
         private bool Execute(CommandResult result)
@@ -583,7 +654,7 @@ namespace Palace
             PlayerState me = Game.State.Players[localPlayer];
             if (me.ActiveSource != PlaySource.FaceUp)
             {
-                Toast(me.ActiveSource == PlaySource.Hand ? "Play the cards in your hand first" : "");
+                Toast(me.ActiveSource == PlaySource.Hand ? Loc.T("Play the cards in your hand first") : "");
                 return;
             }
             if (me.FaceUp[slot].HasValue) ToggleSelection(me.FaceUp[slot].Value, PlaySource.FaceUp);
@@ -595,7 +666,7 @@ namespace Palace
             PlayerState me = Game.State.Players[localPlayer];
             if (me.ActiveSource != PlaySource.FaceDown)
             {
-                Toast("Face-down cards come last");
+                Toast(Loc.T("Face-down cards come last"));
                 return;
             }
             Submit(new NetCommand { Type = NetCommandType.PlayFaceDown, Slot = slot });
@@ -690,20 +761,25 @@ namespace Palace
             table.SetDeckCount(shownDeck);
             table.SetDiscardPile(shownPile);
             SevenCall seven = Game.ActiveSeven;
-            string effect = seven == SevenCall.Higher ? "Next: HIGHER than 7" : seven == SevenCall.Lower ? "Next: LOWER than 7" : null;
+            string effect = seven == SevenCall.Higher ? Loc.T("Next: HIGHER than 7") : seven == SevenCall.Lower ? Loc.T("Next: LOWER than 7") : null;
             if (effect == null && s.TopRank == Rank.Ace && s.AceValue.HasValue && !busy)
-                effect = "Ace counts as " + Card.RankToLabel(s.AceValue.Value);
+                effect = Loc.F("Ace counts as {0}", Card.RankToLabel(s.AceValue.Value));
             table.SetEffect(effect);
 
             if (localPlayer >= 0)
             {
-                var cards = s.Players[localPlayer].Hand.OrderBy(c => c.Rank).ThenBy(c => c.Suit).ToList();
+                var hold = s.Players[localPlayer].Hand;
+                var cards = GameSettings.HandOrder == 1
+                    ? hold.OrderBy(c => c.Suit).ThenBy(c => c.Rank).ToList()     // grouped by suit
+                    : hold.OrderBy(c => c.Rank).ThenBy(c => c.Suit).ToList();    // low to high
+                shownHand.Clear();
+                shownHand.AddRange(cards);
                 bool handActive = myTurn && mySource == PlaySource.Hand;
                 hand.Show(cards, selected, handActive ? (Func<Card, bool>)(c => Game.CheckRank(c.Rank).Legal) : null, handActive);
             }
 
             playButton.gameObject.SetActive(myTurn && selected.Count > 0);
-            if (selected.Count > 0) UIKit.SetButtonLabel(playButton, selected.Count == 1 ? "PLAY CARD" : "PLAY " + selected.Count + " CARDS");
+            if (selected.Count > 0) UIKit.SetButtonLabel(playButton, selected.Count == 1 ? "PLAY CARD" : Loc.F("PLAY {0} CARDS", selected.Count));
             pickUpButton.gameObject.SetActive(myTurn && Game.MustPickUp(localPlayer));
 
             bool myChoice = !busy && localPlayer >= 0 && s.PendingPlayer == localPlayer;
@@ -741,33 +817,35 @@ namespace Palace
 
             statusText.color = UIKit.Text;
             GameState s = Game.State;
-            if (s.Phase == GamePhase.GameOver) { statusText.text = "Game over"; return; }
+            if (s.Phase == GamePhase.GameOver) { statusText.text = Loc.T("Game over"); return; }
 
             int actor = s.ActingPlayer;
             string name = s.Players[actor].Name;
 
             if (actor != localPlayer)
             {
-                if (s.Phase == GamePhase.AwaitingSevenCall) statusText.text = name + " is calling higher or lower...";
-                else if (s.Phase == GamePhase.AwaitingAceChoice) statusText.text = name + " is choosing how to use the Ace...";
-                else statusText.text = name + "'s turn";
+                if (s.Phase == GamePhase.AwaitingSevenCall) statusText.text = Loc.F("{0} is calling higher or lower...", name);
+                else if (s.Phase == GamePhase.AwaitingAceChoice) statusText.text = Loc.F("{0} is choosing how to use the Ace...", name);
+                else statusText.text = Loc.F("{0}'s turn", name);
                 return;
             }
 
-            if (s.Phase == GamePhase.AwaitingSevenCall) { statusText.text = "Call HIGHER or LOWER for the next player"; return; }
-            if (s.Phase == GamePhase.AwaitingAceChoice) { statusText.text = "Choose what your Ace counts as"; return; }
+            if (s.Phase == GamePhase.AwaitingSevenCall) { statusText.text = Loc.T("Call HIGHER or LOWER for the next player"); return; }
+            if (s.Phase == GamePhase.AwaitingAceChoice) { statusText.text = Loc.T("Choose what your Ace counts as"); return; }
             if (busy) { statusText.text = ""; return; }
 
             PlayerState me = s.Players[localPlayer];
-            if (Game.MustPickUp(localPlayer)) statusText.text = "No card can be played. Pick up the pile.";
-            else if (me.ActiveSource == PlaySource.FaceDown) statusText.text = "Your turn: tap a face-down card";
-            else if (me.ActiveSource == PlaySource.FaceUp) statusText.text = "Your turn: play a face-up card (" + Game.Requirement() + ")";
-            else statusText.text = "Your turn: play " + Game.Requirement();
+            string need = Loc.T(Game.Requirement());
+            if (Game.MustPickUp(localPlayer)) statusText.text = Loc.T("No card can be played. Pick up the pile.");
+            else if (me.ActiveSource == PlaySource.FaceDown) statusText.text = Loc.T("Your turn: tap a face-down card");
+            else if (me.ActiveSource == PlaySource.FaceUp) statusText.text = Loc.F("Your turn: play a face-up card ({0})", need);
+            else statusText.text = Loc.F("Your turn: play {0}", need);
         }
 
         private void Toast(string message)
         {
             if (string.IsNullOrEmpty(message)) return;
+            message = Loc.T(message); // rule messages come from the engine in English
             toastMessage = message;
             toastUntil = Time.unscaledTime + 2.5f;
         }
@@ -950,7 +1028,10 @@ namespace Palace
                 {
                     Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
                     int n = e.Cards.Count;
-                    string what = (e.Player == localPlayer ? "You pick up " : who + " picks up ") + n + (n == 1 ? " card" : " cards");
+                    string what = e.Player == localPlayer
+                        ? (n == 1 ? Loc.T("You pick up 1 card") : Loc.F("You pick up {0} cards", n))
+                        : (n == 1 ? Loc.F("{0} picks up 1 card", who) : Loc.F("{0} picks up {1} cards", who, n));
+                    if (e.Player == localPlayer) Haptics.Buzz();
                     AudioManager.Play(Sfx.PickUp);
                     table.Announce(what, new Color(1f, 0.75f, 0.6f), centre, 52f);
 
@@ -972,7 +1053,7 @@ namespace Palace
                     if (!AutoPlayHarness.Active)
                     {
                         pauseUntil = Time.unscaledTime + GameSettings.PickUpPauseSeconds / Tween.SpeedMultiplier;
-                        noticeMessage = what + ". Take a moment...";
+                        noticeMessage = Loc.F("{0}. Take a moment...", what);
                         noticeUntil = pauseUntil;
                     }
                     break;
@@ -985,6 +1066,7 @@ namespace Palace
                     shownPile.Clear();
                     table.SetDiscardPile(shownPile);
                     AudioManager.Play(Sfx.Burn);
+                    Haptics.Buzz();
                     if (fx.Style == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
                     else table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
                     yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale);
@@ -994,7 +1076,8 @@ namespace Palace
                 case GameEventType.PlayersSkipped:
                 {
                     AudioManager.Play(Sfx.Skip);
-                    table.Announce(e.Count > 1 ? "SKIP x" + e.Count : "SKIP", new Color(0.6f, 0.85f, 1f), centre, 72f);
+                    if (e.Players.Contains(localPlayer)) Haptics.Buzz();
+                    table.Announce(e.Count > 1 ? Loc.F("SKIP x{0}", e.Count) : "SKIP", new Color(0.6f, 0.85f, 1f), centre, 72f);
                     float delay = 0f;
                     foreach (int p in e.Players)
                     {
@@ -1032,7 +1115,7 @@ namespace Palace
                 case GameEventType.AceChosen:
                     if (!e.Burn)
                     {
-                        table.Announce("ACE = " + RankName(e.AceValue), UIKit.Gold, centre, 64f);
+                        table.Announce(Loc.F("ACE = {0}", Loc.T(RankName(e.AceValue))), UIKit.Gold, centre, 64f);
                         fx.Ripple(table.DiscardPoint, new Color(1f, 0.85f, 0.4f, 0.8f));
                         yield return Tween.Wait(Tween.Scaled(0.5f));
                     }
@@ -1042,8 +1125,8 @@ namespace Palace
                 {
                     bool last = e.Position == s.Players.Count;
                     string text = e.Player == localPlayer
-                        ? (last ? "You're the Shedhead!" : "You finish " + SeatView.Ordinal(e.Position) + "!")
-                        : who + (last ? " is the Shedhead!" : " finishes " + SeatView.Ordinal(e.Position) + "!");
+                        ? (last ? Loc.T("You're the Shedhead!") : Loc.F("You finish {0}!", Loc.Ordinal(e.Position)))
+                        : (last ? Loc.F("{0} is the Shedhead!", who) : Loc.F("{0} finishes {1}!", who, Loc.Ordinal(e.Position)));
                     table.Announce(text, UIKit.Gold, table.DiscardPoint + new Vector2(-120f, -10f), 56f);
                     if (e.Position == 1 || e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
                     RefreshAll();
@@ -1055,6 +1138,7 @@ namespace Palace
                     if (e.Player == localPlayer && s.Phase == GamePhase.Playing && Game.State.Current == localPlayer)
                     {
                         AudioManager.Play(Sfx.YourTurn, 0.6f);
+                        Haptics.Buzz();
                         table.Announce("YOUR TURN", UIKit.Gold, new Vector2(735f, -312f), 44f); // just above the status text, clear of your cards
                     }
                     break;
@@ -1194,16 +1278,16 @@ namespace Palace
             var panel = UIKit.Panel(pileViewer, new Vector2(1560f, 920f), Vector2.zero, new Color(0.04f, 0.06f, 0.05f, 0.98f));
             int n = shownPile.Count;
 
-            UIKit.Label(panel.transform, n == 0 ? "The pile is empty" : "The pile: " + n + (n == 1 ? " card" : " cards"),
+            UIKit.Label(panel.transform, n == 0 ? Loc.T("The pile is empty") : n == 1 ? Loc.T("The pile: 1 card") : Loc.F("The pile: {0} cards", n),
                 48f, new Vector2(1400f, 70f), new Vector2(0f, 392f), TextAlignmentOptions.Center, UIKit.Gold, true);
 
-            string info = "Burned so far: " + Game.State.BurnedCount + "     Left in deck: " + shownDeck;
+            string info = Loc.F("Burned so far: {0}     Left in deck: {1}", Game.State.BurnedCount, shownDeck);
             if (n > 0)
             {
                 Card top = shownPile[n - 1];
-                string topText = "Top card: " + RankName(top.Rank).ToLowerInvariant();
-                if (top.Rank == Rank.Ace && Game.State.AceValue.HasValue) topText += " (counts as " + Card.RankToLabel(Game.State.AceValue.Value) + ")";
-                info = topText + "     Next card must be " + Game.Requirement() + "     " + info;
+                string topText = Loc.F("Top card: {0}", Loc.T(RankName(top.Rank)).ToLowerInvariant());
+                if (top.Rank == Rank.Ace && Game.State.AceValue.HasValue) topText += " " + Loc.F("(counts as {0})", Card.RankToLabel(Game.State.AceValue.Value));
+                info = topText + "     " + Loc.F("Next card must be {0}", Loc.T(Game.Requirement())) + "     " + info;
             }
             UIKit.Label(panel.transform, info, 24f, new Vector2(1480f, 40f), new Vector2(0f, 340f), TextAlignmentOptions.Center, UIKit.Muted);
 
@@ -1250,7 +1334,7 @@ namespace Palace
                 // How many of each rank are in the pile (useful for planning).
                 var counts = shownPile.GroupBy(c => c.Rank).OrderByDescending(g => g.Key)
                     .Select(g => "<b>" + Card.RankToLabel(g.Key) + "</b> x" + g.Count());
-                UIKit.Label(panel.transform, "In the pile:   " + string.Join("     ", counts), 28f, new Vector2(1480f, 50f),
+                UIKit.Label(panel.transform, Loc.T("In the pile:") + "   " + string.Join("     ", counts), 28f, new Vector2(1480f, 50f),
                     new Vector2(0f, -310f), TextAlignmentOptions.Center, UIKit.Text);
             }
 
@@ -1275,7 +1359,7 @@ namespace Palace
             List<Rank> values = Game.State.PendingAceValues;
             int n = values.Count;
             bool lowOnly = n > 0 && values.All(v => (int)v < 7);
-            aceTitle.text = lowOnly ? "Your Ace counts as... (LOWER than 7 was called)" : "Your Ace counts as... (it must match or beat the pile)";
+            aceTitle.text = Loc.T(lowOnly ? "Your Ace counts as... (LOWER than 7 was called)" : "Your Ace counts as... (it must match or beat the pile)");
             float step = n > 0 ? Mathf.Min(110f, 920f / n) : 0f;
             for (int i = 0; i < n; i++)
             {
@@ -1330,15 +1414,15 @@ namespace Palace
             float top = height * 0.5f;
 
             int winner = s.FinishOrder[0];
-            string title = winner == localPlayer ? "You win!" : s.Players[winner].Name + " wins!";
+            string title = winner == localPlayer ? Loc.T("You win!") : Loc.F("{0} wins!", s.Players[winner].Name);
             UIKit.Label(panel.transform, title, 60f, new Vector2(700f, 80f), new Vector2(0f, top - 60f), TextAlignmentOptions.Center, UIKit.Gold, true);
-            string subtitle = n + " players";
+            string subtitle = Loc.F("{0} players", n);
             if (localPlayer >= 0)
             {
                 // Coins for finishing, spent on the Customise screen.
                 int reward = Cosmetics.RewardFor(s.Players[localPlayer].FinishPosition, n);
                 Cosmetics.AddCoins(reward);
-                subtitle += "     +" + reward + " coins  (you have " + Cosmetics.Coins + ")";
+                subtitle += "     " + Loc.F("+{0} coins  (you have {1})", reward, Cosmetics.Coins);
             }
             UIKit.Label(panel.transform, subtitle, 26f, new Vector2(700f, 40f), new Vector2(0f, top - 112f), TextAlignmentOptions.Center, UIKit.Muted);
 
@@ -1347,8 +1431,8 @@ namespace Palace
                 int p = s.FinishOrder[i];
                 float y = top - 165f - i * 52f;
                 Color c = i == 0 ? UIKit.Gold : (p == localPlayer ? new Color(0.6f, 0.85f, 1f) : UIKit.Text);
-                string suffix = i == n - 1 ? "   - Shedhead!" : "";
-                UIKit.Label(panel.transform, SeatView.Ordinal(i + 1), 30f, new Vector2(120f, 48f), new Vector2(-230f, y), TextAlignmentOptions.Left, c, true);
+                string suffix = i == n - 1 ? "   - " + Loc.T("Shedhead!") : "";
+                UIKit.Label(panel.transform, Loc.Ordinal(i + 1), 30f, new Vector2(120f, 48f), new Vector2(-230f, y), TextAlignmentOptions.Left, c, true);
                 UIKit.Label(panel.transform, s.Players[p].Name + suffix, 30f, new Vector2(420f, 48f), new Vector2(60f, y), TextAlignmentOptions.Left, c, i == 0);
             }
 

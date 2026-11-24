@@ -25,11 +25,17 @@ namespace Palace
             {
                 PlayerPrefs.SetInt("palace.coins", Mathf.Max(0, value));
                 PlayerPrefs.Save();
+                CloudProgress.MarkLocalChange();
                 Changed?.Invoke();
             }
         }
 
         public static void AddCoins(int amount) => Coins += amount;
+
+        /// <summary>Cloud restore only: set coins without marking a new local change.</summary>
+        public static void SetCoinsFromCloud(int coins) => PlayerPrefs.SetInt("palace.coins", Mathf.Max(0, coins));
+
+        public static void NotifyChanged() => Changed?.Invoke();
 
         /// <summary>Coins for a finishing place: winning pays best, but every finish earns something.</summary>
         public static int RewardFor(int position, int players)
@@ -60,6 +66,7 @@ namespace Palace
         {
             PlayerPrefs.SetInt("palace.own." + itemId, 1);
             PlayerPrefs.Save();
+            CloudProgress.MarkLocalChange();
             Changed?.Invoke();
         }
 
@@ -70,6 +77,7 @@ namespace Palace
             if (!Owns(item)) return;
             PlayerPrefs.SetString("palace.equip." + category, item.id);
             PlayerPrefs.Save();
+            CloudProgress.MarkLocalChange();
             Changed?.Invoke();
         }
 

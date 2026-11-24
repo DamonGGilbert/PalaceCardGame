@@ -40,6 +40,17 @@ namespace Palace.EditorTools
 
         private static Vector3[] lamps;
 
+        /// <summary>When set, Table paints this (u, v in 0..1 across the felt) instead of plain felt.</summary>
+        internal static Func<float, float, Color> FeltPaint;
+        /// <summary>When set, CardBack paints this (u, v in 0..1 across the panel) instead of the rosette.</summary>
+        internal static Func<float, float, Color> BackPaint;
+
+        internal static Color TableColor(float x, float y) => Table(x, y);
+        internal static Color CardBackColor(float x, float y) => CardBack(x, y);
+        internal static float Grain(float x, float y, int octaves, int seed) => Fbm(x, y, octaves, seed);
+        internal static Color BrassAt(float t) => Color.Lerp(BrassDark, BrassLight, t);
+        internal static Color WoodAt(float t) => Ramp(WoodDark, WoodMid, WoodLight, t);
+
         public static void GenerateAll()
         {
             var rnd = new System.Random(5);
@@ -225,7 +236,15 @@ namespace Palace.EditorTools
                 float strokes = Fbm(u * 0.011f, v * 0.08f, 3, 31);
                 float blotch = Fbm(x * 0.004f, y * 0.004f, 4, 41);
                 float tone = 0.55f + (blotch - 0.5f) * 0.8f + (strokes - 0.5f) * 0.32f - e * e * 0.4f;
-                c = Ramp(FeltDeep, FeltMid, FeltLight, Mathf.Clamp01(tone));
+                if (FeltPaint != null)
+                {
+                    // A flag painted onto the cloth: same brush strokes and shading, muted so cards stand out.
+                    float fu = (x - (cx - halfW + rail)) / ((halfW - rail) * 2f);
+                    float fv = (y - (cy - halfH + rail)) / ((halfH - rail) * 2f);
+                    Color flag = FeltPaint(fu, fv);
+                    c = flag * Mathf.Lerp(0.5f, 0.92f, Mathf.Clamp01(tone)) * new Color(1f, 0.95f, 0.86f);
+                }
+                else c = Ramp(FeltDeep, FeltMid, FeltLight, Mathf.Clamp01(tone));
                 c *= Mathf.Lerp(1f, 0.5f, Smooth(-rail - 70f, -rail, d));
 
                 float wob = (Fbm(x * 0.01f, y * 0.01f, 2, 51) - 0.5f) * 6f;
@@ -299,6 +318,18 @@ namespace Palace.EditorTools
             float gilt = 0f;
             gilt = Mathf.Max(gilt, Coverage(Mathf.Abs(inner + 10f) - 1.7f));
             gilt = Mathf.Max(gilt, Coverage(Mathf.Abs(inner + 17f) - 0.8f) * 0.8f);
+
+            if (BackPaint != null)
+            {
+                // Flag back: the flag fills the panel inside a gilt frame, with a painted, varnished finish.
+                float fu = (x - 16f) / 248f, fv = (y - 16f) / 360f;
+                Color flag = BackPaint(fu, fv) * (0.82f + (Fbm(x * 0.02f, y * 0.02f, 4, 64) - 0.5f) * 0.22f - rad * 0.2f);
+                Color frame = Color.Lerp(BrassDark, BrassLight, 0.45f + (Fbm(x * 0.06f, y * 0.06f, 2, 65) - 0.5f) * 0.9f);
+                flag = Color.Lerp(flag, frame, gilt);
+                Color fc = Color.Lerp(margin, flag, Coverage(inner));
+                fc.a = Coverage(outer);
+                return fc;
+            }
 
             float lu = (x + y) / 30f, lv = (x - y) / 30f;
             float lattice = Mathf.Min(Mathf.Abs(lu - Mathf.Round(lu)), Mathf.Abs(lv - Mathf.Round(lv))) * 30f / 1.414f;

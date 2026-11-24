@@ -41,10 +41,14 @@ namespace Palace
             Cosmetics.ApplyThemes(tableTheme, cardTheme);
             if (felt != null) felt.sprite = tableTheme.CurrentTable;
             foreach (var b in decorBacks) if (b != null) b.Theme = cardTheme;
-            if (coinsLabel != null) coinsLabel.text = Cosmetics.Coins + " coins";
+            if (coinsLabel != null) coinsLabel.text = Loc.F("{0} coins", Cosmetics.Coins);
         }
 
-        private void OnDestroy() => Cosmetics.Changed -= OnCosmeticsChanged;
+        private void OnDestroy()
+        {
+            Cosmetics.Changed -= OnCosmeticsChanged;
+            CloudProgress.Changed -= RefreshCloud;
+        }
         private TextMeshProUGUI opponentsLabel, tableSizeLabel;
 
         public void Configure(TableTheme tTheme, CardTheme cTheme, CardView card, RectTransform menuRoot)
@@ -58,6 +62,8 @@ namespace Palace
         private void Start()
         {
             UIKit.Init(tableTheme);
+            int langArg = Array.IndexOf(Environment.GetCommandLineArgs(), "-palace-lang"); // testing only
+            if (langArg >= 0 && langArg + 1 < Environment.GetCommandLineArgs().Length && int.TryParse(Environment.GetCommandLineArgs()[langArg + 1], out int lang)) Loc.TestLanguage = lang;
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-palace-showcase") >= 0) Cosmetics.ShowcaseForTesting();
             Cosmetics.ApplyThemes(tableTheme, cardTheme); // equipped table / deck / card back
             Cosmetics.Changed += OnCosmeticsChanged;
@@ -79,7 +85,9 @@ namespace Palace
 
             if (!GameLaunch.SplashShown) StartCoroutine(Splash());
             else if (!string.IsNullOrEmpty(GameLaunch.MenuMessage)) OpenMultiplayer(GameLaunch.MenuMessage); // e.g. "The host left"
+            else if (GameLaunch.ReopenSettingsTab >= 0) Show(settingsPanel); // back after a language / text size change
             else Show(mainPanel);
+            GameLaunch.ReopenSettingsTab = -1;
             GameLaunch.MenuMessage = null;
             AudioManager.StartMusic();
 
@@ -192,7 +200,7 @@ namespace Palace
             var crt = coinsLabel.rectTransform;
             crt.anchorMin = crt.anchorMax = new Vector2(1f, 1f);
             crt.anchoredPosition = new Vector2(-230f, -50f);
-            coinsLabel.text = Cosmetics.Coins + " coins";
+            coinsLabel.text = Loc.F("{0} coins", Cosmetics.Coins);
 
             bool canQuit = Application.platform != RuntimePlatform.IPhonePlayer && Application.platform != RuntimePlatform.WebGLPlayer;
             if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, -356f), Quit);
@@ -261,8 +269,8 @@ namespace Palace
             int bots = GameSettings.BotCount;
             int players = bots + 1;
             int decks = new HouseRules().DecksFor(players);
-            opponentsLabel.text = "Computer opponents: " + bots;
-            tableSizeLabel.text = players + " players at the table, " + decks + (decks == 1 ? " deck" : " decks");
+            opponentsLabel.text = Loc.F("Computer opponents: {0}", bots);
+            tableSizeLabel.text = decks == 1 ? Loc.F("{0} players at the table, 1 deck", players) : Loc.F("{0} players at the table, {1} decks", players, decks);
         }
 
         private void StartSinglePlayer()
@@ -301,7 +309,7 @@ namespace Palace
             UIKit.ScrollText(p, new Vector2(1100f, 640f), new Vector2(0f, 10f), RulesText, 26f);
         }
 
-        private const string RulesText =
+        public const string RulesText =
             "<b><color=#F2C24D>Goal</color></b>\nGet rid of all your cards. The game continues until everyone has finished, so every place from 1st to last counts.\n\n" +
             "<b><color=#F2C24D>Setup</color></b>\nEveryone gets 3 face-down cards, 3 face-up cards on top of them, and 3 cards in hand. The rest form the deck. With 6 or more players two decks are used.\n\n" +
             "<b><color=#F2C24D>Your turn</color></b>\nPlay a card equal to or higher than the top card of the pile (2 low, Ace high). You may play several cards of the same rank together, but you don't have to. While the deck lasts, draw back up to 3 cards. If you can't play, you pick up the whole pile.\n\n" +
@@ -314,48 +322,142 @@ namespace Palace
             "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
             "2. Then play your face-up cards.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
-            "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play. Tap the pile to see every card in it.";
+            "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play. Tap the pile to see every card in it.\n\n" +
+            "<b><color=#F2C24D>Keyboard (PC)</color></b>\n1-9 pick a card, Enter or Space plays, P picks up the pile, H or L calls higher or lower, J Q K A or 2-9 choose an Ace's value (B burns), S sorts your hand, V shows the pile, F speeds up once you've finished, Esc opens the menu.";
 
         // ------------------------------------------------------------------ settings
 
         private void BuildSettings()
         {
             Transform p = BuildScreen("Settings", new Vector2(1100f, 980f), out settingsPanel, -420f);
-            float y = 320f;
             const float step = 84f;
             const float labelX = -330f, controlX = 150f;
             var controlSize = new Vector2(600f, 60f);
+            var sliderSize = new Vector2(600f, 44f);
 
-            Row(p, "Music", y);
-            UIKit.Slider(p, new Vector2(600f, 44f), new Vector2(controlX, y), 0f, 1f, GameSettings.MusicVolume, false, v => GameSettings.MusicVolume = v);
+            // Three tabs so nothing is cramped on a phone.
+            var tabs = new RectTransform[3];
+            for (int t = 0; t < tabs.Length; t++) tabs[t] = UIBuild.Stretch("Tab" + t, p);
+            settingsTabs = tabs;
+            int firstTab = Mathf.Max(0, GameLaunch.ReopenSettingsTab);
+            UIKit.Segmented(p, new[] { "Sound & speed", "Display", "Cloud save" }, firstTab, new Vector2(900f, 62f), new Vector2(0f, 330f), ShowSettingsTab);
+
+            // ---- Sound & speed
+            Transform a = tabs[0];
+            float y = 230f;
+            Row(a, "Music", y);
+            UIKit.Slider(a, sliderSize, new Vector2(controlX, y), 0f, 1f, GameSettings.MusicVolume, false, v => GameSettings.MusicVolume = v);
             y -= step;
-            Row(p, "Sound effects", y);
-            UIKit.Slider(p, new Vector2(600f, 44f), new Vector2(controlX, y), 0f, 1f, GameSettings.SfxVolume, false, v =>
+            Row(a, "Music track", y);
+            UIKit.Segmented(a, GameSettings.MusicTrackNames, GameSettings.MusicTrack, controlSize, new Vector2(controlX, y), i => GameSettings.MusicTrack = i);
+            y -= step;
+            Row(a, "Sound effects", y);
+            UIKit.Slider(a, sliderSize, new Vector2(controlX, y), 0f, 1f, GameSettings.SfxVolume, false, v => GameSettings.SfxVolume = v);
+            y -= step;
+            Row(a, "Vibration", y);
+            UIKit.Segmented(a, GameSettings.OnOffNames, GameSettings.Vibration ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
             {
-                GameSettings.SfxVolume = v;
+                GameSettings.Vibration = i == 1;
+                Haptics.Buzz();
             });
             y -= step;
-            Row(p, "Animations", y);
-            UIKit.Segmented(p, GameSettings.AnimationNames, (int)GameSettings.Animation, controlSize, new Vector2(controlX, y),
+            Row(a, "Animations", y);
+            UIKit.Segmented(a, GameSettings.AnimationNames, (int)GameSettings.Animation, controlSize, new Vector2(controlX, y),
                 i => GameSettings.Animation = (GameSettings.AnimationSpeed)i);
             y -= step;
-            Row(p, "Computer speed", y);
-            UIKit.Segmented(p, GameSettings.BotSpeedNames, GameSettings.BotSpeed, controlSize, new Vector2(controlX, y),
-                i => GameSettings.BotSpeed = i);
+            Row(a, "Computer speed", y);
+            UIKit.Segmented(a, GameSettings.BotSpeedNames, GameSettings.BotSpeed, controlSize, new Vector2(controlX, y), i => GameSettings.BotSpeed = i);
+
+            // ---- Display
+            Transform d = tabs[1];
+            y = 230f;
+            Row(d, "Language", y);
+            UIKit.Segmented(d, GameSettings.LanguageNames, GameSettings.Language, controlSize, new Vector2(controlX, y), i =>
+            {
+                if (i == GameSettings.Language) return;
+                GameSettings.Language = i;
+                ReloadMenu(1);
+            });
             y -= step;
-            Row(p, "Frame rate", y);
-            UIKit.Segmented(p, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y),
-                i => GameSettings.FrameRateIndex = i);
+            Row(d, "Text size", y);
+            UIKit.Segmented(d, GameSettings.TextSizeNames, GameSettings.LargeText ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
+            {
+                if ((i == 1) == GameSettings.LargeText) return;
+                GameSettings.LargeText = i == 1;
+                ReloadMenu(1);
+            });
             y -= step;
-            UIKit.Label(p, "Table, cards and card backs are on the Customise screen.", 24f, new Vector2(900f, 40f),
-                new Vector2(0f, y + 10f), TextAlignmentOptions.Center, UIKit.Muted);
+            Row(d, "Card colours", y);
+            UIKit.Segmented(d, GameSettings.CardColourNames, GameSettings.FourColourDeck ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
+            {
+                GameSettings.FourColourDeck = i == 1;
+                OnCosmeticsChanged();
+            });
+            y -= step;
+            Row(d, "Hand order", y);
+            UIKit.Segmented(d, GameSettings.HandOrderNames, GameSettings.HandOrder, controlSize, new Vector2(controlX, y), i => GameSettings.HandOrder = i);
+            y -= step;
+            Row(d, "Frame rate", y);
+            UIKit.Segmented(d, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y), i => GameSettings.FrameRateIndex = i);
+            y -= step;
+            var note = UIKit.Label(d, "4 colours: diamonds are blue and clubs are green, so every suit stands out.", 22f, new Vector2(960f, 60f),
+                new Vector2(0f, y + 4f), TextAlignmentOptions.Center, UIKit.Muted);
+            note.textWrappingMode = TextWrappingModes.Normal;
+            UIKit.Label(d, "Table, cards and card backs are on the Customise screen.", 22f, new Vector2(960f, 40f),
+                new Vector2(0f, y - 46f), TextAlignmentOptions.Center, UIKit.Muted);
+
+            // ---- Cloud save
+            Transform c = tabs[2];
+            var intro = UIKit.Label(c, "Back up your coins, unlocks and purchases. Sign in with a free Unity account to take them to another phone or PC.",
+                26f, new Vector2(900f, 110f), new Vector2(0f, 210f), TextAlignmentOptions.Center, UIKit.Text);
+            intro.textWrappingMode = TextWrappingModes.Normal;
+            cloudAccount = UIKit.Label(c, "", 26f, new Vector2(900f, 80f), new Vector2(0f, 90f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            cloudAccount.textWrappingMode = TextWrappingModes.Normal;
+            cloudStatus = UIKit.Label(c, "", 24f, new Vector2(900f, 80f), new Vector2(0f, 10f), TextAlignmentOptions.Center, UIKit.Muted);
+            cloudStatus.textWrappingMode = TextWrappingModes.Normal;
+            cloudSignIn = UIKit.Button(c, "Sign in (Unity account)", new Vector2(420f, 76f), new Vector2(-225f, -110f), CloudProgress.SignInWithAccount, true, 28f);
+            cloudSync = UIKit.Button(c, "Sync now", new Vector2(360f, 76f), new Vector2(225f, -110f), CloudProgress.SyncNow, false, 28f);
+            CloudProgress.Changed += RefreshCloud;
+            RefreshCloud();
+
+            UIKit.Label(p, "Changes are saved automatically.", 22f, new Vector2(900f, 40f), new Vector2(0f, -345f), TextAlignmentOptions.Center, UIKit.Muted);
+            ShowSettingsTab(firstTab);
 
             void Row(Transform parent, string label, float rowY)
             {
-                UIKit.Label(parent, label, 28f, new Vector2(300f, 50f), new Vector2(labelX, rowY), TextAlignmentOptions.Left, UIKit.Text, true);
+                UIKit.Label(parent, label, 28f, new Vector2(320f, 50f), new Vector2(labelX, rowY), TextAlignmentOptions.Left, UIKit.Text, true);
             }
+        }
 
-            UIKit.Label(p, "Changes are saved automatically.", 22f, new Vector2(900f, 40f), new Vector2(0f, -345f), TextAlignmentOptions.Center, UIKit.Muted);
+        private RectTransform[] settingsTabs;
+        private TextMeshProUGUI cloudAccount, cloudStatus;
+        private Button cloudSignIn, cloudSync;
+
+        private void ShowSettingsTab(int index)
+        {
+            for (int t = 0; t < settingsTabs.Length; t++) settingsTabs[t].gameObject.SetActive(t == index);
+            if (index == 2) RefreshCloud();
+        }
+
+        private void RefreshCloud()
+        {
+            if (this == null || cloudStatus == null) return;
+            bool supported = CloudProgress.Supported;
+            cloudAccount.text = Loc.T(!supported ? "Cloud save isn't included in this version yet."
+                : CloudProgress.AccountSignedIn ? "Signed in with your Unity account."
+                : "Not signed in: progress is backed up, but only this device can restore it.");
+            cloudStatus.text = Loc.T(CloudProgress.Status);
+            cloudSignIn.gameObject.SetActive(supported && !CloudProgress.AccountSignedIn);
+            cloudSync.gameObject.SetActive(supported);
+            cloudSignIn.interactable = cloudSync.interactable = !CloudProgress.Busy;
+        }
+
+        /// <summary>Language and text size are applied as screens are built, so rebuild the menu.</summary>
+        private void ReloadMenu(int settingsTab)
+        {
+            GameSettings.Save();
+            GameLaunch.ReopenSettingsTab = settingsTab;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         // ------------------------------------------------------------------ credits
@@ -365,10 +467,11 @@ namespace Palace
             Transform p = BuildScreen("Credits", new Vector2(1000f, 680f), out creditsPanel);
             var text = UIKit.Label(p,
                 "<color=#F2C24D><b>PALACE</b></color>\n\n" +
-                "Game design and house rules\n<b>Damon Gilbert</b>\n\n" +
-                "Programming, art and sound\n<b>Built with Claude (Anthropic)</b>\n\n" +
-                "Made with Unity\nFonts: Alegreya and Liberation Sans (SIL Open Font License)\n" +
-                "All card art, table art and sounds are generated in code for this game.",
+                Loc.T("Game design and house rules") + "\n<b>Damon Gilbert</b>\n\n" +
+                Loc.T("Programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
+                Loc.T("Made with Unity") + "\n" + Loc.T("Fonts: Alegreya and Liberation Sans (SIL Open Font License)") + "\n" +
+                Loc.T("All card art, table art and sounds are generated in code for this game.") + "\n" +
+                Loc.T("Translations: English, Polski, Español"),
                 28f, new Vector2(900f, 440f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
             text.textWrappingMode = TextWrappingModes.Normal;
             text.richText = true;
@@ -421,6 +524,25 @@ namespace Palace
             yield return new WaitForSecondsRealtime(0.5f);
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_shop.png"));
             yield return new WaitForSecondsRealtime(0.3f);
+
+            // The new screens: the other Settings tabs, and the scrolling flag items.
+            Show(settingsPanel);
+            for (int tab = 1; tab < 3; tab++)
+            {
+                ShowSettingsTab(tab);
+                yield return new WaitForSecondsRealtime(0.4f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_settings_" + tab + ".png"));
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+            Show(customisePanel);
+            foreach (var (cat, scrollTo, name) in new[] { (CosmeticCategory.Table, 0.5f, "tables"), (CosmeticCategory.Table, 0f, "tables_end"),
+                         (CosmeticCategory.CardBack, 0f, "backs"), (CosmeticCategory.Banner, 0f, "banners") })
+            {
+                customise.TestShow(cat, scrollTo);
+                yield return new WaitForSecondsRealtime(0.5f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_customise_" + name + ".png"));
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
 
             if (Array.IndexOf(args, "-palace-autoplay") >= 0) SceneManager.LoadScene(GameLaunch.GameScene);
             else Application.Quit();

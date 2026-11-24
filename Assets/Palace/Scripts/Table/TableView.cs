@@ -163,7 +163,7 @@ namespace Palace
                     tableTheme != null ? tableTheme.mutedTextColor : Color.white, new Vector2(320f, 30f),
                     new Vector2(0f, -150f), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
             }
-            directionText.text = direction >= 0 ? "Play goes clockwise" : "Play goes anticlockwise";
+            directionText.text = Loc.T(direction >= 0 ? "Play goes clockwise" : "Play goes anticlockwise");
         }
 
         /// <summary>Big pop-up text such as "BURN!" or "SKIP". Fire and forget.</summary>
@@ -306,7 +306,7 @@ namespace Palace
             EnsureBuilt();
             int visible = count <= 0 ? 0 : Mathf.Clamp(Mathf.CeilToInt(count / 10f), 1, deckCards.Length);
             for (int i = 0; i < deckCards.Length; i++) deckCards[i].gameObject.SetActive(i < visible);
-            deckLabel.text = count > 0 ? "Deck  " + count : "Deck empty";
+            deckLabel.text = count > 0 ? Loc.T("Deck") + "  " + count : Loc.T("Deck empty");
         }
 
         /// <summary>Shows the top few cards of the discard pile, slightly scattered like a real pile.</summary>
@@ -334,7 +334,7 @@ namespace Palace
                 rt.anchoredPosition = DiscardPosition + jitter;
             }
 
-            pileLabel.text = pile.Count > 0 ? "Pile  " + pile.Count : "Pile empty";
+            pileLabel.text = pile.Count > 0 ? Loc.T("Pile") + "  " + pile.Count : Loc.T("Pile empty");
         }
 
         /// <summary>Banner for an active special effect, e.g. "Play LOWER than 7". Pass null to hide.</summary>

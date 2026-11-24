@@ -14,6 +14,8 @@ namespace Palace
     {
         private const float MaxSpacing = 150f;
         private const float AreaWidth = 1000f;
+        private const float FanAngle = 12f;   // degrees at the ends of a full hand
+        private const float FanDip = 34f;     // how far the end cards drop
 
         private readonly TableView table;
         private readonly List<CardView> pool = new List<CardView>();
@@ -64,11 +66,14 @@ namespace Palace
                 view.SetDimmed(isPlayable != null && !isPlayable(card));
                 view.SetInteractable(interactable);
 
+                // A gentle curved fan, like cards held in a hand: outer cards tilt out and dip down.
+                float x = (i - (n - 1) * 0.5f) * spacing;
+                float k = x / (AreaWidth * 0.5f);   // -1 .. 1 across the hand area
                 var rt = (RectTransform)view.transform;
                 rt.SetSiblingIndex(i);
-                rt.anchoredPosition = new Vector2((i - (n - 1) * 0.5f) * spacing, 0f);
+                rt.anchoredPosition = new Vector2(x, -k * k * FanDip);
                 rt.localScale = Vector3.one;
-                rt.localEulerAngles = Vector3.zero;
+                rt.localEulerAngles = new Vector3(0f, 0f, -k * FanAngle);
             }
         }
 

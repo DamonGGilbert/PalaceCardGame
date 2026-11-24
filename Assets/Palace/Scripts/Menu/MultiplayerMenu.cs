@@ -23,6 +23,7 @@ namespace Palace
         private TMP_InputField addressInput, codeInput;
         private Button readyButton, startButton, addBotButton, removeBotButton;
         private bool localReady;
+        private bool lookingForGames;
         private float nextListRefresh;
 
         private NetSession Net => NetSession.GetOrCreate();
@@ -41,7 +42,7 @@ namespace Palace
         public void Open(string message = null)
         {
             ShowOnly(home);
-            homeMessage.text = message ?? "";
+            homeMessage.text = Loc.T(message ?? "");
         }
 
         public void HideAll() => ShowOnly(null);
@@ -141,7 +142,8 @@ namespace Palace
         private void OpenJoinWifi()
         {
             ShowOnly(joinWifi);
-            joinWifiStatus.text = "Looking for games...";
+            joinWifiStatus.text = Loc.T("Looking for games...");
+            lookingForGames = true;
             Net.Discovery.StartListening();
             RefreshFound();
         }
@@ -149,10 +151,11 @@ namespace Palace
         private void JoinWifi(string address)
         {
             if (string.IsNullOrWhiteSpace(address)) return;
-            joinWifiStatus.text = "Connecting to " + address + "...";
+            lookingForGames = false;
+            joinWifiStatus.text = Loc.F("Connecting to {0}...", address);
             if (!Net.JoinLan(address.Trim(), GameSettings.PlayerName))
             {
-                joinWifiStatus.text = Net.LastError;
+                joinWifiStatus.text = Loc.T(Net.LastError);
                 return;
             }
             StartCoroutine(WaitForRoom(joinWifiStatus));
@@ -160,22 +163,22 @@ namespace Palace
 
         private async void HostOnline()
         {
-            homeMessage.text = "Creating an online game...";
+            homeMessage.text = Loc.T("Creating an online game...");
             bool ok = await Net.HostOnline(GameSettings.PlayerName);
             if (this == null) return;
             if (ok) EnterRoom();
-            else homeMessage.text = Net.LastError;
+            else homeMessage.text = Loc.T(Net.LastError);
         }
 
         private async void JoinOnline()
         {
             if (string.IsNullOrWhiteSpace(codeInput.text)) return;
-            joinOnlineStatus.text = "Joining...";
+            joinOnlineStatus.text = Loc.T("Joining...");
             bool ok = await Net.JoinOnline(codeInput.text, GameSettings.PlayerName);
             if (this == null) return;
             if (!ok)
             {
-                joinOnlineStatus.text = Net.LastError;
+                joinOnlineStatus.text = Loc.T(Net.LastError);
                 return;
             }
             StartCoroutine(WaitForRoom(joinOnlineStatus));
@@ -189,7 +192,7 @@ namespace Palace
             else
             {
                 Net.Leave(false);
-                status.text = "Couldn't reach that game. Are you on the same Wi-Fi?";
+                status.text = Loc.T("Couldn't reach that game. Are you on the same Wi-Fi?");
             }
         }
 
@@ -235,11 +238,11 @@ namespace Palace
             for (int i = 0; i < games.Count && i < 4; i++)
             {
                 var g = games[i];
-                string label = g.HostName + "'s game   (" + g.Players + (g.Players == 1 ? " player)" : " players)");
+                string label = g.Players == 1 ? Loc.F("{0}'s game   (1 player)", g.HostName) : Loc.F("{0}'s game   ({1} players)", g.HostName, g.Players);
                 UIKit.Button(foundList, label, new Vector2(760f, 64f), new Vector2(0f, 110f - i * 74f), () => JoinWifi(g.Address), true, 26f);
             }
-            if (games.Count == 0 && joinWifiStatus.text.StartsWith("Looking"))
-                joinWifiStatus.text = "Looking for games... (the host must be on the same Wi-Fi)";
+            if (games.Count == 0 && lookingForGames)
+                joinWifiStatus.text = Loc.T("Looking for games... (the host must be on the same Wi-Fi)");
         }
 
         private void RefreshRoom()
@@ -247,8 +250,8 @@ namespace Palace
             if (this == null || room == null || !room.activeSelf) return;
             var net = Net;
             roomInfo.text = net.CurrentMode == NetSession.Mode.Online
-                ? "Join code:  <color=#F2C24D>" + net.JoinCode + "</color>"
-                : (net.IsHost ? "On Wi-Fi at <color=#F2C24D>" + net.HostAddress + "</color>" : "Connected on Wi-Fi");
+                ? Loc.T("Join code:") + "  <color=#F2C24D>" + net.JoinCode + "</color>"
+                : (net.IsHost ? Loc.T("On Wi-Fi at") + " <color=#F2C24D>" + net.HostAddress + "</color>" : Loc.T("Connected on Wi-Fi"));
 
             foreach (Transform child in seatList) Destroy(child.gameObject);
             for (int i = 0; i < net.Seats.Count; i++)
@@ -256,8 +259,8 @@ namespace Palace
                 LobbySeat s = net.Seats[i];
                 float y = 230f - i * 50f;
                 bool me = i == net.LocalPlayerIndex;
-                string tag = i == 0 ? "  (host)" : "";
-                UIKit.Label(seatList, (i + 1) + ".  " + s.Name + tag + (me ? "  - you" : ""), 28f, new Vector2(700f, 46f),
+                string tag = i == 0 ? "  " + Loc.T("(host)") : "";
+                UIKit.Label(seatList, (i + 1) + ".  " + s.Name + tag + (me ? "  - " + Loc.T("you") : ""), 28f, new Vector2(700f, 46f),
                     new Vector2(-130f, y), TextAlignmentOptions.Left, me ? UIKit.Gold : UIKit.Text, me);
                 UIKit.Label(seatList, s.IsBot ? "computer" : (s.Ready ? "ready" : "not ready"), 26f, new Vector2(240f, 46f),
                     new Vector2(370f, y), TextAlignmentOptions.Right, s.Ready ? new Color(0.6f, 1f, 0.65f) : new Color(1f, 0.7f, 0.5f));
@@ -274,9 +277,9 @@ namespace Palace
 
             int humans = net.Seats.Count(s => !s.IsBot);
             roomStatus.text = host
-                ? (net.Seats.Count < 2 ? "Waiting for players to join (or add computer players)"
-                    : net.CanStart ? net.Seats.Count + " players. Everyone is ready!" : "Waiting for everyone to be ready")
-                : "Waiting for the host to start (" + humans + (humans == 1 ? " person" : " people") + " here)";
+                ? (net.Seats.Count < 2 ? Loc.T("Waiting for players to join (or add computer players)")
+                    : net.CanStart ? Loc.F("{0} players. Everyone is ready!", net.Seats.Count) : Loc.T("Waiting for everyone to be ready"))
+                : humans == 1 ? Loc.T("Waiting for the host to start (1 person here)") : Loc.F("Waiting for the host to start ({0} people here)", humans);
         }
 
         private Transform Panel(string title, Vector2 size, out GameObject screen)

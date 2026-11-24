@@ -52,7 +52,7 @@ namespace Palace
             Initialize();
             if (product.Type == ShopProductType.NonConsumable && IsOwned(product.Id))
             {
-                Report("You already own " + product.Title + ".");
+                Report(Loc.F("You already own {0}.", Loc.T(product.Title)));
                 return;
             }
             Backend.Purchase(product.Id);
@@ -91,8 +91,9 @@ namespace Palace
             foreach (string unlock in product.Unlocks) PlayerPrefs.SetInt("palace.own." + unlock, 1);
             if (product.Coins > 0) Cosmetics.AddCoins(product.Coins); // saves PlayerPrefs (including everything above)
             PlayerPrefs.Save();
+            CloudProgress.MarkLocalChange(); // back the purchase up to the cloud too
 
-            Report("Thank you! " + product.Title + " has been added.");
+            Report(Loc.F("Thank you! {0} has been added.", Loc.T(product.Title)));
             NotifyChanged();
             return true;
         }

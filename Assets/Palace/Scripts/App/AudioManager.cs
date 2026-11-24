@@ -51,8 +51,31 @@ namespace Palace
         {
             if (Application.isBatchMode) return;
             AudioManager a = Instance;
-            if (!a.musicSource.isPlaying) a.musicSource.Play();
+            a.musicWanted = true;
+            a.UseTrack(GameSettings.MusicTrack);
             ApplyVolumes();
+        }
+
+        /// <summary>Settings > Music track changed.</summary>
+        public static void ApplyTrack()
+        {
+            if (instance == null || !instance.musicWanted) return;
+            instance.UseTrack(GameSettings.MusicTrack);
+        }
+
+        private bool musicWanted;
+        private AudioClip fireside, lounge;
+
+        private void UseTrack(int track)
+        {
+            if (track == 2) { musicSource.Stop(); return; }   // Off
+            AudioClip clip = track == 0 ? (fireside != null ? fireside : fireside = MakeFireside()) : (lounge != null ? lounge : lounge = MakeMusic());
+            if (musicSource.clip != clip)
+            {
+                musicSource.Stop();
+                musicSource.clip = clip;
+            }
+            if (!musicSource.isPlaying) musicSource.Play();
         }
 
         public static void ApplyVolumes()
@@ -114,7 +137,7 @@ namespace Palace
             clips[Sfx.Button] = Make("button", 0.06f, (t, i) => (Mathf.Sin(Tau * 1200f * t) + Mathf.Sin(Tau * 600f * t)) * Mathf.Exp(-t * 90f) * 0.25f);
             clips[Sfx.YourTurn] = Make("your_turn", 0.5f, (t, i) => Blip(t, 0f, 0.35f, 784f) * 0.6f + Blip(t, 0.12f, 0.38f, 1046.5f) * 0.6f);
 
-            musicSource.clip = MakeMusic();
+            // The music clip is made when it is first needed (see UseTrack).
             ApplyVolumes();
         }
 
@@ -165,6 +188,93 @@ namespace Palace
                 phase += Tau * frequency(t) / SampleRate;
                 return Mathf.Sin(phase) * Window(t, seconds) * 0.35f;
             });
+        }
+
+
+        /// <summary>
+        /// "Fireside": a fingerpicked acoustic guitar loop (G - Em - C - D, two bars each) made with
+        /// Karplus-Strong plucked-string synthesis. Notes that ring past the end wrap round to the
+        /// start, so the loop is seamless.
+        /// </summary>
+        private static AudioClip MakeFireside()
+        {
+            float[][] chords =
+            {
+                new[] { 98.00f, 123.47f, 146.83f, 196.00f, 246.94f, 392.00f },   // G
+                new[] { 82.41f, 123.47f, 164.81f, 196.00f, 246.94f, 329.63f },   // Em
+                new[] { 130.81f, 164.81f, 196.00f, 261.63f, 329.63f, 392.00f },  // C
+                new[] { 146.83f, 220.00f, 293.66f, 369.99f, 440.00f, 587.33f }   // D
+            };
+            int[] pattern = { 0, 3, 4, 5, 4, 3, 1, 4 };   // eighth notes in each bar: bass, then up and down the strings
+            const float beat = 60f / 84f;                  // 84 bpm
+            const int bars = 8;
+            int total = Mathf.RoundToInt(bars * 4 * beat * SampleRate);
+            var buffer = new float[total];
+            var rnd = new System.Random(7);
+
+            for (int bar = 0; bar < bars; bar++)
+            {
+                float[] chord = chords[bar / 2];
+                for (int step = 0; step < pattern.Length; step++)
+                {
+                    int s = pattern[step];
+                    if (bar % 2 == 1 && step == 6) s = 2;                       // a little variation in the second bar
+                    float swing = step % 2 == 1 ? 0.035f : 0f;                   // lazy, laid-back eighths
+                    float jitter = (float)(rnd.NextDouble() - 0.5) * 0.016f;     // human timing
+                    float time = (bar * 4 + step * 0.5f) * beat + swing + jitter;
+                    float amp = (s == 0 ? 0.55f : s == 5 ? 0.3f : 0.36f) * (0.88f + (float)rnd.NextDouble() * 0.24f);
+                    Pluck(buffer, Mathf.RoundToInt(time * SampleRate), chord[s], amp, s == 0 ? 0.9975f : 0.996f, rnd);
+                }
+            }
+
+            // A short, warm room: one circular echo so the tail also wraps seamlessly.
+            int delay = Mathf.RoundToInt(0.13f * SampleRate);
+            var wet = new float[total];
+            for (int pass = 0; pass < 2; pass++)
+                for (int i = 0; i < total; i++)
+                    wet[i] = buffer[i] + wet[(i - delay + total) % total] * 0.28f;
+
+            float peak = 0.0001f;
+            float lp = 0f;
+            for (int i = 0; i < total; i++)
+            {
+                lp += (wet[i] - lp) * 0.5f;   // soften the top end a touch
+                wet[i] = lp;
+                peak = Mathf.Max(peak, Mathf.Abs(lp));
+            }
+            float gain = 0.55f / peak;
+            for (int i = 0; i < total; i++) wet[i] *= gain;
+
+            var clip = AudioClip.Create("music_fireside", total, 1, SampleRate, false);
+            clip.SetData(wet, 0);
+            return clip;
+        }
+
+        /// <summary>One plucked string (Karplus-Strong): a burst of noise circulating in a tuned, damped delay line.</summary>
+        private static void Pluck(float[] buffer, int start, float frequency, float amp, float decay, System.Random rnd)
+        {
+            int period = Mathf.Max(2, Mathf.RoundToInt(SampleRate / frequency));
+            var line = new float[period];
+            float prev = 0f;
+            for (int i = 0; i < period; i++)
+            {
+                float white = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                prev += (white - prev) * 0.55f;   // a softer pick (thumb, not plectrum)
+                line[i] = prev;
+            }
+
+            int length = Mathf.Min(buffer.Length, Mathf.RoundToInt(2.6f * SampleRate));
+            int total = buffer.Length;
+            int idx = 0;
+            for (int n = 0; n < length; n++)
+            {
+                float y = line[idx];
+                int next = idx + 1 == period ? 0 : idx + 1;
+                line[idx] = decay * 0.5f * (y + line[next]);
+                idx = next;
+                float attack = Mathf.Clamp01(n / 40f);
+                buffer[(start + n) % total] += y * amp * attack;
+            }
         }
 
         /// <summary>A soft, seamless 16-second chord loop: Cmaj7 - Am7 - Fmaj7 - G6.</summary>

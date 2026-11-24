@@ -40,6 +40,7 @@ namespace Palace
         public Sprite plate;
         public Color tint = Color.white;
         public Color text = Color.white;
+        [Range(0f, 0.5f)] public float textOutline;   // dark outline so a name reads on a busy banner (flags)
     }
 
     [Serializable] public class NameStyle : CosmeticItem

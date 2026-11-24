@@ -51,6 +51,23 @@ namespace Palace
         public Color RedInk => deckSkin != null ? deckSkin.red : redSuit;
         public Color BlackInk => deckSkin != null ? deckSkin.black : blackSuit;
 
+        // Four-colour deck (Settings > Card colours): diamonds blue, clubs green.
+        private static readonly Color FourBlue = new Color(0.10f, 0.33f, 0.78f);
+        private static readonly Color FourGreen = new Color(0.08f, 0.50f, 0.22f);
+        private static readonly Color FourBlueLight = new Color(0.55f, 0.75f, 1f);   // for dark decks
+        private static readonly Color FourGreenLight = new Color(0.55f, 0.92f, 0.6f);
+
+        /// <summary>The ink colour for a suit, respecting the 4-colour setting.</summary>
+        public Color InkFor(Suit suit)
+        {
+            bool red = suit == Suit.Hearts || suit == Suit.Diamonds;
+            Color normal = red ? RedInk : BlackInk;
+            if (!GameSettings.FourColourDeck || suit == Suit.Hearts || suit == Suit.Spades) return normal;
+            bool darkDeck = BlackInk.grayscale > 0.5f; // light ink means a dark card face
+            if (suit == Suit.Diamonds) return darkDeck ? FourBlueLight : FourBlue;
+            return darkDeck ? FourGreenLight : FourGreen;
+        }
+
         /// <summary>The equipped card back (falls back to the default back).</summary>
         public Sprite CurrentBack
         {

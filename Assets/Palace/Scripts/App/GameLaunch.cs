@@ -19,5 +19,8 @@ namespace Palace
 
         /// <summary>Set by the splash screen so it only shows once per app launch.</summary>
         public static bool SplashShown;
+
+        /// <summary>Settings tab to reopen after the menu reloads (language / text size change), or -1.</summary>
+        public static int ReopenSettingsTab = -1;
     }
 }

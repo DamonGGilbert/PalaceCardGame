@@ -53,6 +53,23 @@
 - [ ] **You:** install In App Purchasing; create the 7 products in Play Console + App Store Connect (Docs/Monetization-Setup.md)
 - [ ] **Next:** connect Unity LevelPlay for real rewarded ads (needs your LevelPlay app keys + ad unit IDs)
 
+
+## Polish, languages, flags, cloud save ✅ (code) — needs a check in the editor
+- [x] Country flags: England, Scotland, United Kingdom, Ireland, Poland, Spain, France, Germany, Italy, USA —
+      a painted flag table (250 coins), flag card back in a gilt frame (150) and flag name banner (100) for each
+- [x] Customise grid scrolls (17 tables now)
+- [x] Languages: English, Polish, Spanish (Settings → Display → Language; first launch follows the phone's language).
+      Menus, game messages, rules, shop and How to Play are translated. **Worth a check by a native speaker.**
+- [x] Settings split into tabs: Sound & speed / Display / Cloud save
+- [x] Music track: Fireside (synthesised fingerpicked guitar), Lounge (soft chords) or Off
+- [x] Vibration on burns, skips, pick-ups and your turn (phones; Settings toggle)
+- [x] Accessibility: 4-colour deck (diamonds blue, clubs green) and Large text
+- [x] Curved hand fan; hand order by rank or by suit (S key toggles in game)
+- [x] PC keyboard: 1-9 pick, Enter/Space play, P pick up, H/L sevens, J Q K A / 2-9 / B for Aces, V pile, F speed, Esc menu
+- [x] Cloud save code: guest backup + optional Unity account sign-in, merging that never loses unlocks or purchases
+- [ ] **You:** open the project, run **Palace → Setup → 2 - Generate Art** (paints the flags), then play-test
+- [ ] **You:** to switch cloud save on, follow Docs/Cloud-Save-Setup.md (install Cloud Save, enable Player Accounts)
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong
@@ -64,7 +81,7 @@
 - Hidden information: each client only receives its own hand
 
 ## Later
-- Stage 6: polish (more animation, real recorded sounds if wanted, haptics on mobile, keyboard shortcuts on PC)
+- Stage 6: more polish (recorded sounds if wanted, more animation)
 - Stage 7: device testing on Android and iOS
 
 ## Known limitations / notes

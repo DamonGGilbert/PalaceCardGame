@@ -7,6 +7,7 @@ namespace Palace
     /// </summary>
     public class AppBootstrap : MonoBehaviour
     {
+        private static bool cloudSynced;
         [SerializeField] private int targetFrameRate = 60;
         [SerializeField] private bool keepScreenAwake = true;
 
@@ -18,6 +19,12 @@ namespace Palace
             if (keepScreenAwake) Screen.sleepTimeout = SleepTimeout.NeverSleep;
             // Connect to the store early so unfinished purchases are delivered and prices are ready.
             Shop.Initialize();
+            // Once per launch: merge in progress saved in the cloud (no-op without the Cloud Save package).
+            if (!cloudSynced)
+            {
+                cloudSynced = true;
+                CloudProgress.SyncNow();
+            }
         }
     }
 }

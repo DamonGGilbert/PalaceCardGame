@@ -131,6 +131,7 @@ namespace Palace
         private Vector2 grabOffset;
         private int homeSibling;
         private Vector3 homeScale;
+        private float homeAngle;     // hand cards sit tilted in a fan
         private Coroutine returning;
 
         public void OnBeginDrag(PointerEventData eventData)
@@ -147,6 +148,8 @@ namespace Palace
             homePosition = rt.anchoredPosition;
             homeSibling = rt.GetSiblingIndex();
             homeScale = rt.localScale;
+            homeAngle = rt.localEulerAngles.z;
+            rt.localEulerAngles = Vector3.zero; // held upright while dragging
             rt.SetAsLastSibling();
             rt.localScale = homeScale * 1.08f; // lift it slightly as it's picked up
             RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, eventData.position, eventData.pressEventCamera, out Vector2 local);
@@ -176,7 +179,7 @@ namespace Palace
             rt.SetSiblingIndex(homeSibling);
             if (!gameObject.activeInHierarchy) { SnapHome(); return; }
             returning = StartCoroutine(Tween.Move(rt, rt.anchoredPosition, homePosition, Mathf.Max(0.08f, Tween.Scaled(0.18f)),
-                rt.localScale.x, homeScale.x));
+                rt.localScale.x, homeScale.x, 0f, Mathf.DeltaAngle(0f, homeAngle)));
         }
 
         /// <summary>Jump straight back to where the drag started.</summary>
@@ -185,7 +188,7 @@ namespace Palace
             var rt = (RectTransform)transform;
             rt.anchoredPosition = homePosition;
             rt.localScale = homeScale;
-            rt.localEulerAngles = Vector3.zero;
+            rt.localEulerAngles = new Vector3(0f, 0f, homeAngle);
         }
 
         // ------------------------------------------------------------------
@@ -221,7 +224,7 @@ namespace Palace
 
             suitCenter = UIBuild.Image("SuitCenter", face.transform, null, Color.white, new Vector2(72f, 72f), Vector2.zero);
             centerLetter = UIBuild.Text("CenterLetter", face.transform, "", 82f, Color.black, new Vector2(110f, 96f),
-                new Vector2(0f, 14f), TextAlignmentOptions.Center, null, true);
+                new Vector2(0f, 14f), TextAlignmentOptions.Center, null, true, false);
 
             back = UIBuild.StretchImage("Back", visual, null, Color.white);
             dim = UIBuild.StretchImage("Dim", visual, null, new Color(0f, 0f, 0f, 0.45f));
@@ -232,7 +235,7 @@ namespace Palace
         private TextMeshProUGUI MakeRankText(string name, Transform parent, Vector2 position, Vector2 anchor)
         {
             var text = UIBuild.Text(name, parent, "", 34f, Color.black, new Vector2(50f, 40f), Vector2.zero,
-                TextAlignmentOptions.Center, null, true);
+                TextAlignmentOptions.Center, null, true, false);
             var rt = text.rectTransform;
             rt.anchorMin = anchor;
             rt.anchorMax = anchor;
@@ -289,7 +292,7 @@ namespace Palace
             if (!showFace) return;
 
             Card c = card.Value;
-            Color ink = theme != null ? (c.IsRed ? theme.RedInk : theme.BlackInk) : (c.IsRed ? Color.red : Color.black);
+            Color ink = theme != null ? theme.InkFor(c.Suit) : (c.IsRed ? Color.red : Color.black);
             Sprite suitSprite = theme != null ? theme.GetSuitSprite(c.Suit) : null;
 
             rankTop.text = c.RankLabel;

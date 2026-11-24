@@ -92,12 +92,7 @@ namespace Palace
             if (finished && handStack != null) handStack.gameObject.SetActive(false);
         }
 
-        public static string Ordinal(int n)
-        {
-            int mod100 = n % 100;
-            string suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (n % 10 == 1 ? "st" : n % 10 == 2 ? "nd" : n % 10 == 3 ? "rd" : "th");
-            return n + suffix;
-        }
+        public static string Ordinal(int n) => Loc.Ordinal(n);
 
         // ------------------------------------------------------------------
         // Public display API
@@ -144,6 +139,11 @@ namespace Palace
             plate.sprite = skin.plate;
             plate.type = Image.Type.Sliced;
             nameText.color = skin.text;
+            if (skin.textOutline > 0f)
+            {
+                nameText.outlineWidth = skin.textOutline;
+                nameText.outlineColor = new Color32(20, 12, 6, 255);
+            }
             SetTurn(isTurn);
         }
 

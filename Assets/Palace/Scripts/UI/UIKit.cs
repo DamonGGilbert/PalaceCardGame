@@ -111,7 +111,7 @@ namespace Palace
         public static void SetButtonLabel(Button button, string label)
         {
             var text = button.GetComponentInChildren<TextMeshProUGUI>();
-            if (text != null) text.text = label;
+            if (text != null) text.text = Loc.T(label);
         }
 
         public static Slider Slider(Transform parent, Vector2 size, Vector2 position, float min, float max, float value,
