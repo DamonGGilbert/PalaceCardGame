@@ -97,7 +97,6 @@ namespace Palace
 
             felt = UIBuild.Image("Felt", root, tableTheme.CurrentTable, new Color(1f, 1f, 1f, 0.55f), new Vector2(1800f, 900f), new Vector2(0f, 20f));
             UIBuild.StretchImage("Shade", root, null, new Color(0f, 0f, 0f, 0.35f));
-            UIBuild.Stretch("Floaters", root).gameObject.AddComponent<Floaters>(); // hearts and stars drifting up behind the menus
 
             BuildMain();
             BuildSinglePlayer();

@@ -112,7 +112,7 @@
       fire, crown, star, cards) plus the phrases; computer players use emojis too
 - [x] Profile pictures (Customise → Picture): 16 simple code-drawn logos, 6 free, the rest unlock at levels
       2–15. Shown in your seat; online players see each other's; computer players have their own
-- [x] Menu animations: drifting hearts and stars, bobbing title and cards, buttons pop in and squish
+- [x] Menu animations: bobbing title and cards, buttons pop in and squish
       when pressed, screens pop open, pulsing challenges dot (all off with Settings → Animations: Off)
 - [x] Unity offers to run Generate Art when it's missing (flags, cosmetics and the painted table need it)
 - [x] 32 more country flags (42 in all): Netherlands, Belgium, Luxembourg, Austria, Switzerland, Sweden, Norway,

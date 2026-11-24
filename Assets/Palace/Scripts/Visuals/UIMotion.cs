@@ -8,7 +8,7 @@ namespace Palace
 {
     /// <summary>
     /// Small, friendly menu animations: screens pop open, buttons pop in one after another and
-    /// squish when pressed, the title bobs, and hearts and stars drift up behind the menus.
+    /// squish when pressed, and the title and decorative cards bob gently.
     /// Everything respects Settings > Animations: with Off, nothing moves.
     /// </summary>
     public static class UIMotion
@@ -153,55 +153,6 @@ namespace Palace
             if (!UIMotion.Enabled) return;
             float s = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Time.unscaledTime * Speed * Mathf.PI * 2f)), 4f);
             transform.localScale = Vector3.one * (1f + s * Amount);
-        }
-    }
-
-    /// <summary>Hearts, stars, crowns and cards drifting slowly up behind the menus, very faintly.</summary>
-    public sealed class Floaters : MonoBehaviour
-    {
-        private const int Max = 14;
-        private static readonly int[] Emojis = { 7, 10, 7, 10, 9, 11 }; // heart, star, heart, star, crown, cards
-        private readonly List<(RectTransform rt, Image img, float speed, float sway, float spin, float phase)> items =
-            new List<(RectTransform, Image, float, float, float, float)>();
-        private float spawnTimer;
-
-        private void Update()
-        {
-            var area = (RectTransform)transform;
-            float w = area.rect.width, h = area.rect.height;
-            bool on = UIMotion.Enabled;
-
-            spawnTimer -= Time.unscaledDeltaTime;
-            if (on && spawnTimer <= 0f && items.Count < Max)
-            {
-                spawnTimer = Random.Range(0.6f, 1.4f);
-                float size = Random.Range(36f, 74f);
-                var img = UIBuild.Image("Floater", transform, EmojiArt.Get(Emojis[Random.Range(0, Emojis.Length)]),
-                    new Color(1f, 1f, 1f, 0f), new Vector2(size, size), new Vector2(Random.Range(-w * 0.48f, w * 0.48f), -h * 0.5f - 60f));
-                img.raycastTarget = false;
-                items.Add((img.rectTransform, img, Random.Range(28f, 58f), Random.Range(10f, 30f), Random.Range(-20f, 20f), Random.value * 10f));
-            }
-
-            for (int i = items.Count - 1; i >= 0; i--)
-            {
-                var f = items[i];
-                if (f.rt == null) { items.RemoveAt(i); continue; }
-                Vector2 pos = f.rt.anchoredPosition;
-                pos.y += f.speed * Time.unscaledDeltaTime;
-                pos.x += Mathf.Sin(Time.unscaledTime * 0.8f + f.phase) * f.sway * Time.unscaledDeltaTime;
-                f.rt.anchoredPosition = pos;
-                f.rt.localEulerAngles = new Vector3(0f, 0f, Mathf.Sin(Time.unscaledTime * 0.5f + f.phase) * f.spin);
-
-                // Fade in at the bottom, out near the top; never more than faint.
-                float k = Mathf.InverseLerp(-h * 0.5f - 60f, h * 0.5f + 60f, pos.y);
-                float alpha = Mathf.Min(Mathf.InverseLerp(0f, 0.15f, k), Mathf.InverseLerp(1f, 0.75f, k)) * 0.28f;
-                f.img.color = new Color(1f, 1f, 1f, on ? alpha : 0f);
-                if (k >= 1f || !on)
-                {
-                    Destroy(f.rt.gameObject);
-                    items.RemoveAt(i);
-                }
-            }
         }
     }
 }
