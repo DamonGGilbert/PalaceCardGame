@@ -1,0 +1,471 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60b7bb1f5b8c99b4b93ae4f66aae492a, type: 3}
+  m_Name: CosmeticLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::Palace.CosmeticLibrary
+  tables:
+  - id: table_pub
+    displayName: Pub Green
+    price: 0
+    preview: {fileID: 21300000, guid: 762e46156f113554b8409372c959d7d8, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 762e46156f113554b8409372c959d7d8, type: 3}
+    animatedWater: 0
+  - id: table_casino
+    displayName: Casino Green
+    price: 0
+    preview: {fileID: 21300000, guid: e222a9ed99e8f6547804f3c8781d580b, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: e222a9ed99e8f6547804f3c8781d580b, type: 3}
+    animatedWater: 0
+  - id: table_crimson
+    displayName: Crimson Velvet
+    price: 150
+    preview: {fileID: 21300000, guid: 6cc432f94cae42845827a23f93b134f3, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 6cc432f94cae42845827a23f93b134f3, type: 3}
+    animatedWater: 0
+  - id: table_navy
+    displayName: Midnight Blue
+    price: 150
+    preview: {fileID: 21300000, guid: 664e682975eb1264791f95559bd864f3, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 664e682975eb1264791f95559bd864f3, type: 3}
+    animatedWater: 0
+  - id: table_casino_blue
+    displayName: Casino Blue
+    price: 100
+    preview: {fileID: 21300000, guid: 0141b06a1948c454082a2803bfe4c8f9, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 0141b06a1948c454082a2803bfe4c8f9, type: 3}
+    animatedWater: 0
+  - id: table_casino_red
+    displayName: Casino Red
+    price: 100
+    preview: {fileID: 21300000, guid: 28a281eb0553b4b46ab252354fcdea8b, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 28a281eb0553b4b46ab252354fcdea8b, type: 3}
+    animatedWater: 0
+  - id: table_lagoon
+    displayName: Lagoon (animated)
+    price: 400
+    preview: {fileID: 21300000, guid: 70f18ee0f8bcdc7488b9f2ce1e45ddef, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 70f18ee0f8bcdc7488b9f2ce1e45ddef, type: 3}
+    animatedWater: 1
+  - id: table_flag_england
+    displayName: England
+    price: 250
+    preview: {fileID: 21300000, guid: 14fa32f4cfd518d41a78e985c22f508b, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 14fa32f4cfd518d41a78e985c22f508b, type: 3}
+    animatedWater: 0
+  - id: table_flag_scotland
+    displayName: Scotland
+    price: 250
+    preview: {fileID: 21300000, guid: 2b01f191d4bb6c54b8ea547bca43979d, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 2b01f191d4bb6c54b8ea547bca43979d, type: 3}
+    animatedWater: 0
+  - id: table_flag_uk
+    displayName: United Kingdom
+    price: 250
+    preview: {fileID: 21300000, guid: 45bfb417b2e8f54408bd4a6f638cddf4, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 45bfb417b2e8f54408bd4a6f638cddf4, type: 3}
+    animatedWater: 0
+  - id: table_flag_ireland
+    displayName: Ireland
+    price: 250
+    preview: {fileID: 21300000, guid: 3c3269f66be9c264a820deefdfa52207, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 3c3269f66be9c264a820deefdfa52207, type: 3}
+    animatedWater: 0
+  - id: table_flag_poland
+    displayName: Poland
+    price: 250
+    preview: {fileID: 21300000, guid: bc58c2da33bcf6c48a3afabca6608000, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: bc58c2da33bcf6c48a3afabca6608000, type: 3}
+    animatedWater: 0
+  - id: table_flag_spain
+    displayName: Spain
+    price: 250
+    preview: {fileID: 21300000, guid: a8654eaab2620a74f9e62a7d1f12db28, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: a8654eaab2620a74f9e62a7d1f12db28, type: 3}
+    animatedWater: 0
+  - id: table_flag_france
+    displayName: France
+    price: 250
+    preview: {fileID: 21300000, guid: e3753148c18cd2a46b1828262ec9eb51, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: e3753148c18cd2a46b1828262ec9eb51, type: 3}
+    animatedWater: 0
+  - id: table_flag_germany
+    displayName: Germany
+    price: 250
+    preview: {fileID: 21300000, guid: 5bd6a19c548e1ef4a9d25c19b6eabf9c, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 5bd6a19c548e1ef4a9d25c19b6eabf9c, type: 3}
+    animatedWater: 0
+  - id: table_flag_italy
+    displayName: Italy
+    price: 250
+    preview: {fileID: 21300000, guid: b3b868efd986dc24a94398110b2bf5f8, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: b3b868efd986dc24a94398110b2bf5f8, type: 3}
+    animatedWater: 0
+  - id: table_flag_usa
+    displayName: USA
+    price: 250
+    preview: {fileID: 21300000, guid: 5393b1aaeafc9714d9120436378b9a0d, type: 3}
+    storeOnly: 0
+    table: {fileID: 21300000, guid: 5393b1aaeafc9714d9120436378b9a0d, type: 3}
+    animatedWater: 0
+  decks:
+  - id: deck_parlour
+    displayName: Parlour
+    price: 0
+    preview: {fileID: 21300000, guid: 840b925c0b814c84399a933210c9b66f, type: 3}
+    storeOnly: 0
+    face: {fileID: 21300000, guid: 840b925c0b814c84399a933210c9b66f, type: 3}
+    hearts: {fileID: 21300000, guid: 7460eb042b9493445b0c8657f35c7788, type: 3}
+    diamonds: {fileID: 21300000, guid: 86d02f9e7f691ef4e8ae1b6554179bb7, type: 3}
+    spades: {fileID: 21300000, guid: 0cbc03780efbd5a49894bcb47a888377, type: 3}
+    clubs: {fileID: 21300000, guid: 92aa8f74ee279ef4eb681d35720376d0, type: 3}
+    jack: {fileID: 21300000, guid: f5723e692650afb469647805776d0e3b, type: 3}
+    queen: {fileID: 21300000, guid: 61235bf5832fa234a8040c38bb04a356, type: 3}
+    king: {fileID: 21300000, guid: 0f991a6e4f922744bb25b1adaf9eb7f9, type: 3}
+    red: {r: 0.64, g: 0.12, b: 0.09, a: 1}
+    black: {r: 0.17, g: 0.11, b: 0.07, a: 1}
+  - id: deck_casino
+    displayName: Casino
+    price: 0
+    preview: {fileID: 21300000, guid: 2fa32e93a9c050b4c9fe0a7b078d1938, type: 3}
+    storeOnly: 0
+    face: {fileID: 21300000, guid: 2fa32e93a9c050b4c9fe0a7b078d1938, type: 3}
+    hearts: {fileID: 21300000, guid: 0b6674e50281b334b939df9895a2c826, type: 3}
+    diamonds: {fileID: 21300000, guid: d43ff8e534ab4a446be52b70c49379ce, type: 3}
+    spades: {fileID: 21300000, guid: 16ebde0f193afff418a68007cae40f76, type: 3}
+    clubs: {fileID: 21300000, guid: 7af34a5588f13344eb90982d3cc28edf, type: 3}
+    jack: {fileID: 0}
+    queen: {fileID: 0}
+    king: {fileID: 0}
+    red: {r: 0.78, g: 0.07, b: 0.17, a: 1}
+    black: {r: 0.09, g: 0.09, b: 0.11, a: 1}
+  - id: deck_midnight
+    displayName: Midnight Gold
+    price: 300
+    preview: {fileID: 21300000, guid: 525995835022b944985aa4cedf853bbc, type: 3}
+    storeOnly: 0
+    face: {fileID: 21300000, guid: 525995835022b944985aa4cedf853bbc, type: 3}
+    hearts: {fileID: 21300000, guid: 7460eb042b9493445b0c8657f35c7788, type: 3}
+    diamonds: {fileID: 21300000, guid: 86d02f9e7f691ef4e8ae1b6554179bb7, type: 3}
+    spades: {fileID: 21300000, guid: 0cbc03780efbd5a49894bcb47a888377, type: 3}
+    clubs: {fileID: 21300000, guid: 92aa8f74ee279ef4eb681d35720376d0, type: 3}
+    jack: {fileID: 21300000, guid: f5723e692650afb469647805776d0e3b, type: 3}
+    queen: {fileID: 21300000, guid: 61235bf5832fa234a8040c38bb04a356, type: 3}
+    king: {fileID: 21300000, guid: 0f991a6e4f922744bb25b1adaf9eb7f9, type: 3}
+    red: {r: 0.96, g: 0.66, b: 0.52, a: 1}
+    black: {r: 0.86, g: 0.88, b: 0.94, a: 1}
+  backs:
+  - id: back_oxblood
+    displayName: Oxblood Rosette
+    price: 0
+    preview: {fileID: 21300000, guid: fde2ec0f7d2dd92409befb6821014cbd, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: fde2ec0f7d2dd92409befb6821014cbd, type: 3}
+  - id: back_burgundy
+    displayName: Casino Burgundy
+    price: 0
+    preview: {fileID: 21300000, guid: 0954221cf2ef23c4f8be80fb35b45022, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 0954221cf2ef23c4f8be80fb35b45022, type: 3}
+  - id: back_navy
+    displayName: Casino Navy
+    price: 100
+    preview: {fileID: 21300000, guid: 2dc4657bcdba6fb4bb6b955e9ba9c65c, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 2dc4657bcdba6fb4bb6b955e9ba9c65c, type: 3}
+  - id: back_emerald
+    displayName: Emerald Rosette
+    price: 150
+    preview: {fileID: 21300000, guid: 905ee8bd8968975418332f07684738c8, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 905ee8bd8968975418332f07684738c8, type: 3}
+  - id: back_midnight
+    displayName: Midnight Rosette
+    price: 200
+    preview: {fileID: 21300000, guid: ba08bb9d5ac1a2a4993c4860a6f29540, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: ba08bb9d5ac1a2a4993c4860a6f29540, type: 3}
+  - id: back_flag_england
+    displayName: England
+    price: 150
+    preview: {fileID: 21300000, guid: 89bf96b92b5a73442b58d62432770ca1, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 89bf96b92b5a73442b58d62432770ca1, type: 3}
+  - id: back_flag_scotland
+    displayName: Scotland
+    price: 150
+    preview: {fileID: 21300000, guid: de9e0336ba8cb3143a5894d2b7fe3d26, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: de9e0336ba8cb3143a5894d2b7fe3d26, type: 3}
+  - id: back_flag_uk
+    displayName: United Kingdom
+    price: 150
+    preview: {fileID: 21300000, guid: eb17eef8ebf0c534c8dd650f3a990008, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: eb17eef8ebf0c534c8dd650f3a990008, type: 3}
+  - id: back_flag_ireland
+    displayName: Ireland
+    price: 150
+    preview: {fileID: 21300000, guid: 35bbd8192ffe96449bb22d0df80457e2, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 35bbd8192ffe96449bb22d0df80457e2, type: 3}
+  - id: back_flag_poland
+    displayName: Poland
+    price: 150
+    preview: {fileID: 21300000, guid: 1b11a8654976aae4c9ee1749c5a430d8, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 1b11a8654976aae4c9ee1749c5a430d8, type: 3}
+  - id: back_flag_spain
+    displayName: Spain
+    price: 150
+    preview: {fileID: 21300000, guid: 3ba7b56484c84cf4694154fcd1678786, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 3ba7b56484c84cf4694154fcd1678786, type: 3}
+  - id: back_flag_france
+    displayName: France
+    price: 150
+    preview: {fileID: 21300000, guid: 0ebc8ba347aaf9a499f02990ed2ff61d, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 0ebc8ba347aaf9a499f02990ed2ff61d, type: 3}
+  - id: back_flag_germany
+    displayName: Germany
+    price: 150
+    preview: {fileID: 21300000, guid: 4fb5f4f2d8b18494a839ba1d2a7732f8, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 4fb5f4f2d8b18494a839ba1d2a7732f8, type: 3}
+  - id: back_flag_italy
+    displayName: Italy
+    price: 150
+    preview: {fileID: 21300000, guid: 515fdcf13eaec8449b90f2cbaa1d52ed, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 515fdcf13eaec8449b90f2cbaa1d52ed, type: 3}
+  - id: back_flag_usa
+    displayName: USA
+    price: 150
+    preview: {fileID: 21300000, guid: 6cc0629ea0fcbf3408ce80bedc78d2a0, type: 3}
+    storeOnly: 0
+    back: {fileID: 21300000, guid: 6cc0629ea0fcbf3408ce80bedc78d2a0, type: 3}
+  banners:
+  - id: banner_walnut
+    displayName: Walnut
+    price: 0
+    preview: {fileID: 21300000, guid: dd1c0aa53fa0e1a4cbe5cba31ab80ac6, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: dd1c0aa53fa0e1a4cbe5cba31ab80ac6, type: 3}
+    tint: {r: 0.9, g: 0.85, b: 0.8, a: 0.97}
+    text: {r: 0.98, g: 0.93, b: 0.82, a: 1}
+    textOutline: 0
+  - id: banner_slate
+    displayName: Slate
+    price: 100
+    preview: {fileID: 21300000, guid: 53627649d8b62754ab62213075c514e3, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 53627649d8b62754ab62213075c514e3, type: 3}
+    tint: {r: 0.08, g: 0.1, b: 0.12, a: 0.95}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0
+  - id: banner_leather
+    displayName: Stitched Leather
+    price: 150
+    preview: {fileID: 21300000, guid: 6f2c743d8a51de14e87944adde5b7683, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 6f2c743d8a51de14e87944adde5b7683, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 0.98, g: 0.9, b: 0.75, a: 1}
+    textOutline: 0
+  - id: banner_brass
+    displayName: Polished Brass
+    price: 200
+    preview: {fileID: 21300000, guid: 7d256ff38a573384780a23fe6bab4db3, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 7d256ff38a573384780a23fe6bab4db3, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 0.2, g: 0.11, b: 0.04, a: 1}
+    textOutline: 0
+  - id: banner_supporter
+    displayName: Supporter Gold
+    price: 0
+    preview: {fileID: 21300000, guid: 7d256ff38a573384780a23fe6bab4db3, type: 3}
+    storeOnly: 1
+    plate: {fileID: 21300000, guid: 7d256ff38a573384780a23fe6bab4db3, type: 3}
+    tint: {r: 1, g: 0.86, b: 0.5, a: 1}
+    text: {r: 0.32, g: 0.08, b: 0.32, a: 1}
+    textOutline: 0
+  - id: banner_flag_england
+    displayName: England
+    price: 100
+    preview: {fileID: 21300000, guid: c7929dd4b1631ce4db87358d6a3d23e8, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: c7929dd4b1631ce4db87358d6a3d23e8, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_scotland
+    displayName: Scotland
+    price: 100
+    preview: {fileID: 21300000, guid: b9a5a6e8bbeba5842a8479db0d5f89f5, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: b9a5a6e8bbeba5842a8479db0d5f89f5, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_uk
+    displayName: United Kingdom
+    price: 100
+    preview: {fileID: 21300000, guid: 14103bf3d3ff08c4db6a0cb32f3e15ac, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 14103bf3d3ff08c4db6a0cb32f3e15ac, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_ireland
+    displayName: Ireland
+    price: 100
+    preview: {fileID: 21300000, guid: f5b03eb448f87aa4a9fbb9caf5b22e4b, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: f5b03eb448f87aa4a9fbb9caf5b22e4b, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_poland
+    displayName: Poland
+    price: 100
+    preview: {fileID: 21300000, guid: 0c235ca2a81b8754397ad79bebcadcd5, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 0c235ca2a81b8754397ad79bebcadcd5, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_spain
+    displayName: Spain
+    price: 100
+    preview: {fileID: 21300000, guid: 378d04e77a7b88248aa73120c9bda64d, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 378d04e77a7b88248aa73120c9bda64d, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_france
+    displayName: France
+    price: 100
+    preview: {fileID: 21300000, guid: 2343295a7930b284f8fc85ef98f5803d, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 2343295a7930b284f8fc85ef98f5803d, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_germany
+    displayName: Germany
+    price: 100
+    preview: {fileID: 21300000, guid: 838dedc813e46c34aa7cead7c1db805d, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 838dedc813e46c34aa7cead7c1db805d, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_italy
+    displayName: Italy
+    price: 100
+    preview: {fileID: 21300000, guid: 75bea777891d22848b3dc02cf95a93ba, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 75bea777891d22848b3dc02cf95a93ba, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  - id: banner_flag_usa
+    displayName: USA
+    price: 100
+    preview: {fileID: 21300000, guid: 2c8c5b44774f35d4cb3d7742692153c2, type: 3}
+    storeOnly: 0
+    plate: {fileID: 21300000, guid: 2c8c5b44774f35d4cb3d7742692153c2, type: 3}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    text: {r: 1, g: 1, b: 1, a: 1}
+    textOutline: 0.28
+  nameStyles:
+  - id: name_plain
+    displayName: Plain
+    price: 0
+    preview: {fileID: 0}
+    storeOnly: 0
+    face: {r: 0.98, g: 0.93, b: 0.82, a: 1}
+    outline: {r: 0, g: 0, b: 0, a: 1}
+    outlineWidth: 0
+  - id: name_gold
+    displayName: Gilded
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    face: {r: 1, g: 0.84, b: 0.42, a: 1}
+    outline: {r: 0.3, g: 0.16, b: 0.02, a: 1}
+    outlineWidth: 0.2
+  - id: name_ice
+    displayName: Frost
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    face: {r: 1, g: 1, b: 1, a: 1}
+    outline: {r: 0.45, g: 0.8, b: 1, a: 1}
+    outlineWidth: 0.22
+  - id: name_neon
+    displayName: Neon
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    face: {r: 0.8, g: 1, b: 1, a: 1}
+    outline: {r: 0, g: 0.85, b: 1, a: 1}
+    outlineWidth: 0.28
+  - id: name_fire
+    displayName: Blaze
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    face: {r: 1, g: 0.93, b: 0.4, a: 1}
+    outline: {r: 0.95, g: 0.3, b: 0.05, a: 1}
+    outlineWidth: 0.3
+  - id: name_royal
+    displayName: Royal (Supporter)
+    price: 0
+    preview: {fileID: 0}
+    storeOnly: 1
+    face: {r: 1, g: 0.88, b: 0.45, a: 1}
+    outline: {r: 0.45, g: 0.1, b: 0.55, a: 1}
+    outlineWidth: 0.3
+  effects:
+  - id: fx_classic
+    displayName: Fire & Embers
+    price: 0
+    preview: {fileID: 21300000, guid: 58efb57f67eb0d94f90437933da8b7e2, type: 3}
+    storeOnly: 0
+    style: 0
+  - id: fx_water
+    displayName: Water
+    price: 500
+    preview: {fileID: 21300000, guid: b57f73f2688ceea4eb369ce46ae73a25, type: 3}
+    storeOnly: 0
+    style: 1
+  waterCaustics: {fileID: 2800000, guid: 0aba36866ec321745af159b340c9f43e, type: 3}
+  feltMask: {fileID: 21300000, guid: ec761b52341da8c45a49ef3a6abdb0a6, type: 3}

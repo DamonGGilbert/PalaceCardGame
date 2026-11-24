@@ -26,13 +26,13 @@ namespace Palace.EditorTools
             SessionState.SetBool(AskedKey, true);
 
             bool library = File.Exists(PalaceArtGenerator.LibraryPath);
-            bool flags = File.Exists(PalaceArtGenerator.ArtFolder + "/flag_back_poland.png");
+            bool flags = File.Exists(PalaceArtGenerator.ArtFolder + "/flag_back_chile.png"); // the newest flags
             if (library && flags) return;
 
             bool go = EditorUtility.DisplayDialog("Palace: generate the art?",
                 "The painted art hasn't been generated yet (or is missing the newest items, such as the country flags).\n\n" +
                 "Without it the table is plain and the Customise screen is empty.\n\n" +
-                "Generate it now? It takes a minute or two.",
+                "Generate it now? It takes a few minutes (there are 42 flag tables to paint).",
                 "Generate now", "Later");
             if (go) PalaceArtGenerator.GenerateAll();
         }

@@ -115,6 +115,11 @@
 - [x] Menu animations: drifting hearts and stars, bobbing title and cards, buttons pop in and squish
       when pressed, screens pop open, pulsing challenges dot (all off with Settings → Animations: Off)
 - [x] Unity offers to run Generate Art when it's missing (flags, cosmetics and the painted table need it)
+- [x] 32 more country flags (42 in all): Netherlands, Belgium, Luxembourg, Austria, Switzerland, Sweden, Norway,
+      Denmark, Finland, Iceland, Greece, Czechia, Hungary, Romania, Bulgaria, Ukraine, Russia, Lithuania, Latvia,
+      Estonia, Armenia, Turkey, Japan, Vietnam, India, Nigeria, Ivory Coast, Mali, Jamaica, Colombia, Peru, Chile.
+      Each: table 250, card back 150, banner 100 coins. Flags with detailed emblems (Wales, Canada, Brazil, Mexico,
+      Portugal...) are left out rather than drawn wrongly
 
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)

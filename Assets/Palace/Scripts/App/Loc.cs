@@ -285,6 +285,38 @@ namespace Palace
             Add("Germany", "Niemcy", "Alemania");
             Add("Italy", "Włochy", "Italia");
             Add("USA", "USA", "EE. UU.");
+            Add("Netherlands", "Holandia", "Países Bajos");
+            Add("Belgium", "Belgia", "Bélgica");
+            Add("Luxembourg", "Luksemburg", "Luxemburgo");
+            Add("Austria", "Austria", "Austria");
+            Add("Switzerland", "Szwajcaria", "Suiza");
+            Add("Sweden", "Szwecja", "Suecia");
+            Add("Norway", "Norwegia", "Noruega");
+            Add("Denmark", "Dania", "Dinamarca");
+            Add("Finland", "Finlandia", "Finlandia");
+            Add("Iceland", "Islandia", "Islandia");
+            Add("Greece", "Grecja", "Grecia");
+            Add("Czechia", "Czechy", "Chequia");
+            Add("Hungary", "Węgry", "Hungría");
+            Add("Romania", "Rumunia", "Rumanía");
+            Add("Bulgaria", "Bułgaria", "Bulgaria");
+            Add("Ukraine", "Ukraina", "Ucrania");
+            Add("Russia", "Rosja", "Rusia");
+            Add("Lithuania", "Litwa", "Lituania");
+            Add("Latvia", "Łotwa", "Letonia");
+            Add("Estonia", "Estonia", "Estonia");
+            Add("Armenia", "Armenia", "Armenia");
+            Add("Turkey", "Turcja", "Turquía");
+            Add("Japan", "Japonia", "Japón");
+            Add("Vietnam", "Wietnam", "Vietnam");
+            Add("India", "Indie", "India");
+            Add("Nigeria", "Nigeria", "Nigeria");
+            Add("Ivory Coast", "Wybrzeże Kości Słoniowej", "Costa de Marfil");
+            Add("Mali", "Mali", "Malí");
+            Add("Jamaica", "Jamajka", "Jamaica");
+            Add("Colombia", "Kolumbia", "Colombia");
+            Add("Peru", "Peru", "Perú");
+            Add("Chile", "Chile", "Chile");
 
             // ---------------------------------------------------------- multiplayer
             Add("Same Wi-Fi", "Ta sama sieć Wi-Fi", "Misma Wi-Fi");
