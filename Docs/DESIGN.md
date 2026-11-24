@@ -33,7 +33,7 @@ The adjustable ones are single settings in `Assets/Palace/Scripts/Core/HouseRule
 | Q17 | Finishing on a 10: the player is out. The next player starts on an empty pile. | Yes. |
 | Q18 | Finishing on a 7 / 8 / Queen: the effect still applies to the following players. | Yes. |
 | Q19 | The game ends when only one player is left (last place), without them playing out. | Yes. |
-| Q20 | **Four of a kind burns the pile.** This is a common rule, but it's not in yours. | Not added. |
+| Q20 | **Four of a kind burns the pile.** | Decided: on. Four of the same value in a row on the pile burn it (played together or one after another by different players); whoever completes the four goes again. `HouseRules.FourOfAKindBurns`. |
 | Q21 | Face-down cards are played one at a time. | Yes. |
 | Q24 | **8 with only 2 players left**: skipping the only other player means you go again and must beat your own 8, which can trap both players forever. | Decided: with 2 players left an 8 is a normal card (no skip). `HouseRules.EightSkipsWithTwoLeft` switches the old behaviour back on. |
 

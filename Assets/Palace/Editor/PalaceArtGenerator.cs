@@ -548,9 +548,8 @@ namespace Palace.EditorTools
                 N("banner_leather", "Stitched Leather", 150, "pub_plate_leather", Color.white, new Color(0.98f, 0.9f, 0.75f)),
                 N("banner_brass", "Polished Brass", 200, "pub_button", Color.white, new Color(0.2f, 0.11f, 0.04f))
             };
-            var supporterBanner = N("banner_supporter", "Supporter Gold", 0, "pub_button", new Color(1f, 0.86f, 0.5f), new Color(0.32f, 0.08f, 0.32f));
-            supporterBanner.storeOnly = true;
-            lib.banners.Add(supporterBanner);
+            // The top-end banner: priced high so it means something (x10 in game = 8,000 coins).
+            lib.banners.Add(N("banner_supporter", "Royal Gold", 800, "pub_button", new Color(1f, 0.86f, 0.5f), new Color(0.32f, 0.08f, 0.32f)));
 
             NameStyle S(string id, string name, int price, Color face, Color outline, float width) =>
                 new NameStyle { id = id, displayName = name, price = price, face = face, outline = outline, outlineWidth = width };
@@ -562,9 +561,7 @@ namespace Palace.EditorTools
                 S("name_neon", "Neon", 200, new Color(0.8f, 1f, 1f), new Color(0f, 0.85f, 1f), 0.28f),
                 S("name_fire", "Blaze", 200, new Color(1f, 0.93f, 0.4f), new Color(0.95f, 0.3f, 0.05f), 0.3f)
             };
-            var royal = S("name_royal", "Royal (Supporter)", 0, new Color(1f, 0.88f, 0.45f), new Color(0.45f, 0.1f, 0.55f), 0.3f);
-            royal.storeOnly = true;
-            lib.nameStyles.Add(royal);
+            lib.nameStyles.Add(S("name_royal", "Royal", 600, new Color(1f, 0.88f, 0.45f), new Color(0.45f, 0.1f, 0.55f), 0.3f)); // 6,000 coins
 
             lib.effects = new System.Collections.Generic.List<EffectSkin>
             {

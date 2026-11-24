@@ -220,20 +220,19 @@ namespace Palace
             Add("No bonus available right now.", "Bonus jest teraz niedostępny.", "No hay bonificación ahora mismo.");
             Add("You already own {0}.", "Masz już: {0}.", "Ya tienes {0}.");
             Add("Thank you! {0} has been added.", "Dziękujemy! Dodano: {0}.", "¡Gracias! Se ha añadido {0}.");
-            Add("Pouch of Coins", "Sakiewka monet", "Bolsita de monedas");
-            Add("Bag of Coins", "Worek monet", "Saco de monedas");
-            Add("Chest of Coins", "Skrzynia monet", "Cofre de monedas");
-            Add("Water Pack", "Pakiet Woda", "Pack Agua");
-            Add("Midnight Pack", "Pakiet Północ", "Pack Medianoche");
+            Add("Small Bag of Coins", "Mały worek monet", "Bolsa pequeña de monedas");
+            Add("Medium Bag of Coins", "Średni worek monet", "Bolsa mediana de monedas");
+            Add("Big Bag of Coins", "Duży worek monet", "Bolsa grande de monedas");
+            Add("2,000 coins", "2000 monet", "2.000 monedas");
+            Add("8,000 coins", "8000 monet", "8.000 monedas");
+            Add("20,000 coins: best value", "20 000 monet: najlepsza oferta", "20.000 monedas: la mejor oferta");
+            Add("Royal Gold", "Królewskie złoto", "Oro real");
+            Add("Royal", "Królewski", "Real");
+            Add("card", "karta", "carta");
+            Add("cards", "karty", "cartas");
+            Add("FOUR OF A KIND!", "KARETA!", "¡PÓKER!");
             Add("Remove Ads", "Usuń reklamy", "Quitar anuncios");
-            Add("Supporter Pack", "Pakiet Wspierającego", "Pack Mecenas");
-            Add("6,000 coins", "6000 monet", "6.000 monedas");
-            Add("18,000 coins", "18 000 monet", "18.000 monedas");
-            Add("50,000 coins: best value", "50 000 monet: najlepsza oferta", "50.000 monedas: la mejor oferta");
-            Add("Lagoon table + Water effects", "Stół Laguna + efekty wody", "Mesa Laguna + efectos de agua");
-            Add("Midnight Gold deck, back and table", "Talia, rewers i stół Złota Północ", "Baraja, reverso y mesa Oro Medianoche");
             Add("Collect bonus coins without watching ads", "Odbieraj bonusowe monety bez reklam", "Consigue monedas extra sin ver anuncios");
-            Add("60,000 coins + exclusive Supporter banner and Royal name", "60 000 monet + baner Wspierającego i królewskie imię", "60.000 monedas + cartel de Mecenas y nombre Real exclusivos");
             Add("Connecting to the store...", "Łączenie ze sklepem...", "Conectando con la tienda...");
             Add("The store is unavailable right now.", "Sklep jest teraz niedostępny.", "La tienda no está disponible ahora.");
             Add("Couldn't load the shop.", "Nie udało się wczytać sklepu.", "No se pudo cargar la tienda.");
@@ -792,7 +791,8 @@ namespace Palace
                 "<b>8</b>  Pominięcie. Każda 8 pomija jednego gracza (dwie 8 pomijają dwóch). Gdy zostało tylko 2 graczy, 8 jest zwykłą kartą.\n" +
                 "<b>10</b>  Spalenie. Usuwa stos z gry, a Ty grasz jeszcze raz.\n" +
                 "<b>Dama</b>  Zmienia kierunek gry.\n" +
-                "<b>As</b>  Wybierz, jako co się liczy: dowolna wartość równa lub wyższa od stosu (na Walecie może być W, D, K lub A, nigdy 9). Na NIŻEJ niż 7 może być 2-6. Albo użyj go jako 10, by spalić stos.\n\n" +
+                "<b>As</b>  Wybierz, jako co się liczy: dowolna wartość równa lub wyższa od stosu (na Walecie może być W, D, K lub A, nigdy 9). Na NIŻEJ niż 7 może być 2-6. Albo użyj go jako 10, by spalić stos.\n" +
+                "<b>Kareta</b>  Cztery karty tej samej wartości z rzędu na stosie (zagrane razem albo po kolei przez różnych graczy) spalają go, a kto dołożył czwartą, gra jeszcze raz.\n\n" +
                 "<b><color=#F2C24D>Trzy etapy</color></b>\n1. Graj z ręki, aż skończy się talia i opróżnisz rękę.\n" +
                 "2. Potem zagraj odkryte karty. Jeśli żadnej nie możesz zagrać, bierzesz stos i jedną wybraną odkrytą kartę do ręki.\n3. Na końcu zakryte karty, odkrywane po jednej bez patrzenia. Jeśli karty nie można zagrać, bierzesz z nią stos i musisz znowu opróżnić rękę.\n\n" +
                 "<b><color=#F2C24D>Opcjonalnie: Zamiana przed grą</color></b>\nWłącz ją w trybie Jeden gracz (lub jako gospodarz pokoju). Po rozdaniu możesz zamieniać karty z ręki z odkrytymi kartami: dotknij karty w ręce, a potem odkrytej karty. Naciśnij GOTOWE, gdy skończysz; gra zaczyna się, gdy wszyscy są gotowi.\n\n" +
@@ -807,7 +807,8 @@ namespace Palace
                 "<b>8</b>  Salto. Cada 8 salta a un jugador (dos 8 saltan a dos). Si solo quedan 2 jugadores, el 8 es una carta normal.\n" +
                 "<b>10</b>  Quemar. Retira el montón del juego y vuelves a jugar.\n" +
                 "<b>Reina</b>  Cambia el sentido del juego.\n" +
-                "<b>As</b>  Elige cuánto vale: cualquier valor que iguale o supere el montón (sobre una Jota puede ser J, Q, K o A, nunca 9). Sobre un 7 MENOR puede ser 2-6. O úsalo como un 10 para quemar el montón.\n\n" +
+                "<b>As</b>  Elige cuánto vale: cualquier valor que iguale o supere el montón (sobre una Jota puede ser J, Q, K o A, nunca 9). Sobre un 7 MENOR puede ser 2-6. O úsalo como un 10 para quemar el montón.\n" +
+                "<b>Póker</b>  Cuatro cartas del mismo valor seguidas en el montón (jugadas juntas o una tras otra por distintos jugadores) lo queman, y quien completa las cuatro vuelve a jugar.\n\n" +
                 "<b><color=#F2C24D>Las tres fases</color></b>\n1. Juega de tu mano hasta que se acabe el mazo y vacíes la mano.\n" +
                 "2. Luego juega tus cartas boca arriba. Si no puedes jugar ninguna, recoges el montón y te llevas a la mano una carta boca arriba a tu elección.\n3. Por último tus cartas boca abajo, girándolas de una en una sin mirar. Si la carta no se puede jugar, recoges el montón con ella y debes vaciar la mano otra vez.\n\n" +
                 "<b><color=#F2C24D>Opcional: Intercambio antes de jugar</color></b>\nActívalo en Un jugador (o como anfitrión en una sala). Tras el reparto, cambia las cartas de tu mano por tus cartas boca arriba: toca una carta de la mano y luego una boca arriba. Pulsa LISTO cuando quieras; la partida empieza cuando todos están listos.\n\n" +

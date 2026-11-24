@@ -317,6 +317,57 @@ internal static class Program
             Check(!g2.PickUp(0).Ok, "can't pick up when a card is playable");
         }
 
+        Section("Four of a kind in a row burns the pile (Q20)");
+        {
+            var g = Table(3);
+            Pile(g, Rank.Three, Rank.Five, Rank.Five);
+            var h = Give(g, 0, Rank.Five, Rank.Five, Rank.Nine);
+            var r = g.PlayCards(0, PlaySource.Hand, Ids(h.Take(2)));
+            Check(r.Ok && r.Events.Any(e => e.Type == GameEventType.PileBurned) && g.State.Discard.Count == 0, "two 5s on two 5s: four in a row burns");
+            Check(g.State.Current == 0, "the player who completed the four goes again");
+
+            var g2 = Table(3);
+            Pile(g2, Rank.Six, Rank.Six, Rank.Six);
+            var h2 = Give(g2, 0, Rank.Six, Rank.King);
+            g2.PlayCards(0, PlaySource.Hand, Ids(h2.Take(1)));
+            Check(g2.State.Discard.Count == 0 && g2.State.Current == 0, "a single 6 on three 6s (played by others) burns too");
+
+            var g3 = Table(3);
+            Pile(g3, Rank.Seven, Rank.Seven);
+            var h3 = Give(g3, 0, Rank.Seven, Rank.Seven, Rank.Four);
+            g3.PlayCards(0, PlaySource.Hand, Ids(h3.Take(2)));
+            Check(g3.State.Phase == GamePhase.Playing && g3.State.Discard.Count == 0, "four 7s burn instead of asking HIGHER / LOWER");
+
+            var g4 = Table(3);
+            Pile(g4, Rank.Five, Rank.Nine, Rank.Nine);
+            var h4 = Give(g4, 0, Rank.Nine, Rank.Four);
+            g4.PlayCards(0, PlaySource.Hand, Ids(h4.Take(1)));
+            Check(g4.State.Discard.Count == 4 && g4.State.Current == 1, "three in a row doesn't burn");
+
+            var g5 = Table(3);
+            g5.Rules.FourOfAKindBurns = false;
+            Pile(g5, Rank.Five, Rank.Five, Rank.Five);
+            var h5 = Give(g5, 0, Rank.Five, Rank.Four);
+            g5.PlayCards(0, PlaySource.Hand, Ids(h5.Take(1)));
+            Check(g5.State.Discard.Count == 4, "switch off: no burn");
+
+            // The computers use it: they finish a four when they can.
+            var g6 = Table(3);
+            Pile(g6, Rank.Eight, Rank.Eight);
+            Give(g6, 0, Rank.Eight, Rank.Eight, Rank.Four, Rank.Jack);
+            var move = BotBrain.Decide(g6, 0, new Random(3), BotLevel.Normal);
+            Check(move.Type == BotMoveType.PlayCards && move.CardIds.Count == 2 && BotBrain.Execute(g6, 0, move).Events.Any(e => e.Type == GameEventType.PileBurned),
+                "a Normal computer completes four 8s to burn (instead of playing its cheaper card)");
+
+            // Hard computers don't leave three of a kind on top for the next player to finish.
+            var g7 = Table(3);
+            Pile(g7, Rank.Four, Rank.Six, Rank.Six);
+            Give(g7, 0, Rank.Six, Rank.Nine, Rank.Jack);
+            var hard = BotBrain.Decide(g7, 0, new Random(9), BotLevel.Hard);
+            int sixes = hard.CardIds.Count(id => g7.State.Players[0].Hand.First(c => c.Id == id).Rank == Rank.Six);
+            Check(hard.Type == BotMoveType.PlayCards && sixes == 0, "a Hard computer avoids making three 6s in a row");
+        }
+
         Section("Stuck on face-up cards: take one face-up card with the pile (Q11)");
         {
             var g = Table(3);

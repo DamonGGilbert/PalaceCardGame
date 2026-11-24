@@ -155,3 +155,11 @@
 - [x] **Win** tab: celebrations when you win: Confetti (free), Fireworks, Coin Shower, Starburst, Bubbles
 - [x] Online, friends see each other's banner, name style, font, burn effect, win celebration and picture
 - [x] Computer players wear a steady random mix of items, which shows off what's in the Customise screen
+
+## Shop simplified, four of a kind, clearer seats ✅ (code)
+- [x] Shop: Small 2,000 (£0.99), Medium 8,000 (£2.99), Big 20,000 (£5.99) coin bags + Remove Ads (£2.99). New product ids
+      (`palace.coins.small/medium/big`, `palace.removeads`); bundles and the Supporter Pack removed. Its Royal Gold banner
+      (8,000) and Royal name style (6,000) are now coin items
+- [x] Rule Q20 on: four of a kind in a row on the pile burns it (played together or one after another); "FOUR OF A KIND!"
+      announcement. Normal and Hard computers finish a four when they can; Hard computers avoid leaving three in a row
+- [x] Seats: bigger card fan (up to 8), large plain-font count with "cards" under it; finishing place sits on the banner

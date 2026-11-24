@@ -62,6 +62,19 @@ namespace Palace.Core
             if (legal.Count == 0) return new BotMove { Type = BotMoveType.PickUp, Slot = FaceUpToTake(game, me, level, rng) };
 
             var ranks = legal.Select(c => c.Rank).Distinct().OrderBy(Cost).ToList();
+
+            // Four of a kind: if our cards complete four in a row on the pile, burn it and go again.
+            // (Easy bots don't think about it; they only manage it by luck.)
+            if (level != BotLevel.Easy && game.Rules.FourOfAKindBurns)
+            {
+                foreach (Rank r in ranks)
+                {
+                    int have = available.Count(c => c.Rank == r);
+                    if (RunAfter(game, r, have) >= 4)
+                        return new BotMove { Type = BotMoveType.PlayCards, Source = source, CardIds = available.Where(c => c.Rank == r).Select(c => c.Id).ToList() };
+                }
+            }
+
             Rank best;
             List<int> ids;
             switch (level)
@@ -149,6 +162,10 @@ namespace Palace.Core
 
         private static int SwapValue(Rank r) => r == Rank.Ten ? 30 : r == Rank.Two ? 29 : r == Rank.Ace ? 28 : (int)r;
 
+        /// <summary>How long the run of same-rank cards on top of the pile would be after playing 'count' cards of rank r.</summary>
+        private static int RunAfter(PalaceGame game, Rank r, int count) =>
+            count + (game.State.TopRank == r ? game.TopRunLength() : 0);
+
         private static bool IsSpecial(Rank r) => r == Rank.Two || r == Rank.Ten || r == Rank.Ace;
 
         private static int Cost(Rank rank)
@@ -199,7 +216,16 @@ namespace Palace.Core
                         if ((int)r > theirBest && r != Rank.Seven) return r;
                 }
 
-                return normal[0]; // otherwise the cheapest normal card
+                // Otherwise the cheapest normal card, but don't leave three of a kind on top for the next
+                // player to finish off with a fourth (and burn the pile) if another card will do.
+                if (game.Rules.FourOfAKindBurns)
+                {
+                    PlayerState me = s.Players[player];
+                    var hand = me.ActiveSource == PlaySource.Hand ? me.Hand : me.FaceUp.Where(c => c.HasValue).Select(c => c.Value).ToList();
+                    foreach (Rank r in normal)
+                        if (RunAfter(game, r, hand.Count(c => c.Rank == r)) != 3) return r;
+                }
+                return normal[0];
             }
 
             // Only special cards can be played: burn a big pile (and go again), otherwise reset with a 2.

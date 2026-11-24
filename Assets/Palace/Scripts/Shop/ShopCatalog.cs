@@ -20,23 +20,18 @@ namespace Palace
     /// </summary>
     public static class ShopCatalog
     {
+        // Kept deliberately simple: three coin bags (bigger bags are better value per pound) and
+        // Remove Ads. Everything in the game is bought with coins, so coins are the only thing sold.
         public static readonly ShopProduct[] Products =
         {
-            new ShopProduct { Id = "palace.coins.500", Title = "Pouch of Coins", Description = "6,000 coins",
-                Type = ShopProductType.Consumable, FallbackPrice = "£0.99", Coins = 6000 },
-            new ShopProduct { Id = "palace.coins.1500", Title = "Bag of Coins", Description = "18,000 coins",
-                Type = ShopProductType.Consumable, FallbackPrice = "£2.49", Coins = 18000 },
-            new ShopProduct { Id = "palace.coins.4000", Title = "Chest of Coins", Description = "50,000 coins: best value",
-                Type = ShopProductType.Consumable, FallbackPrice = "£4.99", Coins = 50000 },
-            new ShopProduct { Id = "palace.bundle.water", Title = "Water Pack", Description = "Lagoon table + Water effects",
-                Type = ShopProductType.NonConsumable, FallbackPrice = "£1.99", Unlocks = new[] { "table_lagoon", "fx_water" } },
-            new ShopProduct { Id = "palace.bundle.midnight", Title = "Midnight Pack", Description = "Midnight Gold deck, back and table",
-                Type = ShopProductType.NonConsumable, FallbackPrice = "£1.99", Unlocks = new[] { "deck_midnight", "back_midnight", "table_navy" } },
+            new ShopProduct { Id = "palace.coins.small", Title = "Small Bag of Coins", Description = "2,000 coins",
+                Type = ShopProductType.Consumable, FallbackPrice = "£0.99", Coins = 2000 },
+            new ShopProduct { Id = "palace.coins.medium", Title = "Medium Bag of Coins", Description = "8,000 coins",
+                Type = ShopProductType.Consumable, FallbackPrice = "£2.99", Coins = 8000 },
+            new ShopProduct { Id = "palace.coins.big", Title = "Big Bag of Coins", Description = "20,000 coins: best value",
+                Type = ShopProductType.Consumable, FallbackPrice = "£5.99", Coins = 20000 },
             new ShopProduct { Id = "palace.removeads", Title = "Remove Ads", Description = "Collect bonus coins without watching ads",
-                Type = ShopProductType.NonConsumable, FallbackPrice = "£2.99", AdFree = true },
-            new ShopProduct { Id = "palace.supporter", Title = "Supporter Pack", Description = "60,000 coins + exclusive Supporter banner and Royal name",
-                Type = ShopProductType.NonConsumable, FallbackPrice = "£6.99", Coins = 60000, AdFree = true,
-                Unlocks = new[] { "banner_supporter", "name_royal" } }
+                Type = ShopProductType.NonConsumable, FallbackPrice = "£2.99", AdFree = true }
         };
 
         public static ShopProduct Find(string id)

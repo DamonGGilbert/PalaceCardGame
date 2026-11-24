@@ -524,7 +524,8 @@ namespace Palace
             "<b>8</b>  Skip. Each 8 skips one player (two 8s skip two players). With only 2 players left, an 8 is a normal card.\n" +
             "<b>10</b>  Burn. Removes the pile from the game and you go again.\n" +
             "<b>Queen</b>  Reverses the direction of play.\n" +
-            "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +
+            "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n" +
+            "<b>Four of a kind</b>  Four cards of the same value in a row on the pile (played together, or one after another by different players) burn it, and whoever completes the four goes again.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
             "2. Then play your face-up cards. If none of them can be played, pick up the pile and take one face-up card of your choice into your hand with it.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
             "<b><color=#F2C24D>Optional: Swap before play</color></b>\nTurn it on in Single Player (or as the host in a game room). After the deal, swap any of your hand cards with your face-up cards: tap a hand card, then a face-up card. Press READY when you're happy; play starts when everyone is ready.\n\n" +

@@ -6,19 +6,19 @@
 
 | Product ID (use exactly this) | Type | What the player gets | Suggested price |
 |---|---|---|---|
-| `palace.coins.500` | Consumable | 500 coins | £0.99 |
-| `palace.coins.1500` | Consumable | 1,500 coins | £2.49 |
-| `palace.coins.4000` | Consumable | 4,000 coins | £4.99 |
-| `palace.bundle.water` | Non-consumable | Lagoon table + Water effects | £1.99 |
-| `palace.bundle.midnight` | Non-consumable | Midnight Gold deck, Midnight back, Midnight Blue table | £1.99 |
+| `palace.coins.small` | Consumable | 2,000 coins | £0.99 |
+| `palace.coins.medium` | Consumable | 8,000 coins | £2.99 |
+| `palace.coins.big` | Consumable | 20,000 coins (best value) | £5.99 |
 | `palace.removeads` | Non-consumable | Bonus coins with no ad to watch (same daily limit) | £2.99 |
-| `palace.supporter` | Non-consumable | 5,000 coins + Supporter Gold banner + Royal name (shop-only) | £6.99 |
+
+Bigger bags are better value per pound (about 2,000 / 2,700 / 3,300 coins per £), which nudges players towards
+the bigger bag without making the small one feel like a rip-off.
 
 All product IDs live in one file: `Assets/Palace/Scripts/Shop/ShopCatalog.cs`. Prices are set in the store consoles,
 and the game shows each store's local price automatically.
 
-- **Ads: rewarded only.** No forced ads. Players can choose to watch an ad for 50 coins, up to 5 times a day.
-  Remove Ads (or the Supporter Pack) turns that into an instant "Claim" with no ad.
+- **Ads: rewarded only.** No forced ads. Players can choose to watch an ad for 500 coins, up to 5 times a day.
+  Remove Ads turns that into an instant "Claim" with no ad.
 
 ## How it stays safe
 - Purchases use Unity IAP 5's two-step flow. Content is granted and saved **before** the purchase is confirmed,

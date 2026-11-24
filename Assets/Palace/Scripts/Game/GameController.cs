@@ -547,6 +547,17 @@ namespace Palace
             Execute(BotBrain.Execute(Game, actor, move));
         }
 
+        /// <summary>Was this burn four of a kind (rather than a 10 or an Ace)?</summary>
+        private bool IsFourOfAKind(List<Card> burned)
+        {
+            int n = burned.Count;
+            if (n < 4 || !Game.Rules.FourOfAKindBurns) return false;
+            Rank r = burned[n - 1].Rank;
+            if (r == Rank.Ten) return false; // a 10 burns anyway
+            for (int i = n - 4; i < n; i++) if (burned[i].Rank != r) return false;
+            return true;
+        }
+
         private BotLevel botLevel = BotLevel.Normal;
         private bool isTutorial;
         private TutorialCoach coach;
@@ -1554,7 +1565,8 @@ namespace Palace
                     AudioManager.Play(Sfx.Burn);
                     Haptics.Buzz();
                     FxStyle burnStyle = FxOf(e.Player); // everyone burns in their own style
-                    if (burnStyle == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
+                    if (IsFourOfAKind(e.Cards)) table.Announce("FOUR OF A KIND!", UIKit.Gold, centre, 72f);
+                    else if (burnStyle == FxStyle.Water) table.Announce("SPLASH!", new Color(0.6f, 0.9f, 1f), centre, 84f);
                     else table.Announce("BURN!", new Color(1f, 0.55f, 0.15f), centre, 84f);
                     yield return fx.Burn(burning, table.DiscardPoint, table.PileCardScale, burnStyle);
                     break;

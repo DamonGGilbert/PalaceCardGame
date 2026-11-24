@@ -467,5 +467,98 @@ MonoBehaviour:
     preview: {fileID: 21300000, guid: b57f73f2688ceea4eb369ce46ae73a25, type: 3}
     storeOnly: 0
     style: 1
+  fonts:
+  - id: font_default
+    displayName: Classic
+    price: 0
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 0}
+    sizeScale: 1
+  - id: font_righteous
+    displayName: Righteous
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: c02d177e3ca4dba4cbbd744ad85b647f, type: 2}
+    sizeScale: 1
+  - id: font_bangers
+    displayName: Bangers
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: edad9b43e884c484d96f095f457caefa, type: 2}
+    sizeScale: 1.05
+  - id: font_luckiestguy
+    displayName: Luckiest Guy
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 2b824a914fee9db42897225f86dddbc9, type: 2}
+    sizeScale: 0.95
+  - id: font_permanentmarker
+    displayName: Marker
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: e9fdd1f5e70d88945a9a31ae7a301eb4, type: 2}
+    sizeScale: 1
+  - id: font_lobster
+    displayName: Lobster
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 897b71d4bc6040041b56a064b121e48a, type: 2}
+    sizeScale: 1.05
+  - id: font_pacifico
+    displayName: Pacifico
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 4954236135eb05e4a8251e923b8c0d00, type: 2}
+    sizeScale: 0.9
+  - id: font_specialelite
+    displayName: Typewriter
+    price: 150
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 6e9851ccc2468274d9c5ca55f1f0547b, type: 2}
+    sizeScale: 1
+  - id: font_blackopsone
+    displayName: Black Ops
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: c5f67bdc76bdde341b351a84887f1bd2, type: 2}
+    sizeScale: 0.95
+  - id: font_bungee
+    displayName: Bungee
+    price: 200
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 77a9c29ff862326458f174e6d6c7387d, type: 2}
+    sizeScale: 0.9
+  - id: font_creepster
+    displayName: Creepster
+    price: 250
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: 6d778b01e16d83345b38f4d864e4cf3e, type: 2}
+    sizeScale: 1.05
+  - id: font_monoton
+    displayName: Monoton
+    price: 250
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: af50298ece2554442bfff55ccb46be1b, type: 2}
+    sizeScale: 0.9
+  - id: font_pressstart2p
+    displayName: Pixel
+    price: 250
+    preview: {fileID: 0}
+    storeOnly: 0
+    font: {fileID: 11400000, guid: ad89c0e85a294654688fa0a311b466ed, type: 2}
+    sizeScale: 0.7
+  celebrations: []
   waterCaustics: {fileID: 2800000, guid: 0aba36866ec321745af159b340c9f43e, type: 3}
   feltMask: {fileID: 21300000, guid: ec761b52341da8c45a49ef3a6abdb0a6, type: 3}

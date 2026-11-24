@@ -20,7 +20,7 @@ namespace Palace
         public string displayName;
         public int price;            // in coins; 0 = free / owned from the start
         public Sprite preview;       // shown on the Customise screen
-        public bool storeOnly;       // only from a real-money pack (e.g. the Supporter Pack)
+        public bool storeOnly;       // only from a real-money pack (none at the moment: everything is bought with coins)
     }
 
     [Serializable] public class TableSkin : CosmeticItem
@@ -139,6 +139,13 @@ namespace Palace
         {
             if (!fonts.Exists(f => f.id == "font_default")) // the game's own font, free (the name fonts come from Generate Art)
                 fonts.Insert(0, new FontSkin { id = "font_default", displayName = "Classic", price = 0, font = null });
+            // The old Supporter Pack items are now ordinary (expensive) coin items, even in a library
+            // generated before the shop was simplified.
+            foreach (var item in banners)
+                if (item.id == "banner_supporter" && item.storeOnly) { item.storeOnly = false; item.price = 800; item.displayName = "Royal Gold"; }
+            foreach (var item in nameStyles)
+                if (item.id == "name_royal" && item.storeOnly) { item.storeOnly = false; item.price = 600; item.displayName = "Royal"; }
+
             foreach (var (id, name, price, style) in CodeEffects)
                 if (!effects.Exists(e => e.id == id))
                     effects.Add(new EffectSkin { id = id, displayName = name, price = price, style = style });

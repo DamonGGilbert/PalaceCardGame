@@ -610,7 +610,8 @@ namespace Palace.Core
             result.Events.Add(new GameEvent { Type = GameEventType.TurnChanged, Player = next });
         }
 
-        private int TopRunLength()
+        /// <summary>How many cards of the same rank are in a row on top of the pile (for four of a kind).</summary>
+        public int TopRunLength()
         {
             var d = State.Discard;
             if (d.Count == 0) return 0;

@@ -84,9 +84,23 @@ namespace Palace
                     new Vector2(120f, 56f), Vector2.zero, TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
             }
 
+            // The place sits on the banner itself, like a tab on its top edge, where the hand count was.
+            if (placeBadge.transform.parent != plate.transform)
+            {
+                placeBadge.transform.SetParent(plate.transform, false);
+                var rt = placeBadge.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(1f, 0f);
+                rt.sizeDelta = new Vector2(104f, 44f);
+                rt.anchoredPosition = new Vector2(-10f, -6f);
+                placeText.rectTransform.sizeDelta = new Vector2(104f, 44f);
+                placeText.fontSize = 28f;
+                placeText.fontSizeMax = 28f;
+            }
+
             bool finished = position > 0;
             placeBadge.gameObject.SetActive(finished);
-            placeBadge.rectTransform.anchoredPosition = cardsBlock.anchoredPosition;
+            if (finished) placeBadge.transform.SetAsLastSibling();
             if (finished) placeText.text = Ordinal(position);
             if (finished && handBadge != null) handBadge.gameObject.SetActive(false);
             if (finished && handStack != null) handStack.gameObject.SetActive(false);
@@ -200,7 +214,7 @@ namespace Palace
         // that turns gold on the last card and orange/red for big hands.
         // ------------------------------------------------------------------
 
-        private const int MaxFanCards = 6;
+        private const int MaxFanCards = 8;
         private static readonly Color BubbleNormal = new Color(0.07f, 0.09f, 0.08f, 0.95f);
         private static readonly Color BubbleLast = new Color(0.98f, 0.78f, 0.28f, 1f);
         private static readonly Color BubbleBig = new Color(0.88f, 0.46f, 0.10f, 1f);
@@ -218,7 +232,7 @@ namespace Palace
             EnsureHandStack();
 
             int k = Mathf.Min(count, MaxFanCards);
-            float spread = k <= 1 ? 0f : Mathf.Lerp(16f, 64f, (k - 2) / (float)(MaxFanCards - 2));
+            float spread = k <= 1 ? 0f : Mathf.Lerp(16f, 84f, (k - 2) / (float)(MaxFanCards - 2));
             for (int i = 0; i < stackCards.Count; i++)
             {
                 bool active = i < k;
@@ -226,11 +240,12 @@ namespace Palace
                 if (!active) continue;
                 var rt = stackCards[i].rectTransform;
                 float angle = k <= 1 ? 0f : spread * 0.5f - i * spread / (k - 1);
-                rt.anchoredPosition = new Vector2(-16f + (i - (k - 1) * 0.5f) * 5f, -18f);
+                rt.anchoredPosition = new Vector2(-20f + (i - (k - 1) * 0.5f) * 5f, -22f);
                 rt.localEulerAngles = new Vector3(0f, 0f, angle);
             }
 
             countText.text = count.ToString();
+            if (countLabel != null) countLabel.text = Loc.T(count == 1 ? "card" : "cards");
             countBubble.color = count == 1 ? BubbleLast : count >= 15 ? BubbleHuge : count >= 8 ? BubbleBig : BubbleNormal;
             countText.color = count == 1 ? new Color(0.15f, 0.1f, 0.02f) : Color.white;
 
@@ -243,7 +258,7 @@ namespace Palace
             EnsureBuilt();
             EnsureHandStack();
             handStack.gameObject.SetActive(visible);
-            nameText.rectTransform.offsetMax = new Vector2(visible ? -124f : -14f, 0f);
+            nameText.rectTransform.offsetMax = new Vector2(visible ? -144f : -14f, 0f);
         }
 
         private System.Collections.IEnumerator PopCount()
@@ -257,22 +272,30 @@ namespace Palace
             if (handStack != null) return;
             if (handBadge != null) handBadge.gameObject.SetActive(false); // older, smaller design
 
-            handStack = UIBuild.Rect("HandStack", plate.transform, new Vector2(120f, 64f), Vector2.zero);
-            SetAnchor(handStack, new Vector2(1f, 0.5f), new Vector2(-62f, 0f));
+            handStack = UIBuild.Rect("HandStack", plate.transform, new Vector2(140f, 70f), Vector2.zero);
+            SetAnchor(handStack, new Vector2(1f, 0.5f), new Vector2(-70f, 0f));
 
             Sprite back = cardTheme != null ? cardTheme.CurrentBack : null;
             for (int i = 0; i < MaxFanCards; i++)
             {
-                var img = UIBuild.Image("HandCard", handStack, back, Color.white, new Vector2(30f, 42f), Vector2.zero);
+                var img = UIBuild.Image("HandCard", handStack, back, Color.white, new Vector2(34f, 48f), Vector2.zero);
                 img.rectTransform.pivot = new Vector2(0.5f, 0.1f);
                 stackCards.Add(img);
             }
 
+            // A big, plain number: the decorative font's 0 looked like an o.
+            var plainFont = TMP_Settings.instance != null ? TMP_Settings.defaultFontAsset : null;
             countBubble = UIBuild.Image("CountBubble", handStack, tableTheme != null ? tableTheme.circle : null, BubbleNormal,
-                new Vector2(42f, 42f), new Vector2(36f, -2f));
-            countText = UIBuild.Text("Count", countBubble.transform, "0", 24f, Color.white, new Vector2(42f, 42f), Vector2.zero,
-                TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+                new Vector2(52f, 52f), new Vector2(44f, 0f));
+            countText = UIBuild.Text("Count", countBubble.transform, "0", 30f, Color.white, new Vector2(52f, 52f), Vector2.zero,
+                TextAlignmentOptions.Center, plainFont != null ? plainFont : (tableTheme != null ? tableTheme.font : null), true, false);
+            countLabel = UIBuild.Text("Cards", countBubble.transform, "cards", 15f, new Color(1f, 1f, 1f, 0.85f), new Vector2(70f, 20f),
+                new Vector2(0f, -36f), TextAlignmentOptions.Center, plainFont != null ? plainFont : (tableTheme != null ? tableTheme.font : null), true);
+            countLabel.outlineWidth = 0.25f;
+            countLabel.outlineColor = new Color32(0, 0, 0, 200);
         }
+
+        private TextMeshProUGUI countLabel;
 
         /// <summary>slot 0-2. present = false means that face-down card has been played.</summary>
         public void SetFaceDownSlot(int slot, bool present)

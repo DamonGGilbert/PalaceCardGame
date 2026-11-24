@@ -45,8 +45,12 @@ namespace Palace.Core
         /// </summary>
         public bool SwapBeforePlay = false;
 
-        /// <summary>Q20: four cards of the same rank burn the pile. Not part of the school rules.</summary>
-        public bool FourOfAKindBurns = false;
+        /// <summary>
+        /// Q20 (decided: on): four cards of the same rank in a row on top of the pile burn it, whether they
+        /// were played together or one after another by different players. The player who completes the
+        /// four goes again, as with a 10.
+        /// </summary>
+        public bool FourOfAKindBurns = true;
 
         public int DecksFor(int playerCount) => playerCount >= SecondDeckFromPlayers ? 2 : 1;
     }

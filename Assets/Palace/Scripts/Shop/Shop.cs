@@ -42,7 +42,7 @@ namespace Palace
 
         public static bool IsOwned(string productId) => PlayerPrefs.GetInt("palace.iap.owned." + productId, 0) == 1;
 
-        /// <summary>Remove Ads (or the Supporter Pack) bought: bonus coins without watching ads.</summary>
+        /// <summary>Remove Ads bought: bonus coins without watching ads.</summary>
         public static bool HasAdFree => ShopCatalog.Products.Any(p => p.AdFree && IsOwned(p.Id));
 
         public static string PriceLabel(ShopProduct product) => Backend?.LocalizedPrice(product.Id) ?? product.FallbackPrice;
