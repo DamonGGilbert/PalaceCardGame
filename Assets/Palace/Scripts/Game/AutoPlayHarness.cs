@@ -12,6 +12,8 @@ namespace Palace
     ///   -palace-autoplay N    play N complete games automatically (your seat is played by a bot)
     ///   -palace-players P     table size (2-10)
     ///   -palace-shots DIR     save screenshots into DIR
+    ///   -palace-botlevel L    computer skill: 0 Easy, 1 Normal, 2 Hard
+    ///   -palace-tutorial      play the guided game (tips are dismissed automatically)
     /// Logs a summary line per game and any errors, then quits. Used to test real builds.
     /// </summary>
     public class AutoPlayHarness : MonoBehaviour
@@ -24,6 +26,8 @@ namespace Palace
         private int errors;
         private string shotsDir;
         private bool midShotTaken, lateShotTaken;
+        private float tipTimer;
+        private int tipShots;
 
         public static void AttachIfRequested(GameController controller)
         {
@@ -34,6 +38,8 @@ namespace Palace
             Active = true;
             GameLaunch.SpectateOnly = false;
             GameLaunch.BotCount = Mathf.Clamp(IntArg(args, "-palace-players", 4), 2, 10) - 1;
+            GameLaunch.BotLevel = Mathf.Clamp(IntArg(args, "-palace-botlevel", 1), 0, 2);
+            GameLaunch.Tutorial = Array.IndexOf(args, "-palace-tutorial") >= 0; // the guided game, tips auto-dismissed
             GameSettings.AnimationOverride = GameSettings.AnimationSpeed.Fast; // not saved to the player's settings
 
             var harness = controller.gameObject.AddComponent<AutoPlayHarness>();
@@ -65,6 +71,20 @@ namespace Palace
             {
                 Debug.LogError("[AutoPlay] game exceeded 4000 turns");
                 Quit();
+            }
+
+            if (controller.TipShowing)
+            {
+                // Screenshot the first few tips, then press "Got it" (a moment later, so the shot includes the tip).
+                float before = tipTimer;
+                tipTimer += Time.unscaledDeltaTime;
+                if (before < 0.5f && tipTimer >= 0.5f && tipShots < 4 && !string.IsNullOrEmpty(shotsDir)) Shot("tutorial_tip_" + tipShots++);
+                if (tipTimer > 0.9f)
+                {
+                    controller.TestDismissTip();
+                    tipTimer = 0f;
+                }
+                return;
             }
 
             if (!dragTested && game.State.TurnNumber >= 3 && !controller.IsBusy)

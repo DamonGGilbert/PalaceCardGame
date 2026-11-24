@@ -13,6 +13,8 @@ namespace Palace
         public static int BotCount = 3;
         public static bool SpectateOnly;   // every seat is a bot (used for testing / "watch a game")
         public static int Seed;            // 0 = random
+        public static int BotLevel = 1;    // 0 Easy, 1 Normal, 2 Hard
+        public static bool Tutorial;       // the guided first game
 
         /// <summary>Shown on the Multiplayer screen after returning from a game (e.g. "The host left").</summary>
         public static string MenuMessage;

@@ -40,6 +40,7 @@ namespace Palace
             public List<string> owned = new List<string>();
             public List<string> purchases = new List<string>();
             public List<string> equipped = new List<string>(); // "Category=itemId"
+            public string progress;                            // stats, XP and achievements (Progress.ExportJson)
         }
 
 #if PALACE_CLOUDSAVE
@@ -63,7 +64,7 @@ namespace Palace
 
         private static Snapshot Capture()
         {
-            var snap = new Snapshot { savedAt = LocalSavedAt, coins = Cosmetics.Coins };
+            var snap = new Snapshot { savedAt = LocalSavedAt, coins = Cosmetics.Coins, progress = Progress.ExportJson() };
             var lib = CosmeticLibrary.Instance;
             if (lib != null)
             {
@@ -85,6 +86,7 @@ namespace Palace
             if (remote == null) return;
             foreach (string id in remote.owned) PlayerPrefs.SetInt("palace.own." + id, 1);           // never lose unlocks
             foreach (string id in remote.purchases) PlayerPrefs.SetInt("palace.iap.owned." + id, 1); // never lose purchases
+            Progress.ImportJson(remote.progress);                                                     // keeps the copy with more XP
 
             if (remote.savedAt > LocalSavedAt)
             {

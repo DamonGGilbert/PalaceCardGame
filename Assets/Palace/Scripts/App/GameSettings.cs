@@ -78,6 +78,29 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.bots", Mathf.Clamp(value, 1, 9));
         }
 
+        public static readonly string[] BotLevelNames = { "Easy", "Normal", "Hard" };
+
+        /// <summary>How well the computer players play: 0 Easy, 1 Normal, 2 Hard (same rules at every level).</summary>
+        public static int BotLevel
+        {
+            get => PlayerPrefs.GetInt("palace.botlevel", 1);
+            set => PlayerPrefs.SetInt("palace.botlevel", Mathf.Clamp(value, 0, 2));
+        }
+
+        /// <summary>Has the guided first game been finished (or skipped) on this device?</summary>
+        public static bool TutorialDone
+        {
+            get => PlayerPrefs.GetInt("palace.tutorialdone", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.tutorialdone", value ? 1 : 0);
+        }
+
+        /// <summary>Has the player been offered the guided game yet?</summary>
+        public static bool TutorialOffered
+        {
+            get => PlayerPrefs.GetInt("palace.tutorialoffered", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.tutorialoffered", value ? 1 : 0);
+        }
+
         // ------------------------------------------------------------------ polish + accessibility
 
         public static readonly string[] OnOffNames = { "Off", "On" };

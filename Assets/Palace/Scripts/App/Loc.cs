@@ -452,6 +452,190 @@ namespace Palace
             Add("The Ace can be: {0}", "As może być: {0}", "El As puede ser: {0}");
             Add("Face-down cards come last", "Zakryte karty gra się na końcu", "Las cartas boca abajo van al final");
 
+            // ---------------------------------------------------------- computer skill + guided game
+            Add("Computer skill", "Poziom komputera", "Nivel del ordenador");
+            Add("Easy", "Łatwy", "Fácil");
+            Add("Hard", "Trudny", "Difícil");
+            Add("Easy: relaxed computers that often waste their best cards.", "Łatwy: wyluzowani przeciwnicy, którzy często marnują najlepsze karty.", "Fácil: rivales tranquilos que a menudo malgastan sus mejores cartas.");
+            Add("Normal: computers that play sensibly.", "Normalny: przeciwnicy grający rozsądnie.", "Normal: rivales que juegan con sentido.");
+            Add("Hard: computers that save their best cards and target whoever is winning.", "Trudny: przeciwnicy oszczędzają najlepsze karty i celują w tego, kto wygrywa.", "Difícil: rivales que guardan sus mejores cartas y van a por quien va ganando.");
+            Add("Guided game", "Gra z poradnikiem", "Partida guiada");
+            Add("Play the guided game", "Zagraj z poradnikiem", "Jugar la partida guiada");
+            Add("New to Palace?", "Pierwszy raz w Palace?", "¿Nuevo en Palace?");
+            Add("Play a short guided game first. It explains every special card the moment it comes up.", "Zagraj najpierw krótką grę z poradnikiem. Wyjaśnia każdą kartę specjalną, gdy tylko się pojawi.", "Juega primero una partida guiada corta. Explica cada carta especial en cuanto aparece.");
+            Add("Teach me", "Naucz mnie", "Enséñame");
+            Add("I know how to play", "Umiem grać", "Ya sé jugar");
+            Add("Guided game complete!", "Gra z poradnikiem ukończona!", "¡Partida guiada completada!");
+            Add("Tip {0}", "Wskazówka {0}", "Consejo {0}");
+            Add("Got it", "Jasne", "Entendido");
+            Add("Skip tips", "Pomiń wskazówki", "Saltar consejos");
+            Add("Welcome to Palace! The aim is to get rid of all your cards. The last player still holding cards is the Shedhead.",
+                "Witaj w Palace! Celem jest pozbycie się wszystkich kart. Ostatni gracz, który wciąż ma karty, zostaje Shedheadem.",
+                "¡Bienvenido a Palace! El objetivo es quedarte sin cartas. El último jugador que aún tenga cartas es el Shedhead.");
+            Add("You have 3 cards in your hand, 3 face-up cards on the table and 3 face-down cards under them. Play your hand first, then your face-up cards, and your face-down cards last, without looking.",
+                "Masz 3 karty w ręce, 3 odkryte karty na stole i 3 zakryte karty pod nimi. Najpierw graj z ręki, potem odkryte karty, a zakryte na końcu, bez patrzenia.",
+                "Tienes 3 cartas en la mano, 3 boca arriba en la mesa y 3 boca abajo debajo de ellas. Juega primero la mano, luego las boca arriba y las boca abajo al final, sin mirar.");
+            Add("Your turn! Play a card equal to or higher than the top card of the pile. Drag it onto the pile, or tap it and press PLAY. Cards you can't play are darkened.",
+                "Twoja tura! Zagraj kartę równą lub wyższą od karty na wierzchu stosu. Przeciągnij ją na stos albo dotknij jej i naciśnij ZAGRAJ. Karty, których nie możesz zagrać, są przyciemnione.",
+                "¡Tu turno! Juega una carta igual o mayor que la de arriba del montón. Arrástrala al montón, o tócala y pulsa JUGAR. Las cartas que no puedes jugar salen oscurecidas.");
+            Add("You have more than one card of the same rank. Tap them all, then press PLAY, to get rid of them together.",
+                "Masz więcej niż jedną kartę tej samej wartości. Dotknij wszystkich i naciśnij ZAGRAJ, aby pozbyć się ich naraz.",
+                "Tienes más de una carta del mismo valor. Tócalas todas y pulsa JUGAR para soltarlas juntas.");
+            Add("While there are cards in the deck, you draw back up to 3 cards after your turn.",
+                "Dopóki w talii są karty, po swojej turze dobierasz do 3 kart.",
+                "Mientras queden cartas en el mazo, robas hasta tener 3 después de tu turno.");
+            Add("2 is a reset card. It can go on anything, and the next player can then play any card.",
+                "2 to karta resetu. Można ją położyć na wszystko, a następny gracz może wtedy zagrać dowolną kartę.",
+                "El 2 reinicia. Se puede poner sobre cualquier carta, y el siguiente jugador puede jugar lo que quiera.");
+            Add("7: whoever plays it calls HIGHER or LOWER. The next player must then play higher than 7, or lower than 7.",
+                "7: kto ją zagra, wybiera WYŻEJ lub NIŻEJ. Następny gracz musi zagrać kartę wyższą lub niższą niż 7.",
+                "7: quien lo juega elige MAYOR o MENOR. El siguiente jugador debe jugar más alto que 7, o más bajo que 7.");
+            Add("8 skips the next player. Two 8s together skip two players.",
+                "8 pomija następnego gracza. Dwie 8 naraz pomijają dwóch graczy.",
+                "El 8 salta al siguiente jugador. Dos 8 juntos saltan a dos jugadores.");
+            Add("10 burns the pile: it's removed from the game and the same player goes again. A 10 can go on anything (except after LOWER on a 7).",
+                "10 spala stos: znika z gry, a ten sam gracz gra jeszcze raz. 10 można położyć na wszystko (oprócz NIŻEJ na 7).",
+                "El 10 quema el montón: sale del juego y el mismo jugador vuelve a jugar. El 10 va sobre cualquier carta (salvo tras MENOR en un 7).");
+            Add("A Queen reverses the direction of play. The arrows around the table show which way it's going.",
+                "Dama zmienia kierunek gry. Strzałki wokół stołu pokazują, w którą stronę idzie gra.",
+                "La Reina invierte el sentido del juego. Las flechas alrededor de la mesa muestran hacia dónde va.");
+            Add("An Ace is the highest card. When you play one you choose what it counts as (any value that matches or beats the pile), or use it as a 10 to burn the pile.",
+                "As to najwyższa karta. Gdy go zagrasz, wybierasz, jako co się liczy (dowolna wartość równa lub wyższa od stosu), albo używasz go jako 10, by spalić stos.",
+                "El As es la carta más alta. Al jugarlo eliges qué vale (cualquier valor igual o mayor que el montón), o lo usas como un 10 para quemar el montón.");
+            Add("None of your cards can go on the pile, so you have to pick it all up. Press PICK UP PILE. It happens to everyone!",
+                "Żadna z Twoich kart nie pasuje na stos, więc musisz go wziąć. Naciśnij WEŹ STOS. Każdemu się to zdarza!",
+                "Ninguna de tus cartas vale para el montón, así que tienes que recogerlo. Pulsa RECOGER MONTÓN. ¡Le pasa a todo el mundo!");
+            Add("Your hand is empty and the deck has run out, so now you play your face-up cards. Same rules as before.",
+                "Masz pustą rękę, a talia się skończyła, więc teraz grasz odkrytymi kartami. Zasady te same co wcześniej.",
+                "Tienes la mano vacía y el mazo se ha acabado, así que ahora juegas tus cartas boca arriba. Mismas reglas que antes.");
+            Add("Last stage! Tap one of your face-down cards to turn it over. If it can't go on the pile, you pick up the pile along with it.",
+                "Ostatni etap! Dotknij jednej z zakrytych kart, aby ją odkryć. Jeśli nie pasuje na stos, bierzesz stos razem z nią.",
+                "¡Última fase! Toca una de tus cartas boca abajo para darle la vuelta. Si no vale para el montón, recoges el montón junto con ella.");
+            Add("Tip: tap the pile (or View pile) to see every card in it and plan your next move.",
+                "Wskazówka: dotknij stosu (lub Pokaż stos), aby zobaczyć wszystkie jego karty i zaplanować ruch.",
+                "Consejo: toca el montón (o Ver montón) para ver todas sus cartas y planear tu jugada.");
+            Add("A player has run out of cards and finished! The game carries on until only one player still has cards.",
+                "Gracz pozbył się kart i skończył! Gra toczy się dalej, aż karty zostaną tylko jednemu graczowi.",
+                "¡Un jugador se ha quedado sin cartas y ha terminado! La partida sigue hasta que solo un jugador tenga cartas.");
+
+            // ---------------------------------------------------------- progress: levels, banners, results
+            Add("Progress", "Postępy", "Progreso");
+            Add("Daily", "Dzienne", "Diarios");
+            Add("Achievements", "Osiągnięcia", "Logros");
+            Add("Stats", "Statystyki", "Estadísticas");
+            Add("Level {0}", "Poziom {0}", "Nivel {0}");
+            Add("Level {0}!", "Poziom {0}!", "¡Nivel {0}!");
+            Add("+{0} XP", "+{0} PD", "+{0} XP");
+            Add("{0} / {1} XP", "{0} / {1} PD", "{0} / {1} XP");
+            Add("Achievement unlocked!", "Odblokowano osiągnięcie!", "¡Logro desbloqueado!");
+            Add("Daily challenge complete!", "Wyzwanie dnia ukończone!", "¡Reto diario completado!");
+            Add("All 3 daily challenges done!", "Wszystkie 3 wyzwania dnia ukończone!", "¡Los 3 retos diarios completados!");
+            Add("All daily challenges done. New ones tomorrow!", "Wszystkie wyzwania dnia ukończone. Nowe jutro!", "Retos diarios completados. ¡Mañana hay nuevos!");
+            Add("1 daily challenge left today", "Zostało 1 wyzwanie na dziś", "Te queda 1 reto diario hoy");
+            Add("{0} daily challenges left today", "Wyzwania na dziś do zrobienia: {0}", "Retos diarios pendientes hoy: {0}");
+            Add("Day streak: {0}", "Seria dni: {0}", "Racha de días: {0}");
+            Add("Play every day for a bigger daily reward: {0} coins tomorrow.", "Graj codziennie, a dzienna nagroda rośnie: jutro {0} monet.", "Juega cada día para ganar más: mañana {0} monedas.");
+            Add("Done!", "Zrobione!", "¡Hecho!");
+            Add("Unlocked", "Odblokowane", "Desbloqueado");
+            Add("{0} of {1} unlocked", "Odblokowano {0} z {1}", "{0} de {1} desbloqueados");
+            Add("Daily bonus collected. Come back tomorrow for new challenges!", "Dzienny bonus odebrany. Wróć jutro po nowe wyzwania!", "Bonus diario conseguido. ¡Vuelve mañana para nuevos retos!");
+            Add("Finish all 3 for a bonus: +{0} coins and +{1} XP", "Ukończ wszystkie 3, a dostaniesz bonus: +{0} monet i +{1} PD", "Completa los 3 para un bonus: +{0} monedas y +{1} XP");
+            Add("New challenges in {0}h {1}m", "Nowe wyzwania za {0} godz. {1} min", "Nuevos retos en {0} h {1} min");
+            Add("Daily reward", "Dzienna nagroda", "Recompensa diaria");
+            Add("Welcome back!", "Witaj ponownie!", "¡Bienvenido de nuevo!");
+            Add("Day {0} in a row!", "Dzień {0} z rzędu!", "¡{0} días seguidos!");
+            Add("Come back tomorrow for {0} coins.", "Wróć jutro po {0} monet.", "Vuelve mañana para conseguir {0} monedas.");
+            Add("Collect", "Odbierz", "Recoger");
+
+            // ---------------------------------------------------------- daily challenges
+            Add("Play 3 games", "Zagraj 3 gry", "Juega 3 partidas");
+            Add("Win a game", "Wygraj grę", "Gana una partida");
+            Add("Win 2 games", "Wygraj 2 gry", "Gana 2 partidas");
+            Add("Burn the pile 3 times", "Spal stos 3 razy", "Quema el montón 3 veces");
+            Add("Skip 3 players with 8s", "Pomiń 3 graczy ósemkami", "Salta a 3 jugadores con ochos");
+            Add("Reverse play twice with a Queen", "Zmień kierunek gry Damą 2 razy", "Invierte el sentido con una Reina 2 veces");
+            Add("Play 2 or more cards at once 4 times", "Zagraj 2 lub więcej kart naraz 4 razy", "Juega 2 o más cartas a la vez 4 veces");
+            Add("Finish in the top half twice", "Skończ w górnej połowie 2 razy", "Termina en la mitad de arriba 2 veces");
+            Add("Finish a game without picking up the pile", "Skończ grę bez brania stosu", "Termina una partida sin recoger el montón");
+            Add("Play a 7 and make the call 3 times", "Zagraj 7 i wybierz kierunek 3 razy", "Juega un 7 y elige 3 veces");
+            Add("Burn the pile with an Ace", "Spal stos Asem", "Quema el montón con un As");
+            Add("Finish a game with 5 or more players", "Skończ grę z 5 lub więcej graczami", "Termina una partida con 5 o más jugadores");
+            Add("Beat the Hard computers", "Pokonaj trudnych przeciwników", "Gana a los rivales difíciles");
+            Add("Play 5 special cards (2, 7, 8, 10, Q or A)", "Zagraj 5 kart specjalnych (2, 7, 8, 10, D lub A)", "Juega 5 cartas especiales (2, 7, 8, 10, R o A)");
+
+            // ---------------------------------------------------------- achievements
+            Add("Class Dismissed", "Lekcja zaliczona", "Clase terminada");
+            Add("Finish the guided game.", "Ukończ grę z poradnikiem.", "Termina la partida guiada.");
+            Add("Winner Winner", "Zwycięzca", "Ganador, ganador");
+            Add("Win your first game.", "Wygraj pierwszą grę.", "Gana tu primera partida.");
+            Add("Card Shark", "Karciany rekin", "Tiburón de las cartas");
+            Add("Win 10 games.", "Wygraj 10 gier.", "Gana 10 partidas.");
+            Add("Top Dog", "Szef stołu", "El jefe");
+            Add("Win 50 games.", "Wygraj 50 gier.", "Gana 50 partidas.");
+            Add("Regular", "Stały bywalec", "Habitual");
+            Add("Play 10 games.", "Zagraj 10 gier.", "Juega 10 partidas.");
+            Add("Pub Legend", "Legenda pubu", "Leyenda del bar");
+            Add("Play 50 games.", "Zagraj 50 gier.", "Juega 50 partidas.");
+            Add("Lifer", "Weteran", "Veterano");
+            Add("Play 200 games.", "Zagraj 200 gier.", "Juega 200 partidas.");
+            Add("Pyromaniac", "Piroman", "Pirómano");
+            Add("Burn the pile 25 times.", "Spal stos 25 razy.", "Quema el montón 25 veces.");
+            Add("Inferno", "Inferno", "Infierno");
+            Add("Burn the pile 100 times.", "Spal stos 100 razy.", "Quema el montón 100 veces.");
+            Add("On Fire", "W ogniu", "En racha");
+            Add("Win 3 games in a row.", "Wygraj 3 gry z rzędu.", "Gana 3 partidas seguidas.");
+            Add("Unstoppable", "Nie do zatrzymania", "Imparable");
+            Add("Win 5 games in a row.", "Wygraj 5 gier z rzędu.", "Gana 5 partidas seguidas.");
+            Add("Crowd Pleaser", "Ulubieniec tłumu", "El favorito del público");
+            Add("Win a game with 6 or more players.", "Wygraj grę z 6 lub więcej graczami.", "Gana una partida con 6 o más jugadores.");
+            Add("Full House", "Pełny stół", "Mesa llena");
+            Add("Win a 10-player game.", "Wygraj grę z 10 graczami.", "Gana una partida de 10 jugadores.");
+            Add("Giant Slayer", "Pogromca gigantów", "Matagigantes");
+            Add("Win against Hard computers.", "Wygraj z trudnymi przeciwnikami.", "Gana a los rivales difíciles.");
+            Add("Boss Level", "Poziom boss", "Nivel jefe");
+            Add("Win 10 games against Hard computers.", "Wygraj 10 gier z trudnymi przeciwnikami.", "Gana 10 partidas a los rivales difíciles.");
+            Add("Untouchable", "Nietykalny", "Intocable");
+            Add("Win without picking up the pile once.", "Wygraj, ani razu nie biorąc stosu.", "Gana sin recoger el montón ni una vez.");
+            Add("Comeback Kid", "Mistrz powrotów", "Rey de la remontada");
+            Add("Win after picking up 10 or more cards at once.", "Wygraj po wzięciu naraz 10 lub więcej kart.", "Gana después de recoger 10 o más cartas de golpe.");
+            Add("Hoarder", "Zbieracz", "Acaparador");
+            Add("Pick up 15 or more cards at once.", "Weź naraz 15 lub więcej kart.", "Recoge 15 o más cartas de golpe.");
+            Add("Skip Day", "Dzień wolny", "Día libre");
+            Add("Skip 3 players with one play.", "Pomiń 3 graczy jednym ruchem.", "Salta a 3 jugadores en una jugada.");
+            Add("Four of a Kind", "Kareta", "Póker");
+            Add("Play four cards of the same rank at once.", "Zagraj naraz cztery karty tej samej wartości.", "Juega cuatro cartas del mismo valor a la vez.");
+            Add("Social Butterfly", "Dusza towarzystwa", "Alma de la fiesta");
+            Add("Finish a multiplayer game.", "Ukończ grę wieloosobową.", "Termina una partida multijugador.");
+            Add("Party Animal", "Imprezowicz", "Fiestero");
+            Add("Finish 10 multiplayer games.", "Ukończ 10 gier wieloosobowych.", "Termina 10 partidas multijugador.");
+            Add("Wear the Crown", "Korona dla Ciebie", "Lleva la corona");
+            Add("Be the Shedhead for the first time.", "Zostań Shedheadem po raz pierwszy.", "Sé el Shedhead por primera vez.");
+            Add("Daily Grind", "Codzienna harówka", "Rutina diaria");
+            Add("Complete 10 daily challenges.", "Ukończ 10 wyzwań dnia.", "Completa 10 retos diarios.");
+            Add("Week Streak", "Tydzień z rzędu", "Semana seguida");
+            Add("Play 7 days in a row.", "Graj 7 dni z rzędu.", "Juega 7 días seguidos.");
+            Add("Double Digits", "Dwucyfrowy", "Doble dígito");
+            Add("Reach level 10.", "Osiągnij poziom 10.", "Llega al nivel 10.");
+            Add("Card Thrower", "Rzucacz kart", "Lanzacartas");
+            Add("Play 1,000 cards.", "Zagraj 1000 kart.", "Juega 1000 cartas.");
+
+            // ---------------------------------------------------------- stats
+            Add("Games played", "Rozegrane gry", "Partidas jugadas");
+            Add("Wins", "Wygrane", "Victorias");
+            Add("Win rate", "Odsetek wygranych", "Porcentaje de victorias");
+            Add("Times you were the Shedhead", "Ile razy byłeś Shedheadem", "Veces que fuiste el Shedhead");
+            Add("Current win streak", "Obecna seria wygranych", "Racha de victorias actual");
+            Add("Best win streak", "Najlepsza seria wygranych", "Mejor racha de victorias");
+            Add("Wins against Hard computers", "Wygrane z trudnymi przeciwnikami", "Victorias contra rivales difíciles");
+            Add("Multiplayer games", "Gry wieloosobowe", "Partidas multijugador");
+            Add("Cards played", "Zagrane karty", "Cartas jugadas");
+            Add("Piles burned", "Spalone stosy", "Montones quemados");
+            Add("Times you picked up", "Ile razy brałeś stos", "Veces que recogiste");
+            Add("Biggest pick-up", "Największy wzięty stos", "Mayor montón recogido");
+            Add("Players skipped", "Pominięci gracze", "Jugadores saltados");
+            Add("Daily challenges done", "Ukończone wyzwania dnia", "Retos diarios completados");
+            Add("Best day streak", "Najdłuższa seria dni", "Mejor racha de días");
+
             // ---------------------------------------------------------- how to play
             Add(MainMenuController.RulesText,
                 "<b><color=#F2C24D>Cel</color></b>\nPozbądź się wszystkich kart. Gra toczy się, aż wszyscy skończą, więc liczy się każde miejsce od 1. do ostatniego.\n\n" +

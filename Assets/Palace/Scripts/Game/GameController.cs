@@ -39,6 +39,8 @@ namespace Palace
         public event Action<GameEvent> EventStarted;
         public bool HoldAutoPlay { get; set; }
         public TableView Table => table;
+        public bool TipShowing => coach != null && coach.Showing;     // tests only
+        public void TestDismissTip() => coach?.Dismiss();
 
         /// <summary>A hand card the local player could drag onto the pile right now, or null.</summary>
         public CardView FindPlayableHandCard()
@@ -116,6 +118,7 @@ namespace Palace
             ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
             ring.SetStyle(fx.Style);
             BuildHud();
+            Progress.Celebrate += OnCelebrate;
 
             if (NetSession.Active && NetSession.Instance.InGame) StartNetworked();
             else StartNewGame();
@@ -249,6 +252,7 @@ namespace Palace
 
         private void OnDestroy()
         {
+            Progress.Celebrate -= OnCelebrate;
             Tween.SpeedMultiplier = 1f; // never carry fast-forward into the menu
             if (net == null) return;
             net.Disconnected -= OnNetDisconnected;
@@ -291,6 +295,8 @@ namespace Palace
             if (resultsLayer != null) Destroy(resultsLayer.gameObject);
             if (pausePanel != null) pausePanel.SetActive(false);
             ClosePileViewer();
+            coach?.Dismiss();
+            coach = null;
             foreach (Transform flying in table.FxRoot) Destroy(flying.gameObject); // cards left mid-flight by a restart
         }
 
@@ -329,7 +335,21 @@ namespace Palace
             }
 
             int seed = GameLaunch.Seed != 0 ? GameLaunch.Seed : Environment.TickCount;
-            Game = PalaceGame.Create(names, isBot, new HouseRules(), seed);
+            bool tutorial = GameLaunch.Tutorial && !IsNetworked && !GameLaunch.SpectateOnly;
+            if (tutorial)
+            {
+                // The guided first game: you and two easy computer players, with a coach.
+                Game = TutorialSetup.Create(GameLaunch.PlayerName, new HouseRules(), seed);
+                localPlayer = 0;
+                coach = new TutorialCoach(this, hudRoot, localPlayer);
+                botLevel = BotLevel.Easy;
+            }
+            else
+            {
+                Game = PalaceGame.Create(names, isBot, new HouseRules(), seed);
+                botLevel = IsNetworked ? BotLevel.Normal : (BotLevel)Mathf.Clamp(GameLaunch.BotLevel, 0, 2);
+            }
+            isTutorial = tutorial;
             botRng = new System.Random(seed * 31 + 7);
 
             BuildTable();
@@ -388,7 +408,8 @@ namespace Palace
             }
             if (statusText != null) UpdateStatus();
             HandleKeyboard();
-            bool singlePlayerPause = !IsNetworked && (paused || viewingPile);
+            coach?.Tick();
+            bool singlePlayerPause = !IsNetworked && (paused || viewingPile || (coach != null && coach.Holding));
             if (busy || singlePlayerPause || Game.State.Phase == GamePhase.GameOver) return;
 
             int actor = Game.State.ActingPlayer;
@@ -404,9 +425,15 @@ namespace Palace
             bool computerPlays = Game.State.Players[actor].IsBot || takenOver.Contains(actor) || autoPlayLocal;
             if (!computerPlays || !BotReady()) return; // otherwise waiting for a person (here or on another device)
 
-            BotMove move = BotBrain.Decide(Game, actor, botRng);
+            // A player who left (and autoplay tests) get a Normal bot; real bots play at the chosen level.
+            BotLevel level = Game.State.Players[actor].IsBot ? botLevel : BotLevel.Normal;
+            BotMove move = BotBrain.Decide(Game, actor, botRng, level);
             Execute(BotBrain.Execute(Game, actor, move));
         }
+
+        private BotLevel botLevel = BotLevel.Normal;
+        private bool isTutorial;
+        private TutorialCoach coach;
 
         /// <summary>True once a computer player has "thought" for long enough.</summary>
         private bool BotReady()
@@ -497,6 +524,11 @@ namespace Palace
         /// </summary>
         private void HandleKeyboard()
         {
+            if (coach != null && coach.Showing)
+            {
+                if (KeyInput.Confirm() || KeyInput.Escape()) coach.Dismiss(); // Enter / Space / Esc closes a tip
+                return;
+            }
             if (KeyInput.Escape())
             {
                 if (pileViewer != null) ClosePileViewer();
@@ -968,6 +1000,12 @@ namespace Palace
         {
             GameState s = Game.State;
             EventStarted?.Invoke(e);
+            if (localPlayer >= 0)
+            {
+                if (e.Type == GameEventType.GameStarted) Progress.StartGame();
+                Progress.OnLocalEvent(e, localPlayer); // stats, achievements and daily challenges
+            }
+            coach?.OnEvent(e);
             string who = e.Player >= 0 && e.Player < s.Players.Count ? s.Players[e.Player].Name : "";
             Vector2 centre = table.DiscardPoint + new Vector2(-120f, 210f); // above the "Next:" banner, below the top seats
 
@@ -1410,11 +1448,27 @@ namespace Palace
             int n = s.Players.Count;
             resultsLayer = UIKit.Layer(hudRoot, "Results", UIKit.Scrim);
             float height = 300f + n * 52f;
-            var panel = UIKit.Panel(resultsLayer, new Vector2(760f, height), Vector2.zero);
+            bool showProgress = localPlayer >= 0;
+            var panel = UIKit.Panel(resultsLayer, new Vector2(760f, height), new Vector2(showProgress ? -300f : 0f, 0f));
             float top = height * 0.5f;
 
+            if (showProgress)
+            {
+                int position = s.Players[localPlayer].FinishPosition;
+                Progress.Report report = Progress.FinishGame(position, n, IsNetworked ? -1 : (int)botLevel, IsNetworked, isTutorial);
+                if (isTutorial)
+                {
+                    GameSettings.TutorialDone = true;
+                    GameLaunch.Tutorial = false; // "Play Again" starts a normal game
+                    coach?.Dismiss();
+                    coach = null;
+                }
+                BuildProgressPanel(report, Mathf.Max(height, 460f));
+            }
+
             int winner = s.FinishOrder[0];
-            string title = winner == localPlayer ? Loc.T("You win!") : Loc.F("{0} wins!", s.Players[winner].Name);
+            string title = isTutorial ? Loc.T("Guided game complete!")
+                : winner == localPlayer ? Loc.T("You win!") : Loc.F("{0} wins!", s.Players[winner].Name);
             UIKit.Label(panel.transform, title, 60f, new Vector2(700f, 80f), new Vector2(0f, top - 60f), TextAlignmentOptions.Center, UIKit.Gold, true);
             string subtitle = Loc.F("{0} players", n);
             if (localPlayer >= 0)
@@ -1443,6 +1497,98 @@ namespace Palace
                 UIKit.Button(panel.transform, "Play Again", new Vector2(300f, 80f), new Vector2(-165f, -top + 65f), StartNewGame, true);
             UIKit.Button(panel.transform, IsNetworked ? "Leave game" : "Main Menu", new Vector2(300f, 80f), new Vector2(165f, -top + 65f), GoToMainMenu);
             AudioManager.Play(Sfx.Win);
+        }
+
+        /// <summary>Beside the results: level, the XP bar filling up, and everything earned this game.</summary>
+        private void BuildProgressPanel(Progress.Report report, float height)
+        {
+            var panel = UIKit.Panel(resultsLayer, new Vector2(560f, height), new Vector2(390f, 0f));
+            float top = height * 0.5f;
+            var levelText = UIKit.Label(panel.transform, Loc.F("Level {0}", report.LevelBefore), 48f, new Vector2(500f, 64f),
+                new Vector2(0f, top - 56f), TextAlignmentOptions.Center, UIKit.Gold, true);
+
+            var barBg = UIBuild.Image("XpBar", panel.transform, UIKit.PanelSprite, new Color(0f, 0f, 0f, 0.55f), new Vector2(460f, 26f), new Vector2(0f, top - 112f));
+            barBg.type = Image.Type.Sliced;
+            var fill = UIBuild.Image("Fill", barBg.transform, UIKit.PrimarySprite != null ? UIKit.PrimarySprite : UIKit.PanelSprite,
+                UIKit.PrimarySprite != null ? Color.white : UIKit.Gold, new Vector2(452f, 18f), Vector2.zero);
+            fill.type = Image.Type.Sliced;
+            var frt = fill.rectTransform;
+            frt.anchorMin = frt.anchorMax = new Vector2(0f, 0.5f);
+            frt.pivot = new Vector2(0f, 0.5f);
+            frt.anchoredPosition = new Vector2(4f, 0f);
+            void SetFill(float f) => frt.sizeDelta = new Vector2(Mathf.Max(14f, 452f * Mathf.Clamp01(f)), 18f);
+            SetFill(report.FractionBefore);
+
+            UIKit.Label(panel.transform, Loc.F("+{0} XP", report.Xp), 30f, new Vector2(500f, 44f), new Vector2(0f, top - 156f),
+                TextAlignmentOptions.Center, UIKit.Text, true);
+
+            float y = top - 210f;
+            var lines = new List<string>(report.Lines);
+            int left = Progress.DailiesLeft;
+            lines.Add(left == 0 ? Loc.T("All daily challenges done. New ones tomorrow!")
+                : left == 1 ? Loc.T("1 daily challenge left today") : Loc.F("{0} daily challenges left today", left));
+            foreach (string line in lines.Take(6))
+            {
+                var t = UIKit.Label(panel.transform, line, 23f, new Vector2(500f, 56f), new Vector2(0f, y), TextAlignmentOptions.Center, UIKit.Muted);
+                t.textWrappingMode = TextWrappingModes.Normal;
+                y -= 60f;
+            }
+
+            StartCoroutine(FillXp());
+
+            IEnumerator FillXp()
+            {
+                yield return new WaitForSecondsRealtime(0.4f);
+                for (int level = report.LevelBefore; level <= report.Level; level++)
+                {
+                    float from = level == report.LevelBefore ? report.FractionBefore : 0f;
+                    float to = level == report.Level ? report.Fraction : 1f;
+                    yield return Tween.Run(0.6f, t => SetFill(Mathf.Lerp(from, to, t)));
+                    if (level < report.Level)
+                    {
+                        levelText.text = Loc.F("Level {0}", level + 1);
+                        AudioManager.Play(Sfx.Win, 0.6f);
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------ celebration banners
+
+        private readonly Queue<(string head, string detail)> celebrations = new Queue<(string, string)>();
+        private bool celebrating;
+
+        private void OnCelebrate(string head, string detail)
+        {
+            if (this == null || hudRoot == null) return;
+            celebrations.Enqueue((head, detail));
+            if (!celebrating) StartCoroutine(ShowCelebrations());
+        }
+
+        /// <summary>A gold banner drops in at the top of the screen for each unlock, one at a time.</summary>
+        private IEnumerator ShowCelebrations()
+        {
+            celebrating = true;
+            while (celebrations.Count > 0)
+            {
+                var (head, detail) = celebrations.Dequeue();
+                var banner = UIKit.Panel(hudRoot, new Vector2(820f, 104f), Vector2.zero, new Color(0.10f, 0.07f, 0.03f, 0.96f));
+                var rt = banner.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+                banner.raycastTarget = false;
+                UIKit.Label(banner.transform, head, 30f, new Vector2(780f, 44f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Gold, true);
+                UIKit.Label(banner.transform, detail, 24f, new Vector2(780f, 38f), new Vector2(0f, -22f), TextAlignmentOptions.Center, UIKit.Text);
+                var group = banner.gameObject.AddComponent<CanvasGroup>();
+                group.blocksRaycasts = false;
+                AudioManager.Play(Sfx.Win, 0.45f);
+                Haptics.Buzz();
+
+                yield return Tween.Run(0.3f, t => rt.anchoredPosition = new Vector2(0f, Mathf.Lerp(60f, -70f, 1f - (1f - t) * (1f - t))));
+                yield return new WaitForSecondsRealtime(2.4f);
+                yield return Tween.Fade(group, 1f, 0f, 0.35f);
+                Destroy(banner.gameObject);
+            }
+            celebrating = false;
         }
     }
 }

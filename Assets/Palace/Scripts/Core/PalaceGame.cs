@@ -41,6 +41,16 @@ namespace Palace.Core
         // ==================================================================
 
         public static PalaceGame Create(IReadOnlyList<string> names, IReadOnlyList<bool> isBot, HouseRules rules, int seed)
+            => Create(names, isBot, rules, seed, null, -1);
+
+        /// <summary>
+        /// A game with a stacked deck (used by the guided first game). <paramref name="dealOrder"/> lists
+        /// the ranks of the cards in the order they come off the deck: the deal first (face-down round,
+        /// face-up round, then hands, one card to each player in turn), then the draws. The rest of the
+        /// deck is shuffled as normal. The rules are exactly the same as any other game.
+        /// </summary>
+        public static PalaceGame Create(IReadOnlyList<string> names, IReadOnlyList<bool> isBot, HouseRules rules, int seed,
+            IReadOnlyList<Rank> dealOrder, int firstPlayer)
         {
             int n = names.Count;
             if (n < 2 || n > 10) throw new ArgumentException("Palace needs 2-10 players.");
@@ -59,6 +69,7 @@ namespace Palace.Core
                         state.DrawPile.Add(new Card(id++, (Rank)r, (Suit)s));
             state.TotalCards = id;
             game.Shuffle(state.DrawPile);
+            if (dealOrder != null) game.Stack(dealOrder);
 
             // Deal like at a real table: a round of face-down, a round of face-up, then hands.
             for (int slot = 0; slot < HouseRules.TableCards; slot++)
@@ -68,7 +79,7 @@ namespace Palace.Core
             for (int k = 0; k < HouseRules.HandSize; k++)
                 foreach (var p in state.Players) p.Hand.Add(game.DrawTop());
 
-            state.Current = game.rng.Next(n); // Q6: random first player
+            state.Current = firstPlayer >= 0 && firstPlayer < n ? firstPlayer : game.rng.Next(n); // Q6: random first player
             game.startEvents.Add(new GameEvent { Type = GameEventType.GameStarted });
             game.startEvents.Add(new GameEvent { Type = GameEventType.TurnChanged, Player = state.Current });
             return game;
@@ -81,6 +92,21 @@ namespace Palace.Core
                 int j = rng.Next(i + 1);
                 (cards[i], cards[j]) = (cards[j], cards[i]);
             }
+        }
+
+        /// <summary>Moves cards of the given ranks to the top of the deck, first rank drawn first.</summary>
+        private void Stack(IReadOnlyList<Rank> order)
+        {
+            var pile = State.DrawPile;
+            var top = new List<Card>();
+            foreach (Rank r in order)
+            {
+                int i = pile.FindIndex(c => c.Rank == r);
+                if (i < 0) continue; // no more of that rank: the next card is a random one
+                top.Add(pile[i]);
+                pile.RemoveAt(i);
+            }
+            for (int i = top.Count - 1; i >= 0; i--) pile.Add(top[i]); // drawn from the end
         }
 
         private Card DrawTop()

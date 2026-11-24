@@ -70,6 +70,24 @@
 - [ ] **You:** open the project, run **Palace → Setup → 2 - Generate Art** (paints the flags), then play-test
 - [ ] **You:** to switch cloud save on, follow Docs/Cloud-Save-Setup.md (install Cloud Save, enable Player Accounts)
 
+## Tutorial, bot skill levels, progression ✅ (code) — needs a check in the editor
+- [x] Computer skill: Easy / Normal / Hard (Single Player screen). Same rules at every level. Measured over thousands of
+      bot games (`dotnet run` in Tests/Palace.Core.Tests): Hard beats Easy 72% and Normal 56% one-on-one, and wins 32% of
+      4-player games against Normal bots (a fair share is 25%)
+- [x] Guided first game: you + 2 Easy bots, stacked deal, 16 tips that appear the first time each thing happens
+      (special cards, pick-ups, face-up / face-down stages, pile viewer). Bots wait while a tip is open. Offered the first
+      time you press Single Player; also on the Single Player and How to Play screens
+- [x] Levels and XP (every game earns XP, more for finishing higher; level-ups pay coins)
+- [x] 27 achievements with coin rewards, progress bars and an unlock banner during play
+- [x] 3 daily challenges (same for everyone each day, reset at local midnight) + a bonus for finishing all 3
+- [x] Daily streak reward on the first visit each day (10 coins a day in a row, up to 70)
+- [x] Progress screen (Daily / Achievements / Stats), level badge on the main menu, red dot = challenges left
+- [x] Results screen shows the XP bar filling, level-ups and everything earned that game
+- [x] Stats, XP and achievements are included in the cloud backup
+- [ ] **You:** play the guided game once and check the tips read well and appear at the right moments
+- [ ] **You:** decide the 2-player 8s stalemate (see Known limitations)
+- All reward numbers (XP, coins, targets) are in the tables at the top of `Scripts/App/Progress.cs`
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong
@@ -86,5 +104,10 @@
 
 ## Known limitations / notes
 - The hand area is positioned relative to the table, so 4:3 tablets have spare space below it.
-- Bots are deliberately simple (cheapest legal card, saving 2s/10s/Aces). A harder difficulty can come later.
+- **Rules question — 2-player stalemate with 8s.** With 2 players, an 8 skips the other player, so you go again
+  and must follow it with an 8 or higher. If both players are left holding an 8 with only low cards to follow it
+  (no 2, 10 or Ace left in play), each player keeps playing their 8 and picking it straight back up. The game can
+  then never end. It is rare (0 to 3 times in 13,000 test games, depending on how the bots play), but it can happen
+  with people too. Possible fixes, for you to choose: (a) in a 2-player game an 8 is just a normal card; (b) when you're skipped back to
+  yourself you may play any card; (c) the game ends after N turns with nobody finishing.
 - `AutoPlayHarness` only runs when the game is launched with `-palace-autoplay` (used for automated testing).

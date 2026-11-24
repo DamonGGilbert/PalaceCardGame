@@ -16,6 +16,7 @@ internal static class Program
         RuleScenarios();
         NetworkMessages();
         Simulations();
+        BotLevelsAndTutorial();
         Console.WriteLine();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");
         return failed == 0 ? 0 : 1;
@@ -521,6 +522,83 @@ internal static class Program
         foreach (var kv in turnsByCount)
             Console.WriteLine($"  {kv.Key,2} players: 400 games, average {kv.Value.Average():F0} actions, max {kv.Value.Max()}");
         Console.WriteLine($"  {games} games total, longest {longest} actions");
+    }
+
+    // ------------------------------------------------------------------ part 3
+
+    private static void BotLevelsAndTutorial()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Bot skill levels and the guided game");
+
+        // Head-to-head: seat 0 plays at one level, everyone else at another. The first player is
+        // random, so the only difference is skill. A game still going after 5000 moves is counted as
+        // a stalemate (see the 2-player 8s note in Docs/PROGRESS.md).
+        bool allLegal = true;
+        int stalemates = 0, played = 0;
+        double Rate(BotLevel a, BotLevel b, int players, int games)
+        {
+            var rng = new Random(777 + players * 13 + (int)a * 5 + (int)b);
+            int wins = 0;
+            for (int k = 0; k < games; k++)
+            {
+                var names = Enumerable.Range(0, players).Select(i => "Bot" + i).ToList();
+                var game = PalaceGame.Create(names, Enumerable.Repeat(true, players).ToList(), new HouseRules(), rng.Next());
+                int actions = 0;
+                while (game.State.Phase != GamePhase.GameOver && actions < 5000)
+                {
+                    int actor = game.State.ActingPlayer;
+                    var res = BotBrain.Execute(game, actor, BotBrain.Decide(game, actor, rng, actor == 0 ? a : b));
+                    if (!res.Ok) { allLegal = false; break; }
+                    actions++;
+                }
+                played++;
+                if (game.State.Phase != GamePhase.GameOver) stalemates++;
+                else if (game.State.FinishOrder[0] == 0) wins++;
+            }
+            return wins / (double)games;
+        }
+
+        double hardVsEasy = Rate(BotLevel.Hard, BotLevel.Easy, 2, 3000);
+        double hardVsNormal = Rate(BotLevel.Hard, BotLevel.Normal, 2, 3000);
+        double normalVsEasy = Rate(BotLevel.Normal, BotLevel.Easy, 2, 3000);
+        double hardVsNormal4 = Rate(BotLevel.Hard, BotLevel.Normal, 4, 3000);
+        double easyVsHard6 = Rate(BotLevel.Easy, BotLevel.Hard, 6, 1000);
+        Console.WriteLine($"  1 v 1 win rate: Hard v Easy {hardVsEasy:P0}, Hard v Normal {hardVsNormal:P0}, Normal v Easy {normalVsEasy:P0}");
+        Console.WriteLine($"  4 players, Hard against 3 Normal: Hard wins {hardVsNormal4:P0} (fair share 25%)");
+        Console.WriteLine($"  6 players, Easy against 5 Hard: Easy wins {easyVsHard6:P0} (fair share 17%)");
+        Console.WriteLine($"  stalemates: {stalemates} of {played} games");
+        Check(allLegal, "every skill level only makes legal moves");
+        Check(stalemates * 500 < played, "stalemates are very rare (under 1 in 500 games)");
+        Check(hardVsEasy > 0.6, "Hard beats Easy most of the time");
+        Check(normalVsEasy > 0.55, "Normal beats Easy more often than not");
+        Check(hardVsNormal > 0.53, "Hard beats Normal more often than not");
+        Check(hardVsNormal4 > 0.28, "Hard wins clearly more than its fair share at a 4-player table");
+
+        // The guided game: a stacked deck, otherwise normal.
+        var t = TutorialSetup.Create("You", new HouseRules(), 99);
+        var you = t.State.Players[0];
+        Check(t.State.Current == 0, "guided game: you go first");
+        Check(you.Hand.Select(c => c.Rank).OrderBy(r => r).SequenceEqual(new[] { Rank.Four, Rank.Four, Rank.Seven }), "guided game: you hold 4, 4, 7");
+        Check(you.FaceUp.Count(c => c.HasValue && c.Value.Rank == Rank.King) == 2, "guided game: two Kings face up (to learn playing a pair)");
+        Check(t.State.DrawPile[t.State.DrawPile.Count - 1].Rank == Rank.Ten, "guided game: the first card drawn is a 10");
+        Check(CountCards(t.State) == 52 && t.State.DrawPile.Select(c => c.Id).Concat(t.State.Players.SelectMany(p => p.Hand.Select(c => c.Id))).Distinct().Count() == 52 - 27 + 9,
+            "guided game: one normal 52-card deck");
+        var trng = new Random(5);
+        bool tutorialEnds = true;
+        for (int k = 0; k < 300; k++)
+        {
+            var g = TutorialSetup.Create("You", new HouseRules(), k);
+            int actions = 0;
+            while (g.State.Phase != GamePhase.GameOver && actions < 20000)
+            {
+                int actor = g.State.ActingPlayer;
+                if (!BotBrain.Execute(g, actor, BotBrain.Decide(g, actor, trng, actor == 0 ? BotLevel.Normal : BotLevel.Easy)).Ok) break;
+                actions++;
+            }
+            if (g.State.Phase != GamePhase.GameOver) tutorialEnds = false;
+        }
+        Check(tutorialEnds, "guided game: 300 played-out games all end normally");
     }
 
     private static int CountCards(GameState s)

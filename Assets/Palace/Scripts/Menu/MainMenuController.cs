@@ -24,7 +24,31 @@ namespace Palace
 
         private Image felt;
         private readonly List<CardView> decorBacks = new List<CardView>();
-        private GameObject mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel;
+        private GameObject mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel, progressPanel;
+        private ProgressMenu progressMenu;
+        private TextMeshProUGUI badgeLevel, badgeStreak, dailiesBadgeText;
+        private Image badgeFill;
+        private GameObject dailiesBadge, popup;
+
+        private void OpenProgress()
+        {
+            Show(progressPanel);
+            progressMenu.Open();
+        }
+
+        /// <summary>Top-left badge (level, XP bar, day streak) and the "challenges left" dot on the Progress button.</summary>
+        private void RefreshBadges()
+        {
+            if (this == null || badgeLevel == null) return;
+            int level = Progress.LevelFor(Progress.TotalXp, out int into, out int needed);
+            badgeLevel.text = Loc.F("Level {0}", level);
+            badgeStreak.text = Loc.F("Day streak: {0}", Progress.DayStreak);
+            var rt = badgeFill.rectTransform;
+            rt.sizeDelta = new Vector2(Mathf.Max(12f, 254f * into / needed), rt.sizeDelta.y);
+            int left = Progress.DailiesLeft;
+            dailiesBadge.SetActive(left > 0);
+            dailiesBadgeText.text = left.ToString();
+        }
         private CustomiseMenu customise;
         private TextMeshProUGUI coinsLabel;
 
@@ -48,6 +72,7 @@ namespace Palace
         {
             Cosmetics.Changed -= OnCosmeticsChanged;
             CloudProgress.Changed -= RefreshCloud;
+            Progress.Changed -= RefreshBadges;
         }
         private TextMeshProUGUI opponentsLabel, tableSizeLabel;
 
@@ -82,6 +107,18 @@ namespace Palace
             customise = gameObject.AddComponent<CustomiseMenu>();
             customise.Build((RectTransform)customisePanel.transform, cardTheme, () => Show(mainPanel));
             customisePanel.SetActive(false);
+            progressPanel = UIBuild.Stretch("ProgressRoot", root).gameObject;
+            progressMenu = gameObject.AddComponent<ProgressMenu>();
+            progressMenu.Build((RectTransform)progressPanel.transform, () => Show(mainPanel));
+            progressPanel.SetActive(false);
+            Progress.Changed += RefreshBadges;
+            RefreshBadges();
+
+            // The first visit each day pays the streak reward (not in automated test runs).
+            string[] runArgs = Environment.GetCommandLineArgs();
+            bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0;
+            int streakCoins = automated ? 0 : Progress.CheckIn();
+            if (streakCoins > 0) StartCoroutine(DailyRewardWhenReady(streakCoins));
 
             if (!GameLaunch.SplashShown) StartCoroutine(Splash());
             else if (!string.IsNullOrEmpty(GameLaunch.MenuMessage)) OpenMultiplayer(GameLaunch.MenuMessage); // e.g. "The host left"
@@ -106,8 +143,73 @@ namespace Palace
 
         private void Show(GameObject panel)
         {
-            foreach (var p in new[] { mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel })
+            foreach (var p in new[] { mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel, progressPanel })
                 p.SetActive(p == panel);
+            if (panel == mainPanel) RefreshBadges();
+        }
+
+        // ------------------------------------------------------------------ pop-ups
+
+        /// <summary>A small dialog over the menu with one or two buttons. Each button closes it first.</summary>
+        private void Popup(string title, string body, string a, Action onA, string b = null, Action onB = null)
+        {
+            ClosePopup();
+            var layer = UIKit.Layer(root.parent, "Popup", UIKit.Scrim);
+            popup = layer.gameObject;
+            var panel = UIKit.Panel(layer, new Vector2(900f, 420f), Vector2.zero);
+            UIKit.Label(panel.transform, title, 48f, new Vector2(820f, 70f), new Vector2(0f, 140f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            var text = UIKit.Label(panel.transform, body, 30f, new Vector2(820f, 160f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
+            text.textWrappingMode = TextWrappingModes.Normal;
+            if (b == null)
+                UIKit.Button(panel.transform, a, new Vector2(320f, 80f), new Vector2(0f, -140f), () => { ClosePopup(); onA?.Invoke(); }, true);
+            else
+            {
+                UIKit.Button(panel.transform, a, new Vector2(360f, 80f), new Vector2(-195f, -140f), () => { ClosePopup(); onA?.Invoke(); }, true);
+                UIKit.Button(panel.transform, b, new Vector2(360f, 80f), new Vector2(195f, -140f), () => { ClosePopup(); onB?.Invoke(); });
+            }
+        }
+
+        private void ClosePopup()
+        {
+            if (popup != null) Destroy(popup);
+            popup = null;
+        }
+
+        private IEnumerator DailyRewardWhenReady(int coins)
+        {
+            while (!mainPanel.activeSelf) yield return null; // after the splash
+            yield return new WaitForSecondsRealtime(0.3f);
+            int day = Progress.DayStreak;
+            string body = (day <= 1 ? Loc.T("Welcome back!") : Loc.F("Day {0} in a row!", day)) + "\n" + Loc.F("+{0} coins", coins) + "\n\n"
+                          + Loc.F("Come back tomorrow for {0} coins.", Progress.StreakCoins(day + 1));
+            Popup(Loc.T("Daily reward"), body, "Collect", null);
+            AudioManager.Play(Sfx.Win, 0.6f);
+        }
+
+        /// <summary>Single Player: the first time, offer the guided game.</summary>
+        private void OpenSinglePlayer()
+        {
+            if (GameSettings.TutorialDone || GameSettings.TutorialOffered)
+            {
+                Show(singlePanel);
+                return;
+            }
+            GameSettings.TutorialOffered = true;
+            GameSettings.Save();
+            Popup(Loc.T("New to Palace?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
+                "Teach me", StartTutorial, "I know how to play", () => Show(singlePanel));
+        }
+
+        private void StartTutorial()
+        {
+            GameSettings.Save();
+            GameLaunch.PlayerName = GameSettings.PlayerName;
+            GameLaunch.SpectateOnly = false;
+            GameLaunch.Seed = 0;
+            GameLaunch.BotCount = GameSettings.BotCount;   // used by "Play Again" afterwards
+            GameLaunch.BotLevel = GameSettings.BotLevel;
+            GameLaunch.Tutorial = true;
+            SceneManager.LoadScene(GameLaunch.GameScene);
         }
 
         // ------------------------------------------------------------------ splash
@@ -188,13 +290,42 @@ namespace Palace
             BuildFan(p, new Vector2(-600f, -60f), new[] { new Card(0, Rank.Queen, Suit.Hearts), new Card(1, Rank.King, Suit.Clubs) }, -1f);
             BuildFan(p, new Vector2(600f, -60f), new[] { new Card(2, Rank.Seven, Suit.Spades), new Card(3, Rank.Eight, Suit.Diamonds) }, 1f);
 
-            var size = new Vector2(440f, 72f);
-            UIKit.Button(p, "Single Player", size, new Vector2(0f, 148f), () => Show(singlePanel), true, 32f);
-            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, 64f), () => OpenMultiplayer());
-            UIKit.Button(p, "Customise", size, new Vector2(0f, -20f), OpenCustomise);
-            UIKit.Button(p, "How to Play", size, new Vector2(0f, -104f), () => Show(howPanel));
-            UIKit.Button(p, "Settings", size, new Vector2(0f, -188f), () => Show(settingsPanel));
-            UIKit.Button(p, "Credits", size, new Vector2(0f, -272f), () => Show(creditsPanel));
+            var size = new Vector2(440f, 68f);
+            const float top = 160f, step = 77f;
+            UIKit.Button(p, "Single Player", size, new Vector2(0f, top), OpenSinglePlayer, true, 32f);
+            UIKit.Button(p, "Multiplayer", size, new Vector2(0f, top - step), () => OpenMultiplayer());
+            var progressButton = UIKit.Button(p, "Progress", size, new Vector2(0f, top - step * 2), OpenProgress);
+            UIKit.Button(p, "Customise", size, new Vector2(0f, top - step * 3), OpenCustomise);
+            UIKit.Button(p, "How to Play", size, new Vector2(0f, top - step * 4), () => Show(howPanel));
+            UIKit.Button(p, "Settings", size, new Vector2(0f, top - step * 5), () => Show(settingsPanel));
+            UIKit.Button(p, "Credits", size, new Vector2(0f, top - step * 6), () => Show(creditsPanel));
+
+            // Red dot with the number of daily challenges still to do.
+            var dot = UIBuild.Image("DailiesLeft", progressButton.transform, UIKit.CircleSprite, new Color(0.80f, 0.16f, 0.12f, 1f),
+                new Vector2(46f, 46f), new Vector2(200f, 22f));
+            dailiesBadge = dot.gameObject;
+            dailiesBadgeText = UIBuild.Text("Count", dot.transform, "", 26f, Color.white, new Vector2(46f, 46f), Vector2.zero,
+                TextAlignmentOptions.Center, UIKit.Font, true, false);
+
+            // Level badge, top left: tap it to open Progress.
+            var badge = UIKit.Panel(p, new Vector2(340f, 108f), Vector2.zero);
+            var brt = badge.rectTransform;
+            brt.anchorMin = brt.anchorMax = new Vector2(0f, 1f);
+            brt.anchoredPosition = new Vector2(200f, -66f);
+            badge.gameObject.AddComponent<Button>().onClick.AddListener(OpenProgress);
+            badgeLevel = UIKit.Label(badge.transform, "", 32f, new Vector2(300f, 44f), new Vector2(0f, 26f), TextAlignmentOptions.Left, UIKit.Gold, true);
+            var barBg = UIBuild.Image("XpBar", badge.transform, UIKit.PanelSprite, new Color(0f, 0f, 0f, 0.55f), new Vector2(260f, 18f), new Vector2(-20f, -8f));
+            barBg.type = Image.Type.Sliced;
+            barBg.pixelsPerUnitMultiplier = 3f;
+            badgeFill = UIBuild.Image("Fill", barBg.transform, UIKit.PrimarySprite != null ? UIKit.PrimarySprite : UIKit.PanelSprite,
+                UIKit.PrimarySprite != null ? Color.white : UIKit.Gold, new Vector2(254f, 12f), Vector2.zero);
+            badgeFill.type = Image.Type.Sliced;
+            badgeFill.pixelsPerUnitMultiplier = 3f;
+            var frt = badgeFill.rectTransform;
+            frt.anchorMin = frt.anchorMax = new Vector2(0f, 0.5f);
+            frt.pivot = new Vector2(0f, 0.5f);
+            frt.anchoredPosition = new Vector2(3f, 0f);
+            badgeStreak = UIKit.Label(badge.transform, "", 22f, new Vector2(300f, 32f), new Vector2(0f, -36f), TextAlignmentOptions.Left, UIKit.Muted);
 
             coinsLabel = UIKit.Label(p, "", 32f, new Vector2(400f, 50f), new Vector2(0f, 0f), TextAlignmentOptions.Right, UIKit.Gold, true);
             var crt = coinsLabel.rectTransform;
@@ -203,7 +334,7 @@ namespace Palace
             coinsLabel.text = Loc.F("{0} coins", Cosmetics.Coins);
 
             bool canQuit = Application.platform != RuntimePlatform.IPhonePlayer && Application.platform != RuntimePlatform.WebGLPlayer;
-            if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, -356f), Quit);
+            if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, top - step * 7), Quit);
         }
 
         /// <summary>Decorative fan: a card back (shows the Settings choice) plus two face cards.</summary>
@@ -248,20 +379,41 @@ namespace Palace
         {
             Transform p = BuildScreen("Single Player", new Vector2(900f, 640f), out singlePanel);
 
-            UIKit.Label(p, "Your name", 28f, new Vector2(300f, 50f), new Vector2(-250f, 150f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(160f, 150f), GameSettings.PlayerName, "Enter your name", 14,
+            UIKit.Label(p, "Your name", 28f, new Vector2(300f, 50f), new Vector2(-250f, 172f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(160f, 172f), GameSettings.PlayerName, "Enter your name", 14,
                 v => GameSettings.PlayerName = v);
 
-            opponentsLabel = UIKit.Label(p, "", 30f, new Vector2(700f, 50f), new Vector2(0f, 55f), TextAlignmentOptions.Center, UIKit.Text, true);
-            UIKit.Slider(p, new Vector2(640f, 44f), new Vector2(0f, -5f), 1, 9, GameSettings.BotCount, true, v =>
+            opponentsLabel = UIKit.Label(p, "", 30f, new Vector2(700f, 50f), new Vector2(0f, 98f), TextAlignmentOptions.Center, UIKit.Text, true);
+            UIKit.Slider(p, new Vector2(640f, 44f), new Vector2(0f, 48f), 1, 9, GameSettings.BotCount, true, v =>
             {
                 GameSettings.BotCount = Mathf.RoundToInt(v);
                 RefreshOpponents();
             });
-            tableSizeLabel = UIKit.Label(p, "", 24f, new Vector2(700f, 40f), new Vector2(0f, -65f), TextAlignmentOptions.Center, UIKit.Muted);
+            tableSizeLabel = UIKit.Label(p, "", 24f, new Vector2(700f, 40f), new Vector2(0f, 4f), TextAlignmentOptions.Center, UIKit.Muted);
             RefreshOpponents();
 
-            UIKit.Button(p, "Start Game", new Vector2(340f, 84f), new Vector2(0f, -170f), StartSinglePlayer, true, 34f);
+            // How well the computers play (same rules at every level).
+            UIKit.Label(p, "Computer skill", 28f, new Vector2(260f, 50f), new Vector2(-280f, -70f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            UIKit.Segmented(p, GameSettings.BotLevelNames, GameSettings.BotLevel, new Vector2(500f, 60f), new Vector2(130f, -70f), i =>
+            {
+                GameSettings.BotLevel = i;
+                RefreshSkillNote();
+            });
+            skillNote = UIKit.Label(p, "", 22f, new Vector2(780f, 36f), new Vector2(0f, -118f), TextAlignmentOptions.Center, UIKit.Muted);
+            RefreshSkillNote();
+
+            UIKit.Button(p, "Start Game", new Vector2(340f, 80f), new Vector2(-185f, -180f), StartSinglePlayer, true, 34f);
+            UIKit.Button(p, "Guided game", new Vector2(300f, 80f), new Vector2(180f, -180f), StartTutorial, false, 28f);
+        }
+
+        private TextMeshProUGUI skillNote;
+
+        private void RefreshSkillNote()
+        {
+            int level = GameSettings.BotLevel;
+            skillNote.text = Loc.T(level == 0 ? "Easy: relaxed computers that often waste their best cards."
+                : level == 2 ? "Hard: computers that save their best cards and target whoever is winning."
+                : "Normal: computers that play sensibly.");
         }
 
         private void RefreshOpponents()
@@ -278,6 +430,8 @@ namespace Palace
             GameSettings.Save();
             GameLaunch.PlayerName = GameSettings.PlayerName;
             GameLaunch.BotCount = GameSettings.BotCount;
+            GameLaunch.BotLevel = GameSettings.BotLevel;
+            GameLaunch.Tutorial = false;
             GameLaunch.SpectateOnly = false;
             GameLaunch.Seed = 0;
             SceneManager.LoadScene(GameLaunch.GameScene);
@@ -307,6 +461,8 @@ namespace Palace
         {
             Transform p = BuildScreen("How to Play", new Vector2(1200f, 900f), out howPanel, -390f);
             UIKit.ScrollText(p, new Vector2(1100f, 640f), new Vector2(0f, 10f), RulesText, 26f);
+            ((RectTransform)lastBackButton.transform).anchoredPosition = new Vector2(-170f, -390f);
+            UIKit.Button(p, "Play the guided game", new Vector2(380f, 70f), new Vector2(170f, -390f), StartTutorial, true, 28f);
         }
 
         public const string RulesText =
@@ -477,6 +633,8 @@ namespace Palace
             text.richText = true;
         }
 
+        private Button lastBackButton;
+
         /// <summary>Creates a titled panel with a Back button and returns the panel's transform.</summary>
         private Transform BuildScreen(string title, Vector2 size, out GameObject screen, float backY = 0f)
         {
@@ -485,7 +643,7 @@ namespace Palace
             UIKit.Label(panel.transform, title, 54f, new Vector2(size.x - 60f, 80f), new Vector2(0f, size.y * 0.5f - 60f),
                 TextAlignmentOptions.Center, UIKit.Gold, true);
             float y = backY != 0f ? backY : -size.y * 0.5f + 60f;
-            UIKit.Button(panel.transform, "Back", new Vector2(220f, 70f), new Vector2(0f, y), () => Show(mainPanel));
+            lastBackButton = UIKit.Button(panel.transform, "Back", new Vector2(220f, 70f), new Vector2(0f, y), () => Show(mainPanel));
             screen.SetActive(false);
             return panel.transform;
         }
@@ -503,6 +661,12 @@ namespace Palace
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, "splash.png"));
             while (!mainPanel.activeSelf) yield return null;
             yield return new WaitForSecondsRealtime(0.8f);
+            if (popup != null) // the daily streak reward
+            {
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_daily_reward.png"));
+                yield return new WaitForSecondsRealtime(0.3f);
+                ClosePopup();
+            }
 
             var shots = new (GameObject panel, string name)[]
             {
@@ -543,6 +707,23 @@ namespace Palace
                 ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_customise_" + name + ".png"));
                 yield return new WaitForSecondsRealtime(0.3f);
             }
+
+            // Progress: daily challenges, achievements, stats; and the first-time guided game offer.
+            Show(progressPanel);
+            for (int tab = 0; tab < 3; tab++)
+            {
+                progressMenu.TestShow(tab);
+                yield return new WaitForSecondsRealtime(0.4f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_progress_" + tab + ".png"));
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+            Show(mainPanel);
+            Popup(Loc.T("New to Palace?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
+                "Teach me", null, "I know how to play", null);
+            yield return new WaitForSecondsRealtime(0.4f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_tutorial_offer.png"));
+            yield return new WaitForSecondsRealtime(0.3f);
+            ClosePopup();
 
             if (Array.IndexOf(args, "-palace-autoplay") >= 0) SceneManager.LoadScene(GameLaunch.GameScene);
             else Application.Quit();
