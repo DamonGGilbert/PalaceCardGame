@@ -228,9 +228,10 @@ namespace Palace
             }
             else
             {
-                bool affordable = Cosmetics.Coins >= item.price;
-                var buy = UIKit.Button(t, Loc.F("Buy  {0}", item.price), new Vector2(220f, 60f), new Vector2(0f, -112f), () => Buy(item), affordable, 26f);
-                if (!affordable) UIKit.SetButtonLabel(buy, Loc.F("{0} coins", item.price));
+                int price = Cosmetics.PriceOf(item);
+                bool affordable = Cosmetics.Coins >= price;
+                var buy = UIKit.Button(t, Loc.F("Buy  {0}", Cosmetics.Amount(price)), new Vector2(220f, 60f), new Vector2(0f, -112f), () => Buy(item), affordable, 26f);
+                if (!affordable) UIKit.SetButtonLabel(buy, Loc.F("{0} coins", Cosmetics.Amount(price)));
             }
         }
 
@@ -369,7 +370,7 @@ namespace Palace
         {
             if (!Cosmetics.TryBuy(item))
             {
-                message.text = Loc.F("You need {0} more coins for {1}.", item.price - Cosmetics.Coins, Loc.T(item.displayName));
+                message.text = Loc.F("You need {0} more coins for {1}.", Cosmetics.Amount(Cosmetics.PriceOf(item) - Cosmetics.Coins), Loc.T(item.displayName));
                 return;
             }
             AudioManager.Play(Sfx.Win, 0.7f);

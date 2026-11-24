@@ -29,6 +29,7 @@ namespace Palace.EditorTools
             ("jamaica", "Jamaica"), ("colombia", "Colombia"), ("peru", "Peru"), ("chile", "Chile")
         };
 
+        // Before Cosmetics.PriceMultiplier (x10 in game: 2,500 / 1,500 / 1,000 coins).
         public const int TablePrice = 250, BackPrice = 150, BannerPrice = 100;
 
         [MenuItem("Palace/Setup/Regenerate Flag Cosmetics", priority = 30)]

@@ -45,6 +45,19 @@ namespace Palace
             return Mathf.Max(15, 40 - (position - 2) * 5);
         }
 
+        // ------------------------------------------------------------------ prices
+
+        /// <summary>
+        /// Every coin price in the catalogue (Generate Art) is multiplied by this, so all of them can be
+        /// raised or lowered in one place without regenerating anything. 10 = a flag table costs 2,500 coins.
+        /// </summary>
+        public const int PriceMultiplier = 10;
+
+        public static int PriceOf(CosmeticItem item) => item == null ? 0 : item.price * PriceMultiplier;
+
+        /// <summary>A coin amount written for people, e.g. 2,500.</summary>
+        public static string Amount(int coins) => coins.ToString("N0");
+
         // ------------------------------------------------------------------ owning and equipping
 
         public static bool Owns(CosmeticItem item) =>
@@ -55,9 +68,9 @@ namespace Palace
         {
             if (Owns(item)) return true;
             if (item.storeOnly) return false;
-            if (Coins < item.price) return false;
+            if (Coins < PriceOf(item)) return false;
             PlayerPrefs.SetInt("palace.own." + item.id, 1);
-            Coins -= item.price; // also saves and notifies
+            Coins -= PriceOf(item); // also saves and notifies
             return true;
         }
 

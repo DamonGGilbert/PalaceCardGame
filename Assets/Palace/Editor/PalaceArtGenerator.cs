@@ -492,7 +492,8 @@ namespace Palace.EditorTools
 
         /// <summary>
         /// The Customise screen's catalogue: every item, its name and its price in coins.
-        /// Price 0 = owned from the start. Edit prices here and re-run Generate Art.
+        /// Price 0 = owned from the start. The game multiplies every price by Cosmetics.PriceMultiplier
+        /// (currently 10), so the numbers here are tenths of what players pay.
         /// </summary>
         private static void BuildCosmeticLibrary()
         {

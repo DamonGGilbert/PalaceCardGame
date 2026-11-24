@@ -118,7 +118,7 @@
 - [x] 32 more country flags (42 in all): Netherlands, Belgium, Luxembourg, Austria, Switzerland, Sweden, Norway,
       Denmark, Finland, Iceland, Greece, Czechia, Hungary, Romania, Bulgaria, Ukraine, Russia, Lithuania, Latvia,
       Estonia, Armenia, Turkey, Japan, Vietnam, India, Nigeria, Ivory Coast, Mali, Jamaica, Colombia, Peru, Chile.
-      Each: table 250, card back 150, banner 100 coins. Flags with detailed emblems (Wales, Canada, Brazil, Mexico,
+      Each: table 2,500, card back 1,500, banner 1,000 coins. Flags with detailed emblems (Wales, Canada, Brazil, Mexico,
       Portugal...) are left out rather than drawn wrongly
 
 ## Waiting on you
@@ -140,3 +140,7 @@
 - **2-player 8s (decided, Q24):** with only 2 players left an 8 is a normal card. Skipping the only other player could
   trap both players in an endless loop. `HouseRules.EightSkipsWithTwoLeft` turns the old behaviour back on.
 - `AutoPlayHarness` only runs when the game is launched with `-palace-autoplay` (used for automated testing).
+
+## Prices
+- All cosmetic prices are x10 (`Cosmetics.PriceMultiplier`): flag tables 2,500 coins, flag backs 1,500, flag banners
+  1,000, Water effect 5,000, Lagoon table 4,000, Midnight Gold deck 3,000. Coin rewards and coin packs are unchanged.
