@@ -21,7 +21,8 @@ namespace Palace.Core
         TurnChanged,        // Player (whose turn it now is)
         GameOver,           // Players (finishing order)
         CardsSwapped,       // Player, Cards[0] = hand card now face-up, Cards[1] = face-up card now in hand, Slots[0]
-        PlayerReady         // Player has finished swapping
+        PlayerReady,        // Player has finished swapping
+        FaceUpTaken         // Player, Cards[0] = face-up card taken into the hand with the pile, Slots[0]
     }
 
     /// <summary>

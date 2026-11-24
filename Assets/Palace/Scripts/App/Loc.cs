@@ -699,6 +699,35 @@ namespace Palace
             Add("Your daily reward is waiting. Fancy a quick game?", "Czeka na Ciebie dzienna nagroda. Szybka partyjka?", "Tu recompensa diaria te espera. ¿Una partida rápida?");
             Add("Keep your streak going! Day {0} pays {1} coins.", "Nie przerywaj serii! Dzień {0} to {1} monet.", "¡Sigue la racha! El día {0} da {1} monedas.");
 
+            // ---------------------------------------------------------- face-up pick-up (Q11)
+            Add("No card can be played. Tap a face-up card to take it with the pile.", "Nie możesz nic zagrać. Dotknij odkrytej karty, aby wziąć ją razem ze stosem.", "No puedes jugar ninguna. Toca una carta boca arriba para llevártela con el montón.");
+            Add("Tap the face-up card you want to take with the pile", "Dotknij odkrytej karty, którą chcesz wziąć ze stosem", "Toca la carta boca arriba que quieres llevarte con el montón");
+            Add("Choose a face-up card to take with the pile", "Wybierz odkrytą kartę do wzięcia ze stosem", "Elige una carta boca arriba para llevártela con el montón");
+            Add("None of your face-up cards can go on the pile. Tap the one you want to take into your hand, and the whole pile comes with it.",
+                "Żadnej odkrytej karty nie można położyć na stos. Dotknij tej, którą chcesz wziąć do ręki, a cały stos przyjdzie razem z nią.",
+                "Ninguna de tus cartas boca arriba vale para el montón. Toca la que quieras llevarte a la mano y el montón entero irá con ella.");
+
+            // ---------------------------------------------------------- profile pictures
+            Add("Picture", "Zdjęcie", "Foto");
+            Add("Your initial", "Twój inicjał", "Tu inicial");
+            Add("Unlocks at level {0}", "Odblokowanie na poziomie {0}", "Se desbloquea en el nivel {0}");
+            Add("You're level {0}. Play games to level up and unlock more pictures.", "Masz poziom {0}. Graj, by awansować i odblokować więcej zdjęć.", "Estás en el nivel {0}. Juega para subir de nivel y desbloquear más fotos.");
+            Add("Spade", "Pik", "Picas");
+            Add("Heart", "Kier", "Corazón");
+            Add("Diamond", "Karo", "Diamante");
+            Add("Club", "Trefl", "Trébol");
+            Add("Star", "Gwiazda", "Estrella");
+            Add("Smile", "Uśmiech", "Sonrisa");
+            Add("Flame", "Płomień", "Llama");
+            Add("Lightning", "Błyskawica", "Rayo");
+            Add("Moon", "Księżyc", "Luna");
+            Add("Sun", "Słońce", "Sol");
+            Add("Cat", "Kot", "Gato");
+            Add("Ghost", "Duszek", "Fantasmita");
+            Add("Clover", "Koniczyna", "Trébol de la suerte");
+            Add("Crown", "Korona", "Corona");
+            Add("Rainbow", "Tęcza", "Arcoíris");
+
             // ---------------------------------------------------------- how to play
             Add(MainMenuController.RulesText,
                 "<b><color=#F2C24D>Cel</color></b>\nPozbądź się wszystkich kart. Gra toczy się, aż wszyscy skończą, więc liczy się każde miejsce od 1. do ostatniego.\n\n" +
@@ -712,7 +741,7 @@ namespace Palace
                 "<b>Dama</b>  Zmienia kierunek gry.\n" +
                 "<b>As</b>  Wybierz, jako co się liczy: dowolna wartość równa lub wyższa od stosu (na Walecie może być W, D, K lub A, nigdy 9). Na NIŻEJ niż 7 może być 2-6. Albo użyj go jako 10, by spalić stos.\n\n" +
                 "<b><color=#F2C24D>Trzy etapy</color></b>\n1. Graj z ręki, aż skończy się talia i opróżnisz rękę.\n" +
-                "2. Potem zagraj odkryte karty.\n3. Na końcu zakryte karty, odkrywane po jednej bez patrzenia. Jeśli karty nie można zagrać, bierzesz z nią stos i musisz znowu opróżnić rękę.\n\n" +
+                "2. Potem zagraj odkryte karty. Jeśli żadnej nie możesz zagrać, bierzesz stos i jedną wybraną odkrytą kartę do ręki.\n3. Na końcu zakryte karty, odkrywane po jednej bez patrzenia. Jeśli karty nie można zagrać, bierzesz z nią stos i musisz znowu opróżnić rękę.\n\n" +
                 "<b><color=#F2C24D>Opcjonalnie: Zamiana przed grą</color></b>\nWłącz ją w trybie Jeden gracz (lub jako gospodarz pokoju). Po rozdaniu możesz zamieniać karty z ręki z odkrytymi kartami: dotknij karty w ręce, a potem odkrytej karty. Naciśnij GOTOWE, gdy skończysz; gra zaczyna się, gdy wszyscy są gotowi.\n\n" +
                 "<b><color=#F2C24D>Sterowanie</color></b>\nPrzeciągnij kartę na stos, aby ją zagrać. Albo dotknij kart, aby je wybrać (dotknij ponownie, aby odznaczyć) i naciśnij ZAGRAJ. Aby zagrać kilka kart tej samej wartości, dotknij wszystkich i przeciągnij jedną. Karty, których nie możesz zagrać, są przyciemnione; dotknij jednej, aby zobaczyć dlaczego. Strzałki wokół stołu pokazują kierunek gry. Dotknij stosu, aby zobaczyć wszystkie jego karty.\n\n" +
                 "<b><color=#F2C24D>Klawiatura (PC)</color></b>\n1-9 wybiera kartę, Enter lub Spacja zagrywa, P bierze stos, H lub L wybiera wyżej lub niżej, J Q K A lub 2-9 ustala wartość Asa (B spala), S sortuje rękę, V pokazuje stos, F przyspiesza grę po Twoim końcu, Esc otwiera menu.",
@@ -727,7 +756,7 @@ namespace Palace
                 "<b>Reina</b>  Cambia el sentido del juego.\n" +
                 "<b>As</b>  Elige cuánto vale: cualquier valor que iguale o supere el montón (sobre una Jota puede ser J, Q, K o A, nunca 9). Sobre un 7 MENOR puede ser 2-6. O úsalo como un 10 para quemar el montón.\n\n" +
                 "<b><color=#F2C24D>Las tres fases</color></b>\n1. Juega de tu mano hasta que se acabe el mazo y vacíes la mano.\n" +
-                "2. Luego juega tus cartas boca arriba.\n3. Por último tus cartas boca abajo, girándolas de una en una sin mirar. Si la carta no se puede jugar, recoges el montón con ella y debes vaciar la mano otra vez.\n\n" +
+                "2. Luego juega tus cartas boca arriba. Si no puedes jugar ninguna, recoges el montón y te llevas a la mano una carta boca arriba a tu elección.\n3. Por último tus cartas boca abajo, girándolas de una en una sin mirar. Si la carta no se puede jugar, recoges el montón con ella y debes vaciar la mano otra vez.\n\n" +
                 "<b><color=#F2C24D>Opcional: Intercambio antes de jugar</color></b>\nActívalo en Un jugador (o como anfitrión en una sala). Tras el reparto, cambia las cartas de tu mano por tus cartas boca arriba: toca una carta de la mano y luego una boca arriba. Pulsa LISTO cuando quieras; la partida empieza cuando todos están listos.\n\n" +
                 "<b><color=#F2C24D>Controles</color></b>\nArrastra una carta al montón para jugarla. O toca cartas para elegirlas (toca otra vez para quitarlas) y pulsa JUGAR. Para jugar varias del mismo valor, tócalas todas y arrastra una. Las cartas que no puedes jugar se ven oscuras; toca una para ver por qué. Las flechas alrededor de la mesa muestran el sentido del juego. Toca el montón para ver todas sus cartas.\n\n" +
                 "<b><color=#F2C24D>Teclado (PC)</color></b>\n1-9 elige una carta, Enter o Espacio juega, P recoge el montón, H o L canta mayor o menor, J Q K A o 2-9 eligen el valor del As (B quema), S ordena tu mano, V muestra el montón, F acelera cuando ya has terminado, Esc abre el menú.");

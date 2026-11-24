@@ -282,6 +282,23 @@ namespace Palace
         }
 
         private SeatView SeatFor(int player) => table.Seats[SeatOf(player)];
+
+        // Computer players each have their own profile picture: cat, ghost, flame, moon, sun, clover...
+        private static readonly int[] BotPictures = { 10, 11, 6, 8, 9, 12, 7, 13, 2 };
+
+        /// <summary>A player's profile picture (AvatarArt index), or -1 for their initial.</summary>
+        private int PictureOf(int player)
+        {
+            if (player == localPlayer) return GameSettings.AvatarIfUnlocked;
+            if (IsNetworked && player < net.Seats.Count)
+            {
+                LobbySeat seat = net.Seats[player];
+                if (!seat.IsBot) return seat.Avatar;
+            }
+            if (!Game.State.Players[player].IsBot) return -1;
+            int botNumber = Game.State.Players.Take(player).Count(p => p.IsBot);
+            return BotPictures[botNumber % BotPictures.Length];
+        }
         private Vector2 SeatPointFor(int player) => table.SeatPoint(SeatOf(player));
 
         // ==================================================================
@@ -382,7 +399,11 @@ namespace Palace
             for (int k = 0; k < n; k++) seatNames.Add(Game.State.Players[PlayerAtSeat(k)].Name);
 
             IReadOnlyList<SeatView> seats = table.BuildSeats(seatNames);
-            for (int k = 0; k < n; k++) seats[k].SetPlayer(seatNames[k], PlayerAtSeat(k)); // same colours on every device
+            for (int k = 0; k < n; k++)
+            {
+                seats[k].SetPlayer(seatNames[k], PlayerAtSeat(k)); // same colours on every device
+                seats[k].SetPicture(AvatarArt.Get(PictureOf(PlayerAtSeat(k))));
+            }
             if (localPlayer >= 0)
             {
                 seats[0].ApplyBanner(Cosmetics.Banner);       // your Customise choices on your own seat
@@ -565,16 +586,58 @@ namespace Palace
             // A tap anywhere outside the phrases closes it.
             reactPanel = UIKit.Layer(hudRoot, "Reactions", new Color(0f, 0f, 0f, 0.2f));
             reactPanel.gameObject.AddComponent<Button>().onClick.AddListener(ToggleReactPanel);
-            var box = UIKit.Panel(reactPanel, new Vector2(840f, 380f), Vector2.zero);
+            var box = UIKit.Panel(reactPanel, new Vector2(860f, 440f), Vector2.zero);
             var brt = box.rectTransform;
             brt.anchorMin = brt.anchorMax = new Vector2(1f, 1f);
-            brt.anchoredPosition = new Vector2(-460f, -300f);
+            brt.anchoredPosition = new Vector2(-470f, -330f);
+
+            // Scrolling list: emojis first, then the phrases.
+            var view = UIBuild.Image("Viewport", box.transform, null, new Color(0f, 0f, 0f, 0.001f), new Vector2(830f, 410f), Vector2.zero);
+            view.raycastTarget = true;
+            view.gameObject.AddComponent<RectMask2D>();
+            var content = UIBuild.Rect("Content", view.transform, new Vector2(830f, 10f), Vector2.zero);
+            content.anchorMin = content.anchorMax = new Vector2(0.5f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.anchoredPosition = Vector2.zero;
+
+            float y = -16f;
+            int emojis = EmojiArt.Count;
+            const int perRow = 6;
+            for (int i = 0; i < emojis; i++)
+            {
+                int index = Reactions.Phrases.Length + i;
+                int col = i % perRow, row = i / perRow;
+                var b = UIKit.Button(content, "", new Vector2(118f, 104f), new Vector2((col - (perRow - 1) * 0.5f) * 130f, y - 52f - row * 114f),
+                    () => SendReaction(index), false, 20f);
+                Pin(b.transform);
+                UIBuild.Image("Emoji", b.transform, EmojiArt.Get(i), Color.white, new Vector2(80f, 80f), Vector2.zero).raycastTarget = false;
+            }
+            y -= ((emojis + perRow - 1) / perRow) * 114f + 12f;
             for (int i = 0; i < Reactions.Phrases.Length; i++)
             {
                 int index = i;
                 int col = i % 3, row = i / 3;
-                UIKit.Button(box.transform, Reactions.Phrases[i], new Vector2(260f, 72f), new Vector2((col - 1) * 272f, 126f - row * 84f),
+                var b = UIKit.Button(content, Reactions.Phrases[i], new Vector2(260f, 72f), new Vector2((col - 1) * 272f, y - 36f - row * 84f),
                     () => SendReaction(index), false, 24f);
+                Pin(b.transform);
+            }
+            y -= ((Reactions.Phrases.Length + 2) / 3) * 84f + 12f;
+            content.sizeDelta = new Vector2(830f, -y);
+
+            var scroll = view.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = view.rectTransform;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.scrollSensitivity = 50f;
+
+            // Children of the scrolling content are measured down from its top edge.
+            void Pin(Transform t)
+            {
+                var rt = (RectTransform)t;
+                Vector2 p = rt.anchoredPosition;
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+                rt.anchoredPosition = p;
             }
         }
 
@@ -622,7 +685,7 @@ namespace Palace
         /// <summary>A speech bubble over the player's seat for a few seconds.</summary>
         private void ShowReaction(int player, int index)
         {
-            if (!GameSettings.ShowReactions || index < 0 || index >= Reactions.Phrases.Length) return;
+            if (!GameSettings.ShowReactions || index < 0 || index >= Reactions.Count) return;
             if (bubbles.TryGetValue(player, out var old) && old != null) Destroy(old);
 
             Vector2 seat = SeatPointFor(player);
@@ -630,10 +693,19 @@ namespace Palace
             at.x = Mathf.Clamp(at.x, -760f, 760f);
             at.y = Mathf.Clamp(at.y, -420f, 440f);
 
-            var bubble = UIKit.Panel(tableHud, new Vector2(330f, 82f), at, new Color(0.98f, 0.95f, 0.86f, 0.97f));
+            bool emoji = Reactions.IsEmoji(index);
+            var bubble = UIKit.Panel(tableHud, emoji ? new Vector2(130f, 120f) : new Vector2(330f, 82f), at, new Color(0.98f, 0.95f, 0.86f, 0.97f));
             bubble.raycastTarget = false;
-            var text = UIKit.Label(bubble.transform, Reactions.Phrases[index], 28f, new Vector2(310f, 70f), Vector2.zero, TextAlignmentOptions.Center, UIKit.Ink, true);
-            text.raycastTarget = false;
+            if (emoji)
+            {
+                var img = UIBuild.Image("Emoji", bubble.transform, EmojiArt.Get(index - Reactions.Phrases.Length), Color.white, new Vector2(96f, 96f), Vector2.zero);
+                img.raycastTarget = false;
+            }
+            else
+            {
+                var text = UIKit.Label(bubble.transform, Reactions.Phrases[index], 28f, new Vector2(310f, 70f), Vector2.zero, TextAlignmentOptions.Center, UIKit.Ink, true);
+                text.raycastTarget = false;
+            }
             bubbles[player] = bubble.gameObject;
             AudioManager.Play(Sfx.Select, 0.5f);
             StartCoroutine(BubbleLife(bubble.rectTransform));
@@ -939,6 +1011,13 @@ namespace Palace
                 return;
             }
             if (!LocalCanAct) return;
+            if (MustTakeFaceUp)
+            {
+                // Stuck on face-up cards: the tapped card goes into your hand with the pile.
+                if (Game.State.Players[localPlayer].FaceUp[slot].HasValue)
+                    Submit(new NetCommand { Type = NetCommandType.PickUp, Slot = slot });
+                return;
+            }
             PlayerState me = Game.State.Players[localPlayer];
             if (me.ActiveSource != PlaySource.FaceUp)
             {
@@ -994,8 +1073,16 @@ namespace Palace
         private void OnPickUpPressed()
         {
             if (!LocalCanAct) return;
+            if (MustTakeFaceUp)
+            {
+                Toast(Loc.T("Tap the face-up card you want to take with the pile"));
+                return;
+            }
             Submit(new NetCommand { Type = NetCommandType.PickUp });
         }
+
+        /// <summary>Your turn, nothing can be played, and you're on face-up cards: you choose one to take with the pile (Q11).</summary>
+        private bool MustTakeFaceUp => LocalCanAct && Game.MustPickUp(localPlayer) && Game.PickUpNeedsFaceUpChoice(localPlayer);
 
         private void OnSevenCall(SevenCall call)
         {
@@ -1021,6 +1108,7 @@ namespace Palace
             PlaySource mySource = localPlayer >= 0 ? s.Players[localPlayer].ActiveSource : PlaySource.Hand;
             bool swapping = s.Phase == GamePhase.Swapping;
             bool canSwap = LocalCanSwap;
+            bool takeChoice = MustTakeFaceUp; // face-up cards stay bright: you tap one to take with the pile
 
             for (int i = 0; i < seats.Count; i++)
             {
@@ -1046,7 +1134,7 @@ namespace Palace
                     bool upActive = mine && myTurn && mySource == PlaySource.FaceUp && p.FaceUp[k].HasValue;
                     up.SetInteractable(upActive);
                     up.SetSelected(upActive && selected.Contains(p.FaceUp[k].Value.Id));
-                    up.SetDimmed(upActive && !Game.CheckRank(p.FaceUp[k].Value.Rank).Legal);
+                    up.SetDimmed(upActive && !takeChoice && !Game.CheckRank(p.FaceUp[k].Value.Rank).Legal);
 
                     CardView down = seat.FaceDownCards[k];
                     down.SetInteractable(mine && myTurn && mySource == PlaySource.FaceDown);
@@ -1150,7 +1238,9 @@ namespace Palace
 
             PlayerState me = s.Players[localPlayer];
             string need = Loc.T(Game.Requirement());
-            if (Game.MustPickUp(localPlayer)) statusText.text = Loc.T("No card can be played. Pick up the pile.");
+            if (Game.MustPickUp(localPlayer) && Game.PickUpNeedsFaceUpChoice(localPlayer))
+                statusText.text = Loc.T("No card can be played. Tap a face-up card to take it with the pile.");
+            else if (Game.MustPickUp(localPlayer)) statusText.text = Loc.T("No card can be played. Pick up the pile.");
             else if (me.ActiveSource == PlaySource.FaceDown) statusText.text = Loc.T("Your turn: tap a face-down card");
             else if (me.ActiveSource == PlaySource.FaceUp) statusText.text = Loc.F("Your turn: play a face-up card ({0})", need);
             else statusText.text = Loc.F("Your turn: play {0}", need);
@@ -1455,6 +1545,20 @@ namespace Palace
                     break;
                 }
 
+                case GameEventType.FaceUpTaken:
+                {
+                    // The chosen face-up card flies into the hand, just before the pile follows it.
+                    Card card = e.Cards[0];
+                    int slot = e.Slots.Count > 0 ? e.Slots[0] : 0;
+                    SeatView seat = SeatFor(e.Player);
+                    Transform from = seat.FaceUpCards[slot].transform;
+                    Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
+                    float toScale = e.Player == localPlayer ? 1f : ScaleOf(seat.transform) * SeatView.TableCardScale;
+                    AudioManager.Play(Sfx.CardDraw, 0.7f);
+                    yield return FlyCard(card, table.ToLocal(from), to, ScaleOf(from), toScale, 0.3f, null);
+                    break;
+                }
+
                 case GameEventType.CardsSwapped:
                     // The table already shows the swapped cards; a little sound and pause sells it.
                     AudioManager.Play(Sfx.CardDraw, 0.6f);
@@ -1574,6 +1678,9 @@ namespace Palace
             pileTap.raycastTarget = true;
             pileTap.gameObject.AddComponent<Button>().onClick.AddListener(OpenPileViewer);
             UIKit.Button(tableHud, "View pile", new Vector2(140f, 52f), table.DiscardPoint + new Vector2(150f, 0f), OpenPileViewer, false, 22f);
+            // The choice panels (HIGHER / LOWER, the Ace) sit over the pile: keep them on top so their buttons get the tap.
+            sevenPanel.transform.SetAsLastSibling();
+            acePanel.transform.SetAsLastSibling();
 
             // Menu button + pause menu live in the safe-area HUD.
             var menu = UIKit.Button(hudRoot, "Menu", new Vector2(150f, 64f), Vector2.zero, TogglePause, false, 26f);
@@ -1721,10 +1828,10 @@ namespace Palace
 
         private GameObject BuildChoice(string title, string a, Action onA, string b, Action onB)
         {
-            var panel = UIKit.Panel(tableHud, new Vector2(620f, 230f), new Vector2(0f, 20f));
-            UIKit.Label(panel.transform, title, 28f, new Vector2(580f, 60f), new Vector2(0f, 60f), TextAlignmentOptions.Center, UIKit.Text, true);
-            UIKit.Button(panel.transform, a, new Vector2(270f, 90f), new Vector2(-145f, -40f), onA, true, 30f);
-            UIKit.Button(panel.transform, b, new Vector2(270f, 90f), new Vector2(145f, -40f), onB, true, 30f);
+            var panel = UIKit.Panel(tableHud, new Vector2(720f, 240f), new Vector2(0f, 20f));
+            UIKit.Label(panel.transform, title, 28f, new Vector2(660f, 60f), new Vector2(0f, 64f), TextAlignmentOptions.Center, UIKit.Text, true);
+            UIKit.Button(panel.transform, a, new Vector2(300f, 90f), new Vector2(-160f, -40f), onA, true, 30f);
+            UIKit.Button(panel.transform, b, new Vector2(300f, 90f), new Vector2(160f, -40f), onB, true, 30f);
             panel.gameObject.SetActive(false);
             return panel.gameObject;
         }

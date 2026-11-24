@@ -83,18 +83,22 @@ namespace Palace
         }
 
         /// <summary>
-        /// Large text and translations can be longer than the English the boxes were sized for, so the
-        /// text may shrink (a little) to fit its box. In plain English at normal size nothing changes.
+        /// Fixed-size labels shrink (never grow) so their text always stays inside the box: longer
+        /// translations, Large text, or simply a long English line. Settings > Text size scales them first.
         /// </summary>
         public static void Fit(TextMeshProUGUI tmp, float baseSize, Vector2 box)
         {
             float scale = Application.isPlaying ? GameSettings.TextScale : 1f;
-            if (scale <= 1f && Loc.Current == 0) return;
             tmp.fontSize = baseSize * scale;
             if (box.x <= 0f || box.y <= 0f) return; // stretched boxes are sized later; keep the fixed size
+
+            // Every label shrinks to stay inside its box (in every language), but never grows.
+            // A box shorter than one line of text would make it shrink for no reason, so give it room.
+            float lineHeight = baseSize * scale * 1.3f;
+            if (box.y < lineHeight) tmp.rectTransform.sizeDelta = new Vector2(box.x, lineHeight);
             tmp.enableAutoSizing = true;
             tmp.fontSizeMax = baseSize * scale;
-            tmp.fontSizeMin = baseSize * 0.7f;
+            tmp.fontSizeMin = baseSize * 0.55f;
         }
 
         public static void SetActive(Component c, bool active)

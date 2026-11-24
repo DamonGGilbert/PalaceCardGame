@@ -17,6 +17,14 @@ namespace Palace
             "Not the pile!", "Respect!", "Hehe, oops!", "My turn to shine!"
         };
 
+        /// <summary>Every reaction: the phrases first, then the emojis (EmojiArt), in that order.</summary>
+        public static int Count => Phrases.Length + EmojiArt.Count;
+        public static bool IsEmoji(int index) => index >= Phrases.Length;
+        public static int Emoji(int emoji) => Phrases.Length + emoji;
+
+        // Emoji numbers (see EmojiArt.Names).
+        public const int Smile = 0, Laughing = 1, Wink = 2, Wow = 3, Aww = 4, Cool = 5, HeartEyes = 6, Heart = 7, Fire = 8, Crown = 9, Star = 10, Cards = 11;
+
         public const int NiceOne = 0, WellPlayed = 1, Unlucky = 2, OuchSorry = 3, GoodGame = 4, SoClose = 5,
             BigBrain = 6, OnFire = 7, NotThePile = 8, Respect = 9, Oops = 10, MyTurn = 11;
 
@@ -46,27 +54,27 @@ namespace Palace
                 case GameEventType.PileBurned:
                     if (rng.NextDouble() > 0.35) return (-1, -1);
                     who = Bot(e.Player);
-                    lines = pick(NiceOne, OnFire, BigBrain, Respect);
+                    lines = pick(NiceOne, OnFire, BigBrain, Respect, Emoji(Fire), Emoji(Fire), Emoji(Wow));
                     break;
                 case GameEventType.PileCollected:
                     if (e.Cards.Count < 5 || rng.NextDouble() > 0.5) return (-1, -1);
                     if (s.Players[e.Player].IsBot && rng.NextDouble() < 0.5) { who = e.Player; lines = pick(NotThePile, Oops); }
-                    else { who = Bot(e.Player); lines = pick(Unlucky, OuchSorry, SoClose); }
+                    else { who = Bot(e.Player); lines = pick(Unlucky, OuchSorry, SoClose, Emoji(Aww), Emoji(Wow)); }
                     break;
                 case GameEventType.PlayersSkipped:
                     if (!s.Players[e.Player].IsBot || rng.NextDouble() > 0.3) return (-1, -1);
                     who = e.Player;
-                    lines = pick(Oops, OuchSorry);
+                    lines = pick(Oops, OuchSorry, Emoji(Wink));
                     break;
                 case GameEventType.PlayerFinished:
                     if (e.Position != 1 || rng.NextDouble() > 0.6) return (-1, -1);
                     who = Bot(e.Player);
-                    lines = pick(WellPlayed, Respect, NiceOne);
+                    lines = pick(WellPlayed, Respect, NiceOne, Emoji(Crown), Emoji(Star));
                     break;
                 case GameEventType.GameOver:
                     if (rng.NextDouble() > 0.7) return (-1, -1);
                     who = Bot(-1);
-                    lines = pick(GoodGame, WellPlayed);
+                    lines = pick(GoodGame, WellPlayed, Emoji(Heart), Emoji(Smile));
                     break;
                 default:
                     return (-1, -1);

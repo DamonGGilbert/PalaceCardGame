@@ -13,8 +13,9 @@ namespace Palace
     /// </summary>
     public class CustomiseMenu : MonoBehaviour
     {
-        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects", "Shop" };
-        private const int ShopTab = 6;
+        private static readonly string[] TabNames = { "Table", "Cards", "Card back", "Banner", "Name style", "Effects", "Picture", "Shop" };
+        private const int PictureTab = 6, ShopTab = 7;
+        private bool pictureTab, shownPicture;
         private bool shopTab;
 
         private RectTransform root;
@@ -35,7 +36,8 @@ namespace Palace
             int rows = Mathf.CeilToInt(count / Columns);
             contentHeight = Mathf.Max(640f, rows * RowHeight);
             grid.sizeDelta = new Vector2(1560f, contentHeight);
-            bool newTab = shownShop != shopTab || shownCategory != category;
+            bool newTab = shownShop != shopTab || shownPicture != pictureTab || shownCategory != category;
+            shownPicture = pictureTab;
             shownShop = shopTab;
             shownCategory = category;
             if (newTab) grid.anchoredPosition = Vector2.zero;
@@ -63,8 +65,9 @@ namespace Palace
             UIKit.Segmented(p, TabNames, 0, new Vector2(1540f, 64f), new Vector2(0f, 330f), i =>
             {
                 shopTab = i == ShopTab;
+                pictureTab = i == PictureTab;
                 shopNote = null;
-                if (!shopTab) category = (CosmeticCategory)i;
+                if (!shopTab && !pictureTab) category = (CosmeticCategory)i;
                 Refresh();
             });
             Shop.Changed += OnShopChanged;
@@ -98,6 +101,7 @@ namespace Palace
         {
             screen.SetActive(true);
             shopTab = true;
+            pictureTab = false;
             shopNote = null;
             Refresh();
         }
@@ -107,6 +111,7 @@ namespace Palace
         {
             screen.SetActive(true);
             shopTab = false;
+            pictureTab = false;
             category = c;
             Refresh();
             Canvas.ForceUpdateCanvases();
@@ -130,6 +135,11 @@ namespace Palace
                 BuildShop();
                 return;
             }
+            if (pictureTab)
+            {
+                BuildPictures();
+                return;
+            }
 
             var lib = CosmeticLibrary.Instance;
             if (lib == null)
@@ -141,6 +151,56 @@ namespace Palace
             IReadOnlyList<CosmeticItem> items = lib.Items(category);
             LayoutGrid(items.Count);
             for (int i = 0; i < items.Count; i++) BuildTile(items[i], SlotPosition(i));
+        }
+
+        // ------------------------------------------------------------------ profile pictures
+
+        /// <summary>Your initial, then every picture. Locked ones show the level that unlocks them.</summary>
+        private void BuildPictures()
+        {
+            int count = AvatarArt.Count + 1;
+            LayoutGrid(count);
+            int chosen = GameSettings.AvatarIfUnlocked;
+            int level = Progress.Level;
+            for (int i = -1; i < AvatarArt.Count; i++)
+            {
+                int index = i;
+                bool unlocked = i < 0 || AvatarArt.Unlocked(i);
+                bool using_ = chosen == i;
+                var tile = UIKit.Panel(grid, new Vector2(350f, 300f), SlotPosition(i + 1),
+                    using_ ? new Color(1f, 0.92f, 0.7f, 1f) : new Color(0.75f, 0.72f, 0.68f, 1f));
+                Transform t = tile.transform;
+
+                if (i < 0)
+                {
+                    // The default: the first letter of your name on your seat colour.
+                    var circle = UIBuild.Image("Initial", t, UIKit.CircleSprite, new Color(0.75f, 0.32f, 0.25f), new Vector2(150f, 150f), new Vector2(0f, 40f));
+                    string initial = string.IsNullOrEmpty(GameSettings.PlayerName) ? "?" : GameSettings.PlayerName.Substring(0, 1).ToUpperInvariant();
+                    UIBuild.Text("Letter", circle.transform, initial, 80f, Color.white, new Vector2(150f, 150f), Vector2.zero, TextAlignmentOptions.Center, UIKit.Font, true, false);
+                }
+                else
+                {
+                    var img = UIBuild.Image("Picture", t, AvatarArt.Get(i), unlocked ? Color.white : new Color(0.35f, 0.35f, 0.35f, 0.9f), new Vector2(150f, 150f), new Vector2(0f, 40f));
+                    img.preserveAspect = true;
+                }
+
+                string name = i < 0 ? "Your initial" : AvatarArt.Pictures[i].name;
+                UIKit.Label(t, name, 26f, new Vector2(330f, 40f), new Vector2(0f, -60f), TextAlignmentOptions.Center, UIKit.Text, true);
+                if (using_)
+                    UIKit.Label(t, "Equipped", 26f, new Vector2(300f, 56f), new Vector2(0f, -112f), TextAlignmentOptions.Center, UIKit.Gold, true);
+                else if (unlocked)
+                    UIKit.Button(t, "Equip", new Vector2(220f, 60f), new Vector2(0f, -112f), () =>
+                    {
+                        GameSettings.Avatar = index;
+                        GameSettings.Save();
+                        AudioManager.Play(Sfx.Select, 0.7f);
+                        Refresh();
+                    }, true, 26f);
+                else
+                    UIKit.Label(t, Loc.F("Unlocks at level {0}", AvatarArt.Pictures[i].level), 24f, new Vector2(320f, 56f), new Vector2(0f, -112f),
+                        TextAlignmentOptions.Center, UIKit.Muted, true);
+            }
+            message.text = Loc.F("You're level {0}. Play games to level up and unlock more pictures.", level);
         }
 
         private void BuildTile(CosmeticItem item, Vector2 pos)

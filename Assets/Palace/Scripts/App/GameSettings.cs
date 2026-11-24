@@ -87,6 +87,16 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.botlevel", Mathf.Clamp(value, 0, 2));
         }
 
+        /// <summary>Profile picture (AvatarArt index), or -1 for the first letter of your name.</summary>
+        public static int Avatar
+        {
+            get => PlayerPrefs.GetInt("palace.avatar", -1);
+            set => PlayerPrefs.SetInt("palace.avatar", Mathf.Clamp(value, -1, 255));
+        }
+
+        /// <summary>Your profile picture if it's unlocked, otherwise -1.</summary>
+        public static int AvatarIfUnlocked => AvatarArt.Unlocked(Avatar) ? Avatar : -1;
+
         /// <summary>Optional game mode: swap hand and face-up cards before play starts.</summary>
         public static bool SwapMode
         {

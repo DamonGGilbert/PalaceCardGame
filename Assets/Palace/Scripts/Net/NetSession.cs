@@ -212,7 +212,7 @@ namespace Palace.Net
         {
             Connected = true;
             Seats.Clear();
-            Seats.Add(new LobbySeat { ClientId = net.LocalClientId, Name = name, Ready = true });
+            Seats.Add(new LobbySeat { ClientId = net.LocalClientId, Name = name, Ready = true, Avatar = GameSettings.AvatarIfUnlocked });
             LocalPlayerIndex = 0;
             BroadcastLobby();
         }
@@ -429,6 +429,7 @@ namespace Palace.Net
                 case MsgType.Hello:
                 {
                     string name = r.ReadString();
+                    int picture = r.BaseStream.Position < r.BaseStream.Length ? r.ReadSByte() : -1;
                     if (InGame || Seats.Count >= MaxPlayers)
                     {
                         SendTo(sender, NetProtocol.Closing(InGame ? "That game has already started." : "That game is full."));
@@ -438,7 +439,7 @@ namespace Palace.Net
                     {
                         name = string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
                         if (name.Length > 14) name = name.Substring(0, 14);
-                        Seats.Add(new LobbySeat { ClientId = sender, Name = name, Ready = false });
+                        Seats.Add(new LobbySeat { ClientId = sender, Name = name, Ready = false, Avatar = picture < AvatarArt.Count ? picture : -1 });
                     }
                     BroadcastLobby();
                     break;
@@ -465,7 +466,7 @@ namespace Palace.Net
                     int index = r.ReadByte();
                     // At most one reaction every 1.5 seconds per player, and only known phrases.
                     float now = Time.unscaledTime;
-                    if (index >= Reactions.Phrases.Length) break;
+                    if (index >= Reactions.Count) break;
                     if (lastReaction.TryGetValue(sender, out float last) && now - last < 1.5f) break;
                     lastReaction[sender] = now;
                     RelayReaction(PlayerIndexOf(sender), index);
@@ -510,7 +511,7 @@ namespace Palace.Net
                 {
                     int player = r.ReadInt32();
                     int index = r.ReadByte();
-                    if (index < Reactions.Phrases.Length) ReactionReceived?.Invoke(player, index);
+                    if (index < Reactions.Count) ReactionReceived?.Invoke(player, index);
                     break;
                 }
                 case MsgType.Rematch:
@@ -529,7 +530,7 @@ namespace Palace.Net
         private void OnClientConnected(ulong clientId)
         {
             if (!IsHost && clientId == net.LocalClientId)
-                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName)); // ask for a seat
+                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName, GameSettings.AvatarIfUnlocked)); // ask for a seat
         }
 
         private void OnClientDisconnected(ulong clientId)

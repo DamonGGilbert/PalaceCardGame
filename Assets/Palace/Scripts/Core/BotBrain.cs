@@ -59,7 +59,7 @@ namespace Palace.Core
                 : me.FaceUp.Where(c => c.HasValue).Select(c => c.Value).ToList();
 
             var legal = available.Where(c => game.CheckRank(c.Rank).Legal).ToList();
-            if (legal.Count == 0) return new BotMove { Type = BotMoveType.PickUp };
+            if (legal.Count == 0) return new BotMove { Type = BotMoveType.PickUp, Slot = FaceUpToTake(game, me, level, rng) };
 
             var ranks = legal.Select(c => c.Rank).Distinct().OrderBy(Cost).ToList();
             Rank best;
@@ -97,7 +97,7 @@ namespace Palace.Core
             {
                 case BotMoveType.PlayCards: return game.PlayCards(player, move.Source, move.CardIds);
                 case BotMoveType.PlayFaceDown: return game.PlayFaceDown(player, move.Slot);
-                case BotMoveType.PickUp: return game.PickUp(player);
+                case BotMoveType.PickUp: return game.PickUp(player, move.Slot);
                 case BotMoveType.DeclareSeven: return game.DeclareSeven(player, move.Call);
                 default: return game.ChooseAce(player, move.Burn, move.AceValue);
             }
@@ -132,6 +132,19 @@ namespace Palace.Core
                 up[worstSlot] = h;
             }
             return swaps;
+        }
+
+        /// <summary>
+        /// Picking up while on face-up cards (Q11): which face-up card goes into the hand with the pile.
+        /// The weakest one: it's easier to get rid of from the hand than to be stuck with at the end.
+        /// Returns -1 when no choice is needed.
+        /// </summary>
+        private static int FaceUpToTake(PalaceGame game, PlayerState me, BotLevel level, Random rng)
+        {
+            if (!game.PickUpNeedsFaceUpChoice(me.Index)) return -1;
+            var slots = Enumerable.Range(0, me.FaceUp.Length).Where(k => me.FaceUp[k].HasValue).ToList();
+            if (level == BotLevel.Easy) return slots[rng.Next(slots.Count)];
+            return slots.OrderBy(k => SwapValue(me.FaceUp[k].Value.Rank)).First();
         }
 
         private static int SwapValue(Rank r) => r == Rank.Ten ? 30 : r == Rank.Two ? 29 : r == Rank.Ace ? 28 : (int)r;

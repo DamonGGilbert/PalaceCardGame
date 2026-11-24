@@ -24,7 +24,7 @@ The adjustable ones are single settings in `Assets/Palace/Scripts/Core/HouseRule
 | Q8 | After picking up the pile, does the turn pass? | Yes, play passes to the next player. |
 | Q9 | Can a player pick up voluntarily when they could play? | No. You must play if you can. |
 | Q10 | Can face-up cards be combined with matching hand cards in one turn? | No. The hand must be empty first. |
-| Q11 | An illegal **face-up** card: pick up the pile only (face-up card stays)? | Yes. Only face-down cards go into the hand with the pile. |
+| Q11 | Stuck on your **face-up** cards (none can be played)? | Decided (your school rule): pick up the pile AND take one face-up card of your choice into your hand. `HouseRules.FaceUpPickUpTakesOne` = false gives pile only. |
 | Q12 | Several **Queens** together: does each one reverse? | Yes. Two Queens means no direction change. |
 | Q13 | **Queen in a 2-player game**: no effect on turn order? | No effect (play passes to the other player as normal). |
 | Q14 | **8 skips** count only players still in the game, and wrap around (possibly back to yourself). | Yes, as in your 3-player example. |

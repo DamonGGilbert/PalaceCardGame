@@ -101,6 +101,21 @@
 - [ ] **You:** to switch reminders on, install the Mobile Notifications package (Docs/Notifications-Setup.md)
 - [ ] **You:** try a Swap-before-play game and check the swapping feels clear
 
+## Play-test round 2 fixes ✅ (code)
+- [x] Empty table on start fixed (the guitar music generator crashed before the deal)
+- [x] HIGHER / LOWER and the Ace buttons no longer open the pile viewer (the pile's tap area was on top)
+- [x] All fixed-size text shrinks to fit its box, in every language
+- [x] Your rule (Q11): stuck on face-up cards = pick up the pile **and** one face-up card of your choice
+      (tap it). Bots take their weakest. Switch: `HouseRules.FaceUpPickUpTakesOne`
+- [x] "i" button explaining Swap before play
+- [x] React panel scrolls: 12 code-drawn emojis (smile, laughing, wink, wow, aww, cool, heart eyes, heart,
+      fire, crown, star, cards) plus the phrases; computer players use emojis too
+- [x] Profile pictures (Customise → Picture): 16 simple code-drawn logos, 6 free, the rest unlock at levels
+      2–15. Shown in your seat; online players see each other's; computer players have their own
+- [x] Menu animations: drifting hearts and stars, bobbing title and cards, buttons pop in and squish
+      when pressed, screens pop open, pulsing challenges dot (all off with Settings → Animations: Off)
+- [x] Unity offers to run Generate Art when it's missing (flags, cosmetics and the painted table need it)
+
 ## Waiting on you
 - [ ] Confirm or change the proposed rule defaults in `DESIGN.md` (each is one line in `HouseRules.cs`)
 - [ ] Play it and report anything that feels wrong

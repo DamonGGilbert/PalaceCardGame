@@ -71,6 +71,7 @@ namespace Palace
             img.raycastTarget = true;
 
             var button = img.gameObject.AddComponent<Button>();
+            img.gameObject.AddComponent<ButtonBounce>(); // a little squish when pressed
             button.targetGraphic = img;
             var colors = button.colors;
             colors.normalColor = Color.white;
@@ -99,6 +100,7 @@ namespace Palace
             var img = UIBuild.Image("Info", parent, CircleSprite, Gold, new Vector2(48f, 48f), position);
             img.raycastTarget = true;
             var button = img.gameObject.AddComponent<Button>();
+            img.gameObject.AddComponent<ButtonBounce>(); // a little squish when pressed
             button.targetGraphic = img;
             UIBuild.Text("i", img.transform, "i", 32f, Ink, new Vector2(48f, 48f), Vector2.zero, TextAlignmentOptions.Center, Font, true, false);
             button.onClick.AddListener(() =>

@@ -332,15 +332,38 @@ namespace Palace.Core
         }
 
         /// <summary>Collect the whole discard pile. Only allowed when no card can be played (Q9).</summary>
-        public CommandResult PickUp(int player)
+        /// <summary>
+        /// Q11: when you're down to face-up cards and can't play, you also take one of your face-up
+        /// cards (your choice, <paramref name="faceUpSlot"/>) into your hand with the pile.
+        /// </summary>
+        public bool PickUpNeedsFaceUpChoice(int player) =>
+            Rules.FaceUpPickUpTakesOne && State.Players[player].ActiveSource == PlaySource.FaceUp;
+
+        public CommandResult PickUp(int player, int faceUpSlot = -1)
         {
             if (State.Phase != GamePhase.Playing) return CommandResult.Fail("Waiting for a choice to be made");
             if (player != State.Current) return CommandResult.Fail("It isn't your turn");
             if (State.Discard.Count == 0) return CommandResult.Fail("There is nothing to pick up");
-            if (State.Players[player].ActiveSource == PlaySource.FaceDown) return CommandResult.Fail("Turn over a face-down card");
+            PlayerState p = State.Players[player];
+            if (p.ActiveSource == PlaySource.FaceDown) return CommandResult.Fail("Turn over a face-down card");
             if (HasLegalPlay(player)) return CommandResult.Fail("You have a card you can play");
 
+            bool takeOne = PickUpNeedsFaceUpChoice(player);
+            if (takeOne && (faceUpSlot < 0 || faceUpSlot >= p.FaceUp.Length || !p.FaceUp[faceUpSlot].HasValue))
+                return CommandResult.Fail("Choose a face-up card to take with the pile");
+
             var result = new CommandResult { Ok = true };
+            if (takeOne)
+            {
+                Card taken = p.FaceUp[faceUpSlot].Value;
+                p.FaceUp[faceUpSlot] = null;
+                p.Hand.Add(taken);
+                result.Events.Add(new GameEvent
+                {
+                    Type = GameEventType.FaceUpTaken, Player = player, Source = PlaySource.FaceUp,
+                    Cards = new List<Card> { taken }, Slots = new List<int> { faceUpSlot }
+                });
+            }
             Collect(result, player);
             SetTurn(result, NextActiveFrom(player)); // Q8: play passes on
             return result;

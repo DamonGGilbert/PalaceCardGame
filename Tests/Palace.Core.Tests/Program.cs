@@ -317,6 +317,35 @@ internal static class Program
             Check(!g2.PickUp(0).Ok, "can't pick up when a card is playable");
         }
 
+        Section("Stuck on face-up cards: take one face-up card with the pile (Q11)");
+        {
+            var g = Table(3);
+            var p = g.State.Players[0];
+            Pile(g, Rank.Jack, Rank.King);
+            p.FaceUp[0] = C(Rank.Nine); p.FaceUp[1] = C(Rank.Five); p.FaceUp[2] = C(Rank.Eight);
+            Check(g.MustPickUp(0) && g.PickUpNeedsFaceUpChoice(0), "no playable face-up card: a choice is needed");
+            Check(!g.PickUp(0).Ok, "picking up without choosing a face-up card is refused");
+            Card five = p.FaceUp[1].Value;
+            var r = g.PickUp(0, 1);
+            Check(r.Ok && p.Hand.Count == 3 && p.Hand.Contains(five) && !p.FaceUp[1].HasValue && p.FaceUpCount == 2,
+                "the chosen face-up card and the pile go into the hand");
+            Check(r.Events[0].Type == GameEventType.FaceUpTaken && r.Events[1].Type == GameEventType.PileCollected, "events: card taken, then pile");
+            Check(g.State.Current == 1 && p.ActiveSource == PlaySource.Hand, "turn passes; you're back to playing from your hand");
+
+            var g2 = Table(3);
+            g2.Rules.FaceUpPickUpTakesOne = false;
+            var p2 = g2.State.Players[0];
+            Pile(g2, Rank.King);
+            p2.FaceUp[0] = C(Rank.Four);
+            Check(g2.PickUp(0).Ok && p2.Hand.Count == 1 && p2.FaceUpCount == 1, "switch off: pile only, face-up card stays");
+
+            var g3 = Table(3);
+            Pile(g3, Rank.King);
+            Give(g3, 0, Rank.Four);
+            g3.State.Players[0].FaceUp[0] = C(Rank.Three);
+            Check(!g3.PickUpNeedsFaceUpChoice(0) && g3.PickUp(0).Ok && g3.State.Players[0].FaceUpCount == 1, "from the hand: no face-up card is taken");
+        }
+
         Section("Hand is topped back up to 3 while the deck lasts");
         {
             var g = Table(3);

@@ -26,6 +26,7 @@ namespace Palace.Net
         public string Name;
         public bool IsBot;
         public bool Ready;
+        public int Avatar = -1;  // profile picture (AvatarArt), -1 = initial letter
     }
 
     public enum NetCommandType : byte { PlayCards, PlayFaceDown, PickUp, DeclareSeven, ChooseAce, Swap, SwapDone }
@@ -46,7 +47,7 @@ namespace Palace.Net
             {
                 case NetCommandType.PlayCards: return game.PlayCards(player, Source, CardIds);
                 case NetCommandType.PlayFaceDown: return game.PlayFaceDown(player, Slot);
-                case NetCommandType.PickUp: return game.PickUp(player);
+                case NetCommandType.PickUp: return game.PickUp(player, Slot);
                 case NetCommandType.DeclareSeven: return game.DeclareSeven(player, Call);
                 case NetCommandType.Swap: return game.SwapCards(player, CardIds.Count > 0 ? CardIds[0] : -1, Slot);
                 case NetCommandType.SwapDone: return game.FinishSwap(player);
@@ -64,7 +65,7 @@ namespace Palace.Net
     {
         // ------------------------------------------------------------------ lobby
 
-        public static byte[] Hello(string name) => Build(MsgType.Hello, w => w.Write(name ?? "Player"));
+        public static byte[] Hello(string name, int avatar = -1) => Build(MsgType.Hello, w => { w.Write(name ?? "Player"); w.Write((sbyte)avatar); });
         public static byte[] Ready(bool ready) => Build(MsgType.Ready, w => w.Write(ready));
         public static byte[] InGame() => Build(MsgType.InGame, w => { });
         public static byte[] Closing(string reason) => Build(MsgType.Closing, w => w.Write(reason ?? ""));
@@ -83,6 +84,7 @@ namespace Palace.Net
                 w.Write(s.Name ?? "");
                 w.Write(s.IsBot);
                 w.Write(s.Ready);
+                w.Write((sbyte)s.Avatar);
             }
         });
 
@@ -91,7 +93,7 @@ namespace Palace.Net
             int n = r.ReadInt32();
             var seats = new List<LobbySeat>(n);
             for (int i = 0; i < n; i++)
-                seats.Add(new LobbySeat { ClientId = r.ReadUInt64(), Name = r.ReadString(), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean() });
+                seats.Add(new LobbySeat { ClientId = r.ReadUInt64(), Name = r.ReadString(), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean(), Avatar = r.ReadSByte() });
             return seats;
         }
 

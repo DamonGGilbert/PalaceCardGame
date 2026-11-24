@@ -29,6 +29,7 @@ namespace Palace
         private TextMeshProUGUI badgeLevel, badgeStreak, dailiesBadgeText;
         private Image badgeFill;
         private GameObject dailiesBadge, popup;
+        private readonly List<Transform> mainButtons = new List<Transform>();
 
         private void OpenProgress()
         {
@@ -96,6 +97,7 @@ namespace Palace
 
             felt = UIBuild.Image("Felt", root, tableTheme.CurrentTable, new Color(1f, 1f, 1f, 0.55f), new Vector2(1800f, 900f), new Vector2(0f, 20f));
             UIBuild.StretchImage("Shade", root, null, new Color(0f, 0f, 0f, 0.35f));
+            UIBuild.Stretch("Floaters", root).gameObject.AddComponent<Floaters>(); // hearts and stars drifting up behind the menus
 
             BuildMain();
             BuildSinglePlayer();
@@ -147,6 +149,11 @@ namespace Palace
             foreach (var p in new[] { mainPanel, singlePanel, multiPanel, howPanel, settingsPanel, creditsPanel, customisePanel, progressPanel })
                 p.SetActive(p == panel);
             if (panel == mainPanel) RefreshBadges();
+            if (panel != null)
+            {
+                StartCoroutine(UIMotion.Appear(panel.transform));
+                if (panel == mainPanel) StartCoroutine(UIMotion.PopIn(mainButtons));
+            }
         }
 
         // ------------------------------------------------------------------ pop-ups
@@ -158,6 +165,7 @@ namespace Palace
             var layer = UIKit.Layer(root.parent, "Popup", UIKit.Scrim);
             popup = layer.gameObject;
             var panel = UIKit.Panel(layer, new Vector2(900f, 420f), Vector2.zero);
+            StartCoroutine(UIMotion.Appear(panel.transform));
             UIKit.Label(panel.transform, title, 48f, new Vector2(820f, 70f), new Vector2(0f, 140f), TextAlignmentOptions.Center, UIKit.Gold, true);
             var text = UIKit.Label(panel.transform, body, 30f, new Vector2(820f, 160f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
             text.textWrappingMode = TextWrappingModes.Normal;
@@ -309,6 +317,7 @@ namespace Palace
             title.characterSpacing = 16f;
             title.outlineWidth = 0.12f;
             title.outlineColor = new Color32(0, 0, 0, 180);
+            title.gameObject.AddComponent<Bob>().Height = 7f;
             var sub = UIKit.Label(p, "THE CLASSIC SHEDHEAD CARD GAME", 30f, new Vector2(1200f, 50f), new Vector2(0f, 222f), TextAlignmentOptions.Center, UIKit.Muted, true);
             sub.characterSpacing = 6f;
 
@@ -329,6 +338,7 @@ namespace Palace
             var dot = UIBuild.Image("DailiesLeft", progressButton.transform, UIKit.CircleSprite, new Color(0.80f, 0.16f, 0.12f, 1f),
                 new Vector2(46f, 46f), new Vector2(200f, 22f));
             dailiesBadge = dot.gameObject;
+            dot.gameObject.AddComponent<Pulse>();
             dailiesBadgeText = UIBuild.Text("Count", dot.transform, "", 26f, Color.white, new Vector2(46f, 46f), Vector2.zero,
                 TextAlignmentOptions.Center, UIKit.Font, true, false);
 
@@ -360,6 +370,10 @@ namespace Palace
 
             bool canQuit = Application.platform != RuntimePlatform.IPhonePlayer && Application.platform != RuntimePlatform.WebGLPlayer;
             if (canQuit) UIKit.Button(p, "Exit", size, new Vector2(0f, top - step * 7), Quit);
+
+            // The menu buttons pop in one after another each time the main menu appears.
+            mainButtons.Clear();
+            foreach (Transform child in p) if (child.GetComponent<Button>() != null) mainButtons.Add(child);
         }
 
         /// <summary>Decorative fan: a card back (shows the Settings choice) plus two face cards.</summary>
@@ -370,6 +384,8 @@ namespace Palace
             back.ShowBack();
             Place(back, at + new Vector2(-side * 70f, 10f), -side * 16f);
             decorBacks.Add(back);
+            var backBob = back.gameObject.AddComponent<Bob>();
+            backBob.Height = 4f; backBob.Degrees = 2f; backBob.Speed = 0.35f; backBob.Phase = side;
 
             for (int i = 0; i < faces.Length; i++)
             {
@@ -377,6 +393,8 @@ namespace Palace
                 v.SetInteractable(false);
                 v.ShowCard(faces[i], true);
                 Place(v, at + new Vector2(side * i * 70f, -i * 8f), side * i * 14f);
+                var bob = v.gameObject.AddComponent<Bob>();
+                bob.Height = 5f; bob.Degrees = 2.5f; bob.Speed = 0.4f + i * 0.07f; bob.Phase = side * 0.3f + i * 0.25f;
             }
         }
 
@@ -509,7 +527,7 @@ namespace Palace
             "<b>Queen</b>  Reverses the direction of play.\n" +
             "<b>Ace</b>  Choose what it counts as: any value that matches or beats the pile (on a Jack it can be J, Q, K or A, never 9). On a LOWER 7 it can be a 2-6. Or use it as a 10 to burn the pile.\n\n" +
             "<b><color=#F2C24D>The three stages</color></b>\n1. Play from your hand until the deck runs out and your hand is empty.\n" +
-            "2. Then play your face-up cards.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
+            "2. Then play your face-up cards. If none of them can be played, pick up the pile and take one face-up card of your choice into your hand with it.\n3. Finally your face-down cards, turned over one at a time without looking. If the card can't be played, you pick up the pile with it and must clear your hand again.\n\n" +
             "<b><color=#F2C24D>Optional: Swap before play</color></b>\nTurn it on in Single Player (or as the host in a game room). After the deal, swap any of your hand cards with your face-up cards: tap a hand card, then a face-up card. Press READY when you're happy; play starts when everyone is ready.\n\n" +
             "<b><color=#F2C24D>Controls</color></b>\nDrag a card onto the pile to play it. Or tap cards to select them (tap again to deselect) and press PLAY. To play several of the same rank, tap them all, then drag one. Cards you can't play are darkened; tap one to see why. The arrows around the table show the direction of play. Tap the pile to see every card in it.\n\n" +
             "<b><color=#F2C24D>Keyboard (PC)</color></b>\n1-9 pick a card, Enter or Space plays, P picks up the pile, H or L calls higher or lower, J Q K A or 2-9 choose an Ace's value (B burns), S sorts your hand, V shows the pile, F speeds up once you've finished, Esc opens the menu.";

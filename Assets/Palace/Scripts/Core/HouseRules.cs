@@ -33,6 +33,12 @@ namespace Palace.Core
         public bool EightSkipsWithTwoLeft = false;
 
         /// <summary>
+        /// Q11 (your school rule): when you're on your face-up cards and can't play, you pick up the pile
+        /// AND one face-up card of your choice goes into your hand with it. false = pile only.
+        /// </summary>
+        public bool FaceUpPickUpTakesOne = true;
+
+        /// <summary>
         /// Optional game mode "Swap before play" (not part of the school rules, off by default): after the
         /// deal, everyone may swap any of their hand cards with their face-up cards, then presses Ready.
         /// Play starts once everyone is ready.

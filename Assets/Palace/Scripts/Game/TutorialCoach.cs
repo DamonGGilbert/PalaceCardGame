@@ -54,6 +54,7 @@ namespace Palace
                 case "ace": return "An Ace is the highest card. When you play one you choose what it counts as (any value that matches or beats the pile), or use it as a 10 to burn the pile.";
                 case "pickup": return "None of your cards can go on the pile, so you have to pick it all up. Press PICK UP PILE. It happens to everyone!";
                 case "faceup": return "Your hand is empty and the deck has run out, so now you play your face-up cards. Same rules as before.";
+                case "pickupfaceup": return "None of your face-up cards can go on the pile. Tap the one you want to take into your hand, and the whole pile comes with it.";
                 case "facedown": return "Last stage! Tap one of your face-down cards to turn it over. If it can't go on the pile, you pick up the pile along with it.";
                 case "viewpile": return "Tip: tap the pile (or View pile) to see every card in it and plan your next move.";
                 case "finish": return "A player has run out of cards and finished! The game carries on until only one player still has cards.";
@@ -124,7 +125,7 @@ namespace Palace
                 Want("play");
                 if (me.ActiveSource == PlaySource.FaceUp) Want("faceup");
                 if (me.ActiveSource == PlaySource.FaceDown) Want("facedown");
-                if (game.Game.MustPickUp(local)) Want("pickup");
+                if (game.Game.MustPickUp(local)) Want(game.Game.PickUpNeedsFaceUpChoice(local) ? "pickupfaceup" : "pickup");
                 else if (me.ActiveSource != PlaySource.FaceDown)
                 {
                     var cards = me.ActiveSource == PlaySource.Hand ? me.Hand : me.FaceUp.Where(c => c.HasValue).Select(c => c.Value).ToList();

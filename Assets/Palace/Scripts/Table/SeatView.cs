@@ -107,6 +107,23 @@ namespace Palace
             avatar.color = tableTheme != null ? tableTheme.GetAvatarColor(avatarIndex) : Color.gray;
         }
 
+        private Image picture;
+
+        /// <summary>A profile picture (AvatarArt) in the circle instead of the initial; null shows the initial again.</summary>
+        public void SetPicture(Sprite sprite)
+        {
+            EnsureBuilt();
+            if (picture == null)
+            {
+                picture = UIBuild.Image("Picture", avatar.transform, null, Color.white, new Vector2(60f, 60f), Vector2.zero);
+                picture.raycastTarget = false;
+                picture.preserveAspect = true;
+            }
+            picture.sprite = sprite;
+            picture.gameObject.SetActive(sprite != null);
+            avatarInitial.gameObject.SetActive(sprite == null);
+        }
+
         public void SetTurn(bool value)
         {
             EnsureBuilt();
