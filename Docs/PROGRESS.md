@@ -163,3 +163,12 @@
 - [x] Rule Q20 on: four of a kind in a row on the pile burns it (played together or one after another); "FOUR OF A KIND!"
       announcement. Normal and Hard computers finish a four when they can; Hard computers avoid leaving three in a row
 - [x] Seats: bigger card fan (up to 8), large plain-font count with "cards" under it; finishing place sits on the banner
+
+## Shedhead branding ✅ (code)
+- [x] Your Shedhead logo is the app icon (Assets/Palace/Resources/Brand/shedhead_logo.png) and opens the game on the splash screen
+- [x] Every name players see says Shedhead: menu title, credits, pop-ups, tips, notifications (all 3 languages); the app's
+      display name is "Shedhead". Code, save keys and product ids keep their internal "palace" names
+- [ ] **You (before the stores):** set a real bundle id, e.g. com.yourname.shedhead (Project Settings → Player); it's still
+      the template's com.DefaultCompany.2D-URP
+- [ ] **You (iOS):** Apple wants a square icon with no transparency and no rounded corners (iOS rounds it itself). The
+      current logo has its own rounded frame on transparent corners, so make a full-bleed square version for iOS

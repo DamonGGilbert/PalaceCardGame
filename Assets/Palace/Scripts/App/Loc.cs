@@ -111,7 +111,7 @@ namespace Palace
         static Loc()
         {
             // ---------------------------------------------------------- main menu
-            Add("THE CLASSIC SHEDHEAD CARD GAME", "KLASYCZNA GRA KARCIANA SHEDHEAD", "EL CLÁSICO JUEGO DE CARTAS SHEDHEAD");
+            Add("THE CLASSIC CARD GAME", "KLASYCZNA GRA KARCIANA", "EL CLÁSICO JUEGO DE CARTAS");
             Add("Single Player", "Jeden gracz", "Un jugador");
             Add("Multiplayer", "Gra wieloosobowa", "Multijugador");
             Add("Customise", "Personalizuj", "Personalizar");
@@ -492,7 +492,7 @@ namespace Palace
             Add("Hard: computers that save their best cards and target whoever is winning.", "Trudny: przeciwnicy oszczędzają najlepsze karty i celują w tego, kto wygrywa.", "Difícil: rivales que guardan sus mejores cartas y van a por quien va ganando.");
             Add("Guided game", "Gra z poradnikiem", "Partida guiada");
             Add("Play the guided game", "Zagraj z poradnikiem", "Jugar la partida guiada");
-            Add("New to Palace?", "Pierwszy raz w Palace?", "¿Nuevo en Palace?");
+            Add("New to Shedhead?", "Pierwszy raz w Shedhead?", "¿Nuevo en Shedhead?");
             Add("Play a short guided game first. It explains every special card the moment it comes up.", "Zagraj najpierw krótką grę z poradnikiem. Wyjaśnia każdą kartę specjalną, gdy tylko się pojawi.", "Juega primero una partida guiada corta. Explica cada carta especial en cuanto aparece.");
             Add("Teach me", "Naucz mnie", "Enséñame");
             Add("I know how to play", "Umiem grać", "Ya sé jugar");
@@ -500,9 +500,9 @@ namespace Palace
             Add("Tip {0}", "Wskazówka {0}", "Consejo {0}");
             Add("Got it", "Jasne", "Entendido");
             Add("Skip tips", "Pomiń wskazówki", "Saltar consejos");
-            Add("Welcome to Palace! The aim is to get rid of all your cards. The last player still holding cards is the Shedhead.",
-                "Witaj w Palace! Celem jest pozbycie się wszystkich kart. Ostatni gracz, który wciąż ma karty, zostaje Shedheadem.",
-                "¡Bienvenido a Palace! El objetivo es quedarte sin cartas. El último jugador que aún tenga cartas es el Shedhead.");
+            Add("Welcome to Shedhead! The aim is to get rid of all your cards. The last player still holding cards is the Shedhead.",
+                "Witaj w Shedhead! Celem jest pozbycie się wszystkich kart. Ostatni gracz, który wciąż ma karty, zostaje Shedheadem.",
+                "¡Bienvenido a Shedhead! El objetivo es quedarte sin cartas. El último jugador que aún tenga cartas es el Shedhead.");
             Add("You have 3 cards in your hand, 3 face-up cards on the table and 3 face-down cards under them. Play your hand first, then your face-up cards, and your face-down cards last, without looking.",
                 "Masz 3 karty w ręce, 3 odkryte karty na stole i 3 zakryte karty pod nimi. Najpierw graj z ręki, potem odkryte karty, a zakryte na końcu, bez patrzenia.",
                 "Tienes 3 cartas en la mano, 3 boca arriba en la mesa y 3 boca abajo debajo de ellas. Juega primero la mano, luego las boca arriba y las boca abajo al final, sin mirar.");
@@ -723,9 +723,9 @@ namespace Palace
             Add("Remind me", "Przypomnij mi", "Recuérdamelo");
             Add("No thanks", "Nie, dzięki", "No, gracias");
             Add("Notifications are off", "Powiadomienia są wyłączone", "Las notificaciones están desactivadas");
-            Add("Palace isn't allowed to send notifications. You can allow them in your phone's settings.",
-                "Palace nie może wysyłać powiadomień. Możesz na nie zezwolić w ustawieniach telefonu.",
-                "Palace no tiene permiso para enviar notificaciones. Puedes permitirlas en los ajustes del móvil.");
+            Add("Shedhead isn't allowed to send notifications. You can allow them in your phone's settings.",
+                "Shedhead nie może wysyłać powiadomień. Możesz na nie zezwolić w ustawieniach telefonu.",
+                "Shedhead no tiene permiso para enviar notificaciones. Puedes permitirlas en los ajustes del móvil.");
             Add("OK", "OK", "Vale");
             Add("Your daily reward is waiting. Fancy a quick game?", "Czeka na Ciebie dzienna nagroda. Szybka partyjka?", "Tu recompensa diaria te espera. ¿Una partida rápida?");
             Add("Keep your streak going! Day {0} pays {1} coins.", "Nie przerywaj serii! Dzień {0} to {1} monet.", "¡Sigue la racha! El día {0} da {1} monedas.");

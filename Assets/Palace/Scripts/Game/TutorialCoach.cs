@@ -41,7 +41,7 @@ namespace Palace
         {
             switch (id)
             {
-                case "welcome": return "Welcome to Palace! The aim is to get rid of all your cards. The last player still holding cards is the Shedhead.";
+                case "welcome": return "Welcome to Shedhead! The aim is to get rid of all your cards. The last player still holding cards is the Shedhead.";
                 case "stages": return "You have 3 cards in your hand, 3 face-up cards on the table and 3 face-down cards under them. Play your hand first, then your face-up cards, and your face-down cards last, without looking.";
                 case "play": return "Your turn! Play a card equal to or higher than the top card of the pile. Drag it onto the pile, or tap it and press PLAY. Cards you can't play are darkened.";
                 case "multi": return "You have more than one card of the same rank. Tap them all, then press PLAY, to get rid of them together.";

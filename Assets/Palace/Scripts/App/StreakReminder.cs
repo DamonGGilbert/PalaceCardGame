@@ -58,7 +58,7 @@ namespace Palace
             Runner.Get().StartCoroutine(Ask(done));
         }
 
-        private static string Title => "Palace";
+        private static string Title => "Shedhead";
 
         private static string Body()
         {

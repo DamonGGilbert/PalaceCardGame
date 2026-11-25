@@ -213,7 +213,7 @@ namespace Palace
                 if (allowed || this == null) return;
                 GameSettings.StreakReminders = false;
                 GameSettings.Save();
-                Popup(Loc.T("Notifications are off"), Loc.T("Palace isn't allowed to send notifications. You can allow them in your phone's settings."), "OK", null);
+                Popup(Loc.T("Notifications are off"), Loc.T("Shedhead isn't allowed to send notifications. You can allow them in your phone's settings."), "OK", null);
             });
         }
 
@@ -227,7 +227,7 @@ namespace Palace
             }
             GameSettings.TutorialOffered = true;
             GameSettings.Save();
-            Popup(Loc.T("New to Palace?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
+            Popup(Loc.T("New to Shedhead?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
                 "Teach me", StartTutorial, "I know how to play", () => Show(singlePanel));
         }
 
@@ -246,6 +246,23 @@ namespace Palace
 
         // ------------------------------------------------------------------ splash
 
+        /// <summary>The Shedhead logo (Resources/Brand/shedhead_logo.png), or null if it's missing.</summary>
+        private static Sprite logo;
+        public static Sprite Logo
+        {
+            get
+            {
+                if (logo != null) return logo;
+                logo = Resources.Load<Sprite>("Brand/shedhead_logo");
+                if (logo == null)
+                {
+                    var tex = Resources.Load<Texture2D>("Brand/shedhead_logo");
+                    if (tex != null) logo = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+                }
+                return logo;
+            }
+        }
+
         private IEnumerator Splash()
         {
             GameLaunch.SplashShown = true;
@@ -258,42 +275,30 @@ namespace Palace
             skipButton.transition = Selectable.Transition.None;
             skipButton.onClick.AddListener(() => skip = true);
 
-            var title = UIBuild.Text("Title", layer, "PALACE", 170f, UIKit.Gold, new Vector2(1200f, 220f), new Vector2(0f, 60f),
-                TextAlignmentOptions.Center, UIKit.Font, true);
-            title.characterSpacing = 18f;
-            var sub = UIBuild.Text("Subtitle", layer, "THE CLASSIC SHEDHEAD CARD GAME", 34f, UIKit.Muted, new Vector2(1200f, 60f),
-                new Vector2(0f, -70f), TextAlignmentOptions.Center, UIKit.Font, true);
+            // The Shedhead logo pops in with a little bounce, then the subtitle fades in underneath.
+            var mark = UIBuild.Image("Logo", layer, Logo, Color.white, new Vector2(560f, 560f), new Vector2(0f, 60f));
+            mark.preserveAspect = true;
+            if (Logo == null) // safety net: the name in text if the image is missing
+                UIBuild.Text("Title", mark.transform, "SHEDHEAD", 150f, UIKit.Gold, new Vector2(1200f, 220f), Vector2.zero,
+                    TextAlignmentOptions.Center, UIKit.Font, true).characterSpacing = 14f;
+            var sub = UIBuild.Text("Subtitle", layer, "THE CLASSIC CARD GAME", 34f, UIKit.Muted, new Vector2(1200f, 60f),
+                new Vector2(0f, -270f), TextAlignmentOptions.Center, UIKit.Font, true);
             sub.characterSpacing = 8f;
             sub.alpha = 0f;
 
-            var fan = new[] { new Card(0, Rank.Ten, Suit.Hearts), new Card(1, Rank.Ace, Suit.Spades), new Card(2, Rank.Two, Suit.Diamonds) };
-            var cards = new List<RectTransform>();
-            for (int i = 0; i < fan.Length; i++)
+            var markRt = mark.rectTransform;
+            markRt.localScale = Vector3.zero;
+            AudioManager.Play(Sfx.CardPlay, 0.8f);
+            yield return Tween.Run(0.55f, t =>
             {
-                CardView v = CardFactory.Spawn(cardPrefab, cardTheme, layer);
-                v.SetInteractable(false);
-                v.ShowCard(fan[i], true);
-                cards.Add((RectTransform)v.transform);
-                v.transform.localScale = Vector3.zero;
-            }
-
-            var titleRt = title.rectTransform;
-            titleRt.localScale = Vector3.one * 0.6f;
-            title.alpha = 0f;
-            yield return Tween.Run(0.6f, t => { titleRt.localScale = Vector3.one * Mathf.Lerp(0.6f, 1f, t); title.alpha = t; });
-
-            for (int i = 0; i < cards.Count && !skip; i++)
-            {
-                AudioManager.Play(Sfx.CardPlay, 0.7f);
-                var rt = cards[i];
-                float angle = (1 - i) * 14f;
-                yield return Tween.Move(rt, new Vector2(0f, -600f), new Vector2((i - 1) * 90f, -250f + Mathf.Abs(i - 1) * 14f),
-                    0.28f, 0.8f, 0.8f, 0f, angle);
-            }
+                markRt.localScale = Vector3.one * UIMotion.BackOut(t);
+                markRt.localEulerAngles = new Vector3(0f, 0f, (1f - t) * -8f);
+            }, x => x);
+            AudioManager.Play(Sfx.Win, 0.5f);
 
             yield return Tween.Run(0.4f, t => sub.alpha = t);
             float wait = 0f;
-            while (wait < 1.2f && !skip)
+            while (wait < 1.4f && !skip)
             {
                 wait += Time.unscaledDeltaTime;
                 yield return null;
@@ -312,12 +317,12 @@ namespace Palace
             mainPanel = UIBuild.Stretch("Main", root).gameObject;
             Transform p = mainPanel.transform;
 
-            var title = UIKit.Label(p, "PALACE", 150f, new Vector2(1200f, 190f), new Vector2(0f, 330f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            var title = UIKit.Label(p, "SHEDHEAD", 136f, new Vector2(1200f, 190f), new Vector2(0f, 330f), TextAlignmentOptions.Center, UIKit.Gold, true);
             title.characterSpacing = 16f;
             title.outlineWidth = 0.12f;
             title.outlineColor = new Color32(0, 0, 0, 180);
             title.gameObject.AddComponent<Bob>().Height = 7f;
-            var sub = UIKit.Label(p, "THE CLASSIC SHEDHEAD CARD GAME", 30f, new Vector2(1200f, 50f), new Vector2(0f, 222f), TextAlignmentOptions.Center, UIKit.Muted, true);
+            var sub = UIKit.Label(p, "THE CLASSIC CARD GAME", 30f, new Vector2(1200f, 50f), new Vector2(0f, 222f), TextAlignmentOptions.Center, UIKit.Muted, true);
             sub.characterSpacing = 6f;
 
             BuildFan(p, new Vector2(-600f, -60f), new[] { new Card(0, Rank.Queen, Suit.Hearts), new Card(1, Rank.King, Suit.Clubs) }, -1f);
@@ -681,7 +686,7 @@ namespace Palace
         {
             Transform p = BuildScreen("Credits", new Vector2(1000f, 680f), out creditsPanel);
             var text = UIKit.Label(p,
-                "<color=#F2C24D><b>PALACE</b></color>\n\n" +
+                "<color=#F2C24D><b>SHEDHEAD</b></color>\n\n" +
                 Loc.T("Game design and house rules") + "\n<b>Damon Gilbert</b>\n\n" +
                 Loc.T("Programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
                 Loc.T("Made with Unity") + "\n" + Loc.T("Fonts: Alegreya and Liberation Sans (SIL Open Font License)") + "\n" +
@@ -778,7 +783,7 @@ namespace Palace
                 yield return new WaitForSecondsRealtime(0.3f);
             }
             Show(mainPanel);
-            Popup(Loc.T("New to Palace?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
+            Popup(Loc.T("New to Shedhead?"), Loc.T("Play a short guided game first. It explains every special card the moment it comes up."),
                 "Teach me", null, "I know how to play", null);
             yield return new WaitForSecondsRealtime(0.4f);
             ScreenCapture.CaptureScreenshot(Path.Combine(dir, "menu_tutorial_offer.png"));
