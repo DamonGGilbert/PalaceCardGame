@@ -85,11 +85,13 @@ namespace Palace.EditorTools
             PalacePubArt.GenerateAll(); // the hand-painted pub style (the default look)
             PalacePubArt.GenerateCosmetics();
             PalaceFlagArt.Generate();         // country flag tables, card backs and banners
+            PalacePremiumArt.Generate();      // premium card backs, decks and tables
 
             AssetDatabase.Refresh();
             PalacePubArt.ConfigureAll();
             PalacePubArt.ConfigureCosmetics();
             PalaceFlagArt.Configure();
+            PalacePremiumArt.Configure();
 
             ConfigureSprite("card_face", 512);
             foreach (var b in Backs) ConfigureSprite(b.file, 512);
@@ -572,6 +574,7 @@ namespace Palace.EditorTools
             lib.waterCaustics = AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/water_caustics.png");
             lib.feltMask = LoadSprite("felt_mask");
             PalaceFlagArt.AddToLibrary(lib);
+            PalacePremiumArt.AddToLibrary(lib);
             PalaceNameFonts.AddToLibrary(lib);
             EditorUtility.SetDirty(lib);
         }

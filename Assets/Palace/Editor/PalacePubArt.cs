@@ -46,6 +46,16 @@ namespace Palace.EditorTools
         internal static Func<float, float, Color> BackPaint;
 
         internal static Color TableColor(float x, float y) => Table(x, y);
+        internal static Color CardFaceColor(float x, float y) => CardFace(x, y);
+
+        /// <summary>Paints with a different card paper and border ink (premium decks), then puts the normal ones back.</summary>
+        internal static void WithPaper(Color paper, Color shade, Color edge, Color ink, Action draw)
+        {
+            Color p = Paper, ps = PaperShade, pe = PaperEdge, i = InkBrown;
+            Paper = paper; PaperShade = shade; PaperEdge = edge; InkBrown = ink;
+            try { draw(); }
+            finally { Paper = p; PaperShade = ps; PaperEdge = pe; InkBrown = i; }
+        }
         internal static Color CardBackColor(float x, float y) => CardBack(x, y);
         internal static float Grain(float x, float y, int octaves, int seed) => Fbm(x, y, octaves, seed);
         internal static Color BrassAt(float t) => Color.Lerp(BrassDark, BrassLight, t);

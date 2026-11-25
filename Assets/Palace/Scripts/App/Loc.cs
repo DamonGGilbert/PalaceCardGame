@@ -780,6 +780,24 @@ namespace Palace
                 "Czcionki imion: Google Fonts (licencje SIL Open Font License i Apache 2.0)",
                 "Fuentes de nombres: Google Fonts (licencias SIL Open Font License y Apache 2.0)");
 
+            // ---------------------------------------------------------- premium range
+            Add("PREMIUM", "PREMIUM", "PREMIUM");
+            Add("Carbon Fibre", "Włókno węglowe", "Fibra de carbono");
+            Add("Neon Grid", "Neonowa siatka", "Rejilla de neón");
+            Add("Marble", "Marmur", "Mármol");
+            Add("Gold Filigree", "Złota filigrana", "Filigrana de oro");
+            Add("Royal Damask", "Królewski adamaszek", "Damasco real");
+            Add("Dragon Scale", "Smocza łuska", "Escamas de dragón");
+            Add("Holographic", "Holograficzny", "Holográfico");
+            Add("Marble Hall", "Marmurowa sala", "Salón de mármol");
+            Add("Royal Velvet", "Królewski aksamit", "Terciopelo real");
+            Add("Neon Arcade", "Neonowy salon gier", "Salón recreativo neón");
+            Add("Royal Ivory", "Królewska kość słoniowa", "Marfil real");
+            Add("Obsidian Gold", "Obsydian i złoto", "Obsidiana y oro");
+            Add("Rose Quartz", "Kwarc różowy", "Cuarzo rosa");
+            Add("Emerald Prestige", "Szmaragdowy prestiż", "Prestigio esmeralda");
+            Add("Neon Noir", "Neonowa noc", "Neón nocturno");
+
             // ---------------------------------------------------------- how to play
             Add(MainMenuController.RulesText,
                 "<b><color=#F2C24D>Cel</color></b>\nPozbądź się wszystkich kart. Gra toczy się, aż wszyscy skończą, więc liczy się każde miejsce od 1. do ostatniego.\n\n" +

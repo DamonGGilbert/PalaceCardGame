@@ -208,9 +208,24 @@ namespace Palace
             bool owned = Cosmetics.Owns(item);
             bool equipped = Cosmetics.IsEquipped(category, item);
 
+            if (item.premium)
+            {
+                // The luxury range: a gold glow behind the tile.
+                var glow = UIBuild.Image("PremiumGlow", grid, UIKit.PanelSprite, new Color(1f, 0.78f, 0.3f, 0.9f), new Vector2(366f, 316f), pos);
+                glow.type = Image.Type.Sliced;
+            }
             var tile = UIKit.Panel(grid, new Vector2(350f, 300f), pos, equipped ? new Color(1f, 0.92f, 0.7f, 1f) : new Color(0.75f, 0.72f, 0.68f, 1f));
             Transform t = tile.transform;
             BuildPreview(item, t);
+            if (item.premium)
+            {
+                // ...and a PREMIUM ribbon across the top corner.
+                var ribbon = UIBuild.Image("Premium", t, UIKit.PrimarySprite != null ? UIKit.PrimarySprite : UIKit.PanelSprite,
+                    UIKit.PrimarySprite != null ? Color.white : UIKit.Gold, new Vector2(150f, 36f), new Vector2(-92f, 128f));
+                ribbon.type = Image.Type.Sliced;
+                UIBuild.Text("Label", ribbon.transform, "PREMIUM", 20f, UIKit.Ink, new Vector2(140f, 32f), Vector2.zero,
+                    TextAlignmentOptions.Center, UIKit.Font, true);
+            }
 
             UIKit.Label(t, item.displayName, 26f, new Vector2(330f, 40f), new Vector2(0f, -60f), TextAlignmentOptions.Center, UIKit.Text, true);
 

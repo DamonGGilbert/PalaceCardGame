@@ -27,6 +27,15 @@ namespace Palace.EditorTools
 
             bool library = File.Exists(PalaceArtGenerator.LibraryPath);
             bool flags = File.Exists(PalaceArtGenerator.ArtFolder + "/flag_back_chile.png"); // the newest flags
+            bool premium = File.Exists(PalaceArtGenerator.ArtFolder + "/premium_back_holo.png");
+            if (library && flags && !premium)
+            {
+                // Only the premium range is new: paint just that (much quicker than everything).
+                if (EditorUtility.DisplayDialog("Palace: add the premium range?",
+                        "New premium card backs, decks and tables are ready to paint (a minute or two).", "Paint them", "Later"))
+                    PalacePremiumArt.RegenerateMenu();
+                return;
+            }
             if (library && flags)
             {
                 // Only the name fonts are missing: that's quick to fix on its own.

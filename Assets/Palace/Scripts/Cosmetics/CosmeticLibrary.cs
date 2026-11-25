@@ -21,6 +21,7 @@ namespace Palace
         public int price;            // in coins; 0 = free / owned from the start
         public Sprite preview;       // shown on the Customise screen
         public bool storeOnly;       // only from a real-money pack (none at the moment: everything is bought with coins)
+        public bool premium;         // the luxury range: shown with a PREMIUM badge
     }
 
     [Serializable] public class TableSkin : CosmeticItem

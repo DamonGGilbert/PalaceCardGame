@@ -178,3 +178,10 @@
       Android SDK & NDK) and **iOS Build Support**. Then run Palace → Setup → Apply Shedhead Branding once for the
       Android adaptive icon. iOS builds also need a Mac with Xcode
 - [ ] **You:** set your company name (Project Settings → Player) before launch
+
+## Premium range ✅ (code) — Unity offers to paint it ("Regenerate Premium Cosmetics")
+- [x] 8 premium card backs (15,000–25,000 coins): Carbon Fibre, Neon Grid, Marble, Gold Filigree, Royal Damask, Galaxy,
+      Dragon Scale, Holographic
+- [x] 5 premium decks (28,000–35,000): Royal Ivory, Obsidian Gold, Rose Quartz, Emerald Prestige, Neon Noir
+- [x] 6 premium tables (38,000–50,000): Marble Hall, Gold Filigree, Royal Velvet, Neon Arcade, Galaxy, Holographic
+- [x] Gold PREMIUM ribbon and glow on the Customise screen; premium items listed before the flags
