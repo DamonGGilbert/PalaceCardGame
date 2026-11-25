@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -5,60 +7,113 @@ using UnityEngine;
 namespace Palace.EditorTools
 {
     /// <summary>
-    /// Shedhead branding: the logo's import settings, the app icon and the app's display name.
-    /// Runs once when the project opens (and again from Palace > Setup > Apply Shedhead Branding).
+    /// Shedhead branding: the logo's import settings, the app icons and the app's display name.
+    /// Applied every time the project opens (it only changes anything if something is missing), and
+    /// from Palace > Setup > Apply Shedhead Branding.
+    ///
+    ///  Art/Icons/shedhead_icon.png            square, full bleed, no transparency: iOS, Android (older
+    ///                                         launchers), Windows and the default for everything
+    ///  Art/Icons/shedhead_icon_android_fg/bg  Android adaptive icon layers: the logo sits inside the safe
+    ///                                         zone, so circle / squircle / teardrop masks never cut it off
+    ///
     /// The code keeps its internal "Palace" names; players only ever see "Shedhead".
     /// </summary>
     [InitializeOnLoad]
     public static class PalaceBranding
     {
         public const string LogoPath = "Assets/Palace/Resources/Brand/shedhead_logo.png";
+        public const string IconPath = "Assets/Palace/Art/Icons/shedhead_icon.png";
+        public const string AndroidForegroundPath = "Assets/Palace/Art/Icons/shedhead_icon_android_fg.png";
+        public const string AndroidBackgroundPath = "Assets/Palace/Art/Icons/shedhead_icon_android_bg.png";
         public const string ProductName = "Shedhead";
-        private const string DoneKey = "Palace.BrandingApplied.v1";
 
         static PalaceBranding()
         {
             EditorApplication.delayCall += () =>
             {
-                if (EditorPrefs.GetBool(DoneKey + "." + Application.dataPath, false)) return;
-                if (Apply()) EditorPrefs.SetBool(DoneKey + "." + Application.dataPath, true);
+                if (!Application.isBatchMode && !EditorApplication.isPlayingOrWillChangePlaymode) Apply(false);
             };
         }
 
         [MenuItem("Palace/Setup/Apply Shedhead Branding", priority = 33)]
-        public static void ApplyMenu()
+        public static void ApplyMenu() => Apply(true);
+
+        public static bool Apply(bool log)
         {
-            if (Apply()) Debug.Log("[Palace] Shedhead logo set as the app icon; app name is \"" + ProductName + "\".");
+            Prepare(LogoPath, TextureImporterType.Sprite, 2048, TextureImporterCompression.CompressedHQ);
+            Prepare(IconPath, TextureImporterType.Default, 1024, TextureImporterCompression.Uncompressed);
+            Prepare(AndroidForegroundPath, TextureImporterType.Default, 1024, TextureImporterCompression.Uncompressed);
+            Prepare(AndroidBackgroundPath, TextureImporterType.Default, 1024, TextureImporterCompression.Uncompressed);
+
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath);
+            if (icon == null) return false;
+
+            if (PlayerSettings.productName != ProductName) PlayerSettings.productName = ProductName;
+
+            // The default icon (every platform), plus iOS explicitly.
+            SetIfDifferent(NamedBuildTarget.Unknown, icon);
+            SetIfDifferent(NamedBuildTarget.iOS, icon);
+
+            bool android = ApplyAndroid(icon);
+            AssetDatabase.SaveAssets();
+            if (log)
+                Debug.Log("[Palace] Shedhead icon set" + (android ? " (with the Android adaptive icon)" :
+                    ". Install Android Build Support in Unity Hub, then run this again for the Android adaptive icon") + ".");
+            return true;
         }
 
-        /// <summary>Returns false if the logo file isn't there yet.</summary>
-        public static bool Apply()
+        private static void SetIfDifferent(NamedBuildTarget target, Texture2D icon)
         {
-            var importer = AssetImporter.GetAtPath(LogoPath) as TextureImporter;
-            if (importer == null) return false;
+            Texture2D[] current = PlayerSettings.GetIcons(target, IconKind.Any);
+            if (current != null && current.Length > 0 && current[0] == icon) return;
+            int count = Math.Max(1, PlayerSettings.GetIconSizes(target, IconKind.Any).Length);
+            var icons = new Texture2D[count];
+            for (int i = 0; i < count; i++) icons[i] = icon;
+            PlayerSettings.SetIcons(target, icons, IconKind.Any);
+        }
 
-            // A crisp sprite for the splash screen, and a full-quality source for the icons.
-            bool changed = importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled || importer.maxTextureSize != 2048
-                           || importer.textureCompression != TextureImporterCompression.CompressedHQ;
-            if (changed)
+        /// <summary>
+        /// Android's own icon types live in the Android module, which may not be installed, so they're
+        /// found by name. Returns false if the module isn't installed yet.
+        /// </summary>
+        private static bool ApplyAndroid(Texture2D square)
+        {
+            Type kinds = Type.GetType("UnityEditor.Android.AndroidPlatformIconKind, UnityEditor.Android.Extensions");
+            if (kinds == null) return false;
+            var fg = AssetDatabase.LoadAssetAtPath<Texture2D>(AndroidForegroundPath);
+            var bg = AssetDatabase.LoadAssetAtPath<Texture2D>(AndroidBackgroundPath);
+
+            PlatformIconKind Kind(string name) =>
+                kinds.GetProperty(name, BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as PlatformIconKind;
+
+            void Set(PlatformIconKind kind, params Texture2D[] layers)
             {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
-                importer.maxTextureSize = 2048;
-                importer.textureCompression = TextureImporterCompression.CompressedHQ;
-                importer.SaveAndReimport();
+                if (kind == null || layers == null || Array.Exists(layers, t => t == null)) return;
+                PlatformIcon[] icons = PlayerSettings.GetPlatformIcons(NamedBuildTarget.Android, kind);
+                foreach (var platformIcon in icons) platformIcon.SetTextures(layers);
+                PlayerSettings.SetPlatformIcons(NamedBuildTarget.Android, kind, icons);
             }
 
-            var logo = AssetDatabase.LoadAssetAtPath<Texture2D>(LogoPath);
-            if (logo == null) return false;
-
-            // The default icon: every platform uses it unless it has its own icons set.
-            PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { logo }, IconKind.Any);
-            PlayerSettings.productName = ProductName;
-            AssetDatabase.SaveAssets();
+            Set(Kind("Adaptive"), bg, fg);  // layers: background, then foreground
+            Set(Kind("Round"), square);
+            Set(Kind("Legacy"), square);
             return true;
+        }
+
+        private static void Prepare(string path, TextureImporterType type, int maxSize, TextureImporterCompression compression)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) return;
+            if (importer.textureType == type && !importer.mipmapEnabled && importer.maxTextureSize == maxSize
+                && importer.textureCompression == compression) return;
+            importer.textureType = type;
+            if (type == TextureImporterType.Sprite) importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.maxTextureSize = maxSize;
+            importer.textureCompression = compression;
+            importer.SaveAndReimport();
         }
     }
 }

@@ -170,5 +170,11 @@
       display name is "Shedhead". Code, save keys and product ids keep their internal "palace" names
 - [ ] **You (before the stores):** set a real bundle id, e.g. com.yourname.shedhead (Project Settings → Player); it's still
       the template's com.DefaultCompany.2D-URP
-- [ ] **You (iOS):** Apple wants a square icon with no transparency and no rounded corners (iOS rounds it itself). The
-      current logo has its own rounded frame on transparent corners, so make a full-bleed square version for iOS
+- [x] Universal icon: square, full-bleed, no transparency (Art/Icons/shedhead_icon.png) for iOS, Windows and older
+      Android; Android adaptive icon layers keep the whole logo inside circle / squircle masks
+- [x] Saved progress carried over from the old "PalaceCardGame" name (App/PrefsMigration.cs; also covers a future
+      company-name change). On phones, saves follow the bundle id, so set it once and never change it after launch
+- [ ] **You:** Unity Hub → Installs → 6000.6.10f1 → Add modules → **Android Build Support** (with OpenJDK and
+      Android SDK & NDK) and **iOS Build Support**. Then run Palace → Setup → Apply Shedhead Branding once for the
+      Android adaptive icon. iOS builds also need a Mac with Xcode
+- [ ] **You:** set your company name (Project Settings → Player) before launch
