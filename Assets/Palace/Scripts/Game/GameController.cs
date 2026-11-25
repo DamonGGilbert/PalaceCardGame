@@ -547,6 +547,49 @@ namespace Palace
             Execute(BotBrain.Execute(Game, actor, move));
         }
 
+        // ------------------------------------------------------------------ cards in the air
+        // Cards being drawn or picked up only appear in a hand (and in a hand count) once they land.
+
+        private readonly HashSet<int> arriving = new HashSet<int>();                 // your cards still flying in
+        private readonly Dictionary<int, int> pendingCards = new Dictionary<int, int>(); // player -> cards still flying in
+
+        private void NoteArrivals(IReadOnlyList<GameEvent> events)
+        {
+            arriving.Clear();
+            pendingCards.Clear();
+            foreach (var e in events)
+            {
+                if (e.Type != GameEventType.CardsDrawn && e.Type != GameEventType.PileCollected && e.Type != GameEventType.FaceUpTaken) continue;
+                pendingCards[e.Player] = (pendingCards.TryGetValue(e.Player, out int n) ? n : 0) + e.Cards.Count;
+                if (e.Player == localPlayer) foreach (var c in e.Cards) arriving.Add(c.Id);
+            }
+        }
+
+        /// <summary>One card has reached a hand: show it there (with a little pop if it's yours).</summary>
+        private void Landed(int player, Card card)
+        {
+            if (pendingCards.TryGetValue(player, out int n)) pendingCards[player] = Mathf.Max(0, n - 1);
+            bool mine = player == localPlayer && arriving.Remove(card.Id);
+            RefreshAll();
+            if (!mine || GameSettings.AnimationScale <= 0f) return;
+            CardView view = hand.Find(card.Id);
+            if (view != null) StartCoroutine(PopIn(view.transform));
+        }
+
+        /// <summary>Everything in this event has landed (also covers cards that didn't get their own flight).</summary>
+        private void AllLanded(GameEvent e)
+        {
+            pendingCards.Remove(e.Player);
+            if (e.Player == localPlayer) foreach (var c in e.Cards) arriving.Remove(c.Id);
+            RefreshAll();
+        }
+
+        private static IEnumerator PopIn(Transform t)
+        {
+            yield return Tween.Run(0.22f, k => { if (t != null) t.localScale = Vector3.one * Mathf.LerpUnclamped(0.6f, 1f, UIMotion.BackOut(k)); }, x => x);
+            if (t != null) t.localScale = Vector3.one;
+        }
+
         /// <summary>Was this burn four of a kind (rather than a 10 or an Ace)?</summary>
         private bool IsFourOfAKind(List<Card> burned)
         {
@@ -1226,7 +1269,7 @@ namespace Palace
                     down.SetInteractable(mine && myTurn && mySource == PlaySource.FaceDown);
                 }
 
-                seat.SetHandCount(p.Hand.Count);
+                seat.SetHandCount(Mathf.Max(0, p.Hand.Count - (pendingCards.TryGetValue(i, out int flying) ? flying : 0)));
                 seat.SetFinished(p.FinishPosition);
                 // While swapping, everyone who isn't ready yet is highlighted.
                 seat.SetTurn(swapping ? !p.SwapReady : s.Phase != GamePhase.GameOver && i == s.ActingPlayer);
@@ -1242,7 +1285,7 @@ namespace Palace
 
             if (localPlayer >= 0)
             {
-                var hold = s.Players[localPlayer].Hand;
+                var hold = s.Players[localPlayer].Hand.Where(c => !arriving.Contains(c.Id)); // cards still flying in aren't shown yet
                 var cards = GameSettings.HandOrder == 1
                     ? hold.OrderBy(c => c.Suit).ThenBy(c => c.Rank).ToList()     // grouped by suit
                     : hold.OrderBy(c => c.Rank).ThenBy(c => c.Suit).ToList();    // low to high
@@ -1413,6 +1456,7 @@ namespace Palace
             }
 
             var onPile = new HashSet<int>();
+            NoteArrivals(events);
             RefreshAll();
 
             foreach (var e in events)
@@ -1420,6 +1464,8 @@ namespace Palace
                 yield return AnimateEvent(e, origins, onPile);
             }
 
+            arriving.Clear(); // anything still in the air has landed now
+            pendingCards.Clear();
             // Make sure the table shows exactly the real state now the animations are done.
             shownPile.Clear();
             shownPile.AddRange(Game.State.Discard);
@@ -1514,10 +1560,13 @@ namespace Palace
                         shownDeck = Mathf.Max(0, shownDeck - 1);
                         table.SetDeckCount(shownDeck);
                         AudioManager.Play(Sfx.CardDraw, 0.6f);
-                        StartCoroutine(FlyCard(null, table.DeckPoint, to, table.PileCardScale, toScale, 0.25f, null));
+                        Card drawn = e.Cards[i];
+                        int drawer = e.Player;
+                        StartCoroutine(FlyCard(null, table.DeckPoint, to, table.PileCardScale, toScale, 0.25f, () => Landed(drawer, drawn)));
                         yield return Tween.Wait(Tween.Scaled(0.07f));
                     }
                     yield return Tween.Wait(Tween.Scaled(0.2f));
+                    AllLanded(e);
                     break;
                 }
 
@@ -1539,12 +1588,14 @@ namespace Palace
                         Card c = shownPile[shownPile.Count - 1];
                         shownPile.RemoveAt(shownPile.Count - 1);
                         table.SetDiscardPile(shownPile);
-                        StartCoroutine(FlyCard(c, table.DiscardPoint, to, table.PileCardScale, 0.5f, 0.4f, null));
+                        int picker = e.Player;
+                        StartCoroutine(FlyCard(c, table.DiscardPoint, to, table.PileCardScale, 0.5f, 0.4f, () => Landed(picker, c)));
                         yield return Tween.Wait(Tween.Scaled(0.06f));
                     }
                     shownPile.Clear();
                     table.SetDiscardPile(shownPile);
                     yield return Tween.Wait(Tween.Scaled(0.45f));
+                    AllLanded(e); // the rest of a big pile arrives together
 
                     // Give everyone a moment to take it in before the computer plays on.
                     if (!AutoPlayHarness.Active)
@@ -1644,7 +1695,8 @@ namespace Palace
                     Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
                     float toScale = e.Player == localPlayer ? 1f : ScaleOf(seat.transform) * SeatView.TableCardScale;
                     AudioManager.Play(Sfx.CardDraw, 0.7f);
-                    yield return FlyCard(card, table.ToLocal(from), to, ScaleOf(from), toScale, 0.3f, null);
+                    yield return FlyCard(card, table.ToLocal(from), to, ScaleOf(from), toScale, 0.3f, () => Landed(e.Player, card));
+                    AllLanded(e);
                     break;
                 }
 

@@ -382,17 +382,27 @@ namespace Palace
             Shop.Initialize();
             var products = ShopCatalog.Products;
             LayoutGrid(products.Length + 1);
-            int slot = 0;
 
-            // Free bonus coins first: watch an optional ad (or claim instantly with Remove Ads).
-            BuildBonusTile(SlotPosition(slot++));
-            foreach (var product in products) BuildProductTile(product, SlotPosition(slot++));
+            // Top row: the ad things (free bonus coins, and Remove Ads). Second row: the coin bags.
+            // Each row is centred, so it looks tidy whatever is in it.
+            var adRow = new List<ShopProduct>();
+            var coinRow = new List<ShopProduct>();
+            foreach (var product in products) (product.AdFree ? adRow : coinRow).Add(product);
+
+            float rowY0 = SlotPosition(0).y, rowY1 = SlotPosition((int)Columns).y;
+            int adCount = adRow.Count + 1;
+            BuildBonusTile(new Vector2(RowX(0, adCount), rowY0));
+            for (int i = 0; i < adRow.Count; i++) BuildProductTile(adRow[i], new Vector2(RowX(i + 1, adCount), rowY0));
+            for (int i = 0; i < coinRow.Count; i++) BuildProductTile(coinRow[i], new Vector2(RowX(i, coinRow.Count), rowY1));
 
             string status = Shop.Backend != null && !string.IsNullOrEmpty(Shop.Backend.StatusMessage) ? Shop.Backend.StatusMessage : "";
             message.text = Loc.T(!string.IsNullOrEmpty(shopNote) ? shopNote : status);
 
             restoreButton = UIKit.Button(extras, "Restore purchases", new Vector2(270f, 52f), new Vector2(-600f, 445f), Shop.Restore, false, 22f).gameObject;
         }
+
+        /// <summary>x of item i in a centred row of n tiles (same spacing as the grid).</summary>
+        private static float RowX(int i, int n) => (i - (n - 1) * 0.5f) * 380f;
 
         private void BuildBonusTile(Vector2 pos)
         {
