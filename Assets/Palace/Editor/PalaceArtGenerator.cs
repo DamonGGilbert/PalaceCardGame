@@ -364,13 +364,14 @@ namespace Palace.EditorTools
             var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
             tex.SetPixels(pixels);
             tex.Apply();
-            File.WriteAllBytes(Path.Combine(ArtFolder, fileName + ".png"), tex.EncodeToPNG());
+            File.WriteAllBytes(ArtPath(fileName), tex.EncodeToPNG()); // tables already moved to Resources are updated in place
             UnityEngine.Object.DestroyImmediate(tex);
         }
 
-        internal static void ConfigureSprite(string fileName, int maxSize, Vector4 border = default, float pixelsPerUnit = 100f)
+        internal static void ConfigureSprite(string fileName, int maxSize, Vector4 border = default, float pixelsPerUnit = 100f,
+            TextureImporterCompression compression = TextureImporterCompression.CompressedHQ)
         {
-            string path = ArtFolder + "/" + fileName + ".png";
+            string path = ArtPath(fileName);
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer == null) return;
 
@@ -381,7 +382,7 @@ namespace Palace.EditorTools
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.filterMode = FilterMode.Bilinear;
             importer.maxTextureSize = maxSize;
-            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.textureCompression = compression;
             importer.spritePixelsPerUnit = pixelsPerUnit;
             importer.spriteBorder = border;
             importer.SaveAndReimport();
@@ -389,7 +390,17 @@ namespace Palace.EditorTools
 
         internal static Sprite LoadSprite(string fileName)
         {
-            return AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/" + fileName + ".png");
+            // Tables live in a Resources folder (loaded on demand), everything else in the art folder.
+            return AssetDatabase.LoadAssetAtPath<Sprite>(ArtPath(fileName)) ?? AssetDatabase.LoadAssetAtPath<Sprite>(PalaceTableStore.Folder + "/" + fileName + ".png");
+        }
+
+        /// <summary>Where a generated image is: the art folder, or the tables folder once it has been moved there.</summary>
+        internal static string ArtPath(string fileName)
+        {
+            string path = ArtFolder + "/" + fileName + ".png";
+            if (System.IO.File.Exists(path)) return path;
+            string table = PalaceTableStore.Folder + "/" + fileName + ".png";
+            return System.IO.File.Exists(table) ? table : path;
         }
 
         private static void UpdateThemes()
@@ -575,6 +586,7 @@ namespace Palace.EditorTools
             lib.feltMask = LoadSprite("felt_mask");
             PalaceFlagArt.AddToLibrary(lib);
             PalacePremiumArt.AddToLibrary(lib);
+            PalaceTableStore.Organise(lib);   // tables load on demand, with small thumbnails
             PalaceNameFonts.AddToLibrary(lib);
             EditorUtility.SetDirty(lib);
         }

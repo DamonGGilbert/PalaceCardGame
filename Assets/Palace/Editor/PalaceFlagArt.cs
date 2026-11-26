@@ -99,6 +99,7 @@ namespace Palace.EditorTools
             var lib = AssetDatabase.LoadAssetAtPath<CosmeticLibrary>(LibraryPath);
             if (lib == null) return;
             AddToLibrary(lib);
+            PalaceTableStore.Organise(lib);
             EditorUtility.SetDirty(lib);
         }
 

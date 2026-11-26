@@ -30,7 +30,8 @@ namespace Palace
         {
             get
             {
-                if (tableSkin != null && tableSkin.table != null) return tableSkin.table;
+                Sprite equipped = tableSkin != null ? tableSkin.Load() : null; // loaded on demand
+                if (equipped != null) return equipped;
                 if (tableVariants == null || tableVariants.Length == 0) return table;
                 Sprite s = tableVariants[Mathf.Clamp(GameSettings.TableColour, 0, tableVariants.Length - 1)];
                 return s != null ? s : table;

@@ -153,7 +153,14 @@ namespace Palace
         /// <summary>Points the shared themes at the equipped table, deck and card back.</summary>
         public static void ApplyThemes(TableTheme table, CardTheme cards)
         {
-            if (table != null) table.tableSkin = Table;
+            TableSkin equipped = Table;
+            if (table != null && table.tableSkin != equipped && Library != null)
+            {
+                // Switching table: let go of every other big table image so it can leave memory.
+                foreach (var t in Library.tables) if (t != equipped) t.Release();
+                Resources.UnloadUnusedAssets();
+            }
+            if (table != null) table.tableSkin = equipped;
             if (cards != null)
             {
                 cards.deckSkin = Deck;

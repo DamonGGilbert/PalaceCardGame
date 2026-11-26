@@ -38,8 +38,19 @@ namespace Palace.EditorTools
             }
             if (library && flags)
             {
-                // Only the name fonts are missing: that's quick to fix on its own.
                 var lib = AssetDatabase.LoadAssetAtPath<CosmeticLibrary>(PalaceArtGenerator.LibraryPath);
+
+                // Tables still referenced the old way (all loaded at once): move them to load on demand.
+                if (lib != null && lib.tables.Exists(t => t.table != null) &&
+                    EditorUtility.DisplayDialog("Palace: make tables load on demand?",
+                        "The table images can now load only when they're used, which saves a lot of memory on phones. " +
+                        "Organise them now? (under a minute; nothing changes in how the game looks)", "Organise", "Later"))
+                {
+                    PalaceTableStore.OrganiseMenu();
+                    return;
+                }
+
+                // Only the name fonts are missing: that's quick to fix on its own.
                 if (lib != null && lib.fonts.Count <= 1 &&
                     EditorUtility.DisplayDialog("Palace: add the name fonts?",
                         "New name fonts are ready to add to the Customise screen (a few seconds).", "Add them", "Later"))

@@ -46,6 +46,7 @@ namespace Palace.EditorTools
             if (lib != null)
             {
                 AddToLibrary(lib);
+                PalaceTableStore.Organise(lib);
                 EditorUtility.SetDirty(lib);
             }
             AssetDatabase.SaveAssets();

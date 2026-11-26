@@ -26,8 +26,22 @@ namespace Palace
 
     [Serializable] public class TableSkin : CosmeticItem
     {
-        public Sprite table;
+        public Sprite table;         // only for old libraries; tables are now loaded on demand from tablePath
+        public string tablePath;     // Resources path, e.g. "Tables/flag_table_poland"
         public bool animatedWater;   // shimmering caustics over the felt
+
+        // Tables are big (2048 x 1024), so only the one you're using is in memory: it's loaded when
+        // first needed and released when you switch to another (Cosmetics.ApplyThemes).
+        [NonSerialized] private Sprite loaded;
+
+        public Sprite Load()
+        {
+            if (table != null) return table;
+            if (loaded == null && !string.IsNullOrEmpty(tablePath)) loaded = Resources.Load<Sprite>(tablePath);
+            return loaded;
+        }
+
+        public void Release() => loaded = null;
     }
 
     [Serializable] public class DeckSkin : CosmeticItem
