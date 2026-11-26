@@ -19,7 +19,9 @@ namespace Palace
         public static IEnumerator Appear(Transform screen)
         {
             if (!Enabled || screen == null) yield break;
-            var group = screen.GetComponent<CanvasGroup>() ?? screen.gameObject.AddComponent<CanvasGroup>();
+            // TryGetComponent, not "GetComponent ?? Add": in the editor a missing component comes back as a
+            // fake-null object that ?? doesn't catch, which threw MissingComponentException.
+            if (!screen.TryGetComponent(out CanvasGroup group)) group = screen.gameObject.AddComponent<CanvasGroup>();
             float t = 0f;
             const float duration = 0.24f;
             while (t < duration && screen != null)

@@ -1583,7 +1583,7 @@ namespace Palace
                 case GameEventType.CardsDrawn:
                 {
                     Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
-                    float toScale = e.Player == localPlayer ? 1f : 0.5f;
+                    float toScale = e.Player == localPlayer ? table.HandScale : 0.5f;
                     for (int i = 0; i < e.Cards.Count; i++)
                     {
                         shownDeck = Mathf.Max(0, shownDeck - 1);
@@ -1722,7 +1722,7 @@ namespace Palace
                     SeatView seat = SeatFor(e.Player);
                     Transform from = seat.FaceUpCards[slot].transform;
                     Vector2 to = e.Player == localPlayer ? table.HandCenter : SeatPointFor(e.Player);
-                    float toScale = e.Player == localPlayer ? 1f : ScaleOf(seat.transform) * SeatView.TableCardScale;
+                    float toScale = e.Player == localPlayer ? table.HandScale : ScaleOf(seat.transform) * SeatView.TableCardScale;
                     AudioManager.Play(Sfx.CardDraw, 0.7f);
                     yield return FlyCard(card, table.ToLocal(from), to, ScaleOf(from), toScale, 0.3f, () => Landed(e.Player, card));
                     AllLanded(e);
@@ -1847,7 +1847,7 @@ namespace Palace
                 new Vector2(CardView.Width, CardView.Height) * table.PileCardScale + new Vector2(20f, 20f), table.DiscardPoint);
             pileTap.raycastTarget = true;
             pileTap.gameObject.AddComponent<Button>().onClick.AddListener(OpenPileViewer);
-            UIKit.Button(tableHud, "View pile", new Vector2(140f, 52f), table.DiscardPoint + new Vector2(150f, 0f), OpenPileViewer, false, 22f);
+            UIKit.Button(tableHud, "View pile", new Vector2(140f, 52f), table.DiscardPoint + new Vector2(CardView.Width * 0.5f * table.PileCardScale + 82f, 0f), OpenPileViewer, false, 22f);
             // The choice panels (HIGHER / LOWER, the Ace) sit over the pile: keep them on top so their buttons get the tap.
             sevenPanel.transform.SetAsLastSibling();
             acePanel.transform.SetAsLastSibling();

@@ -311,7 +311,7 @@ namespace Palace
             EnsureClassicParts();
             Sprite courtArt = GameSettings.ClassicFaces && c.IsCourt ? CourtArt.Get(c.Rank, c.Suit) : null;
             bool classic = GameSettings.ClassicFaces && (!c.IsCourt || courtArt != null);
-            LayoutCorners(classic);
+            LayoutCorners(classic && !GameSettings.LargeText); // Large: big corners on every style
             UIBuild.SetActive(courtPicture, courtArt != null);
             if (classic)
             {
@@ -412,7 +412,9 @@ namespace Palace
             }
         }
 
-        private const float PipColumn = 25f, PipTop = 66f;
+        // With Large text the corners are big, so the pips move in a little to make room.
+        private static float PipColumn => GameSettings.LargeText ? 22f : 25f;
+        private static float PipTop => GameSettings.LargeText ? 60f : 66f;
 
         private void ShowPips(int count, Sprite suit, Color ink)
         {
@@ -425,7 +427,7 @@ namespace Palace
                 img.raycastTarget = false;
                 pipImages.Add(img);
             }
-            float size = count >= 7 ? 22f : 25f;
+            float size = (count >= 7 ? 22f : 25f) - (GameSettings.LargeText ? 2f : 0f);
             for (int i = 0; i < pipImages.Count; i++)
             {
                 var img = pipImages[i];
@@ -447,10 +449,10 @@ namespace Palace
         {
             if (compactCorners == compact) return;
             compactCorners = compact;
-            float rankSize = compact ? 27f : 34f;
-            Vector2 rankPos = compact ? new Vector2(16f, -20f) : new Vector2(26f, -25f);
-            Vector2 suitPos = compact ? new Vector2(16f, -44f) : new Vector2(26f, -56f);
-            Vector2 suitSize = compact ? new Vector2(18f, 18f) : new Vector2(24f, 24f);
+            float rankSize = compact ? 30f : 34f;
+            Vector2 rankPos = compact ? new Vector2(17f, -21f) : new Vector2(26f, -25f);
+            Vector2 suitPos = compact ? new Vector2(17f, -47f) : new Vector2(26f, -56f);
+            Vector2 suitSize = compact ? new Vector2(20f, 20f) : new Vector2(24f, 24f);
             rankTop.fontSize = rankBottom.fontSize = rankSize;
             rankTop.characterSpacing = rankBottom.characterSpacing = compact ? -6f : 0f; // keeps "10" narrow
             rankTop.rectTransform.anchoredPosition = rankPos;

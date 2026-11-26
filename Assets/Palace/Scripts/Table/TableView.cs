@@ -85,6 +85,54 @@ namespace Palace
         {
             EnsureBuilt();
             if (tableTheme != null) tableImage.sprite = tableTheme.CurrentTable; // felt colour chosen in Settings
+            ApplySizes();
+        }
+
+        // ------------------------------------------------------------------
+        // Sizes: bigger cards for readability, bigger still with Settings > Text & card size > Large
+        // ------------------------------------------------------------------
+
+        private float handScale = 1f;
+
+        /// <summary>Scale of the cards in your hand (the hand area is scaled as a whole).</summary>
+        public float HandScale => handScale;
+
+        private float PileLabelY => DeckPosition.y - (CardView.Height * 0.5f * pileCardScale + 22f);
+
+        /// <summary>
+        /// The table is built once in the scene, so the sizes are applied here when it wakes up:
+        /// the deck and pile, your hand, your table cards and the most opponents may grow to.
+        /// </summary>
+        private void ApplySizes()
+        {
+            bool large = GameSettings.LargeText;
+            pileCardScale = large ? 1.12f : 1f;
+            handScale = large ? 1.28f : 1.12f;
+            localSeatScale = large ? 1f : 0.9f;
+            maxSeatScale = large ? 1.15f : 1f;
+            centerAreaSize = new Vector2(470f + (pileCardScale - 0.85f) * 280f, 340f + (pileCardScale - 0.85f) * 200f);
+
+            var slotSize = new Vector2(CardView.Width, CardView.Height) * pileCardScale;
+            if (discardSlot != null) discardSlot.rectTransform.sizeDelta = slotSize;
+            var deckSlot = centerRoot != null ? centerRoot.Find("DeckSlot") as RectTransform : null;
+            if (deckSlot != null) deckSlot.sizeDelta = slotSize;
+            foreach (var c in deckCards) if (c != null) c.transform.localScale = Vector3.one * pileCardScale;
+            foreach (var c in discardCards) if (c != null) c.transform.localScale = Vector3.one * pileCardScale;
+            foreach (var label in new[] { deckLabel, pileLabel })
+            {
+                if (label == null) continue;
+                var p = label.rectTransform.anchoredPosition;
+                label.rectTransform.anchoredPosition = new Vector2(p.x, PileLabelY);
+                label.fontSize = large ? 26f : 23f;
+            }
+
+            if (handRoot != null)
+            {
+                // Grows upwards as little as possible: the bottom of the hand may go just off-screen,
+                // as when holding real cards; the corners (rank and suit) always stay in view.
+                handRoot.localScale = Vector3.one * handScale;
+                handRoot.anchoredPosition = handAreaCenter + new Vector2(0f, -(handScale - 1f) * 100f);
+            }
         }
 
         // ------------------------------------------------------------------
@@ -147,7 +195,7 @@ namespace Palace
         public Vector2 DeckPoint => tableCenter + DeckPosition;
         public Vector2 DiscardPoint => tableCenter + DiscardPosition;
         public float PileCardScale => pileCardScale;
-        public Vector2 HandCenter => handAreaCenter;
+        public Vector2 HandCenter => handRoot != null ? handRoot.anchoredPosition : handAreaCenter;
 
         /// <summary>Converts any UI object's position into this table's coordinates (for FxRoot).</summary>
         public Vector2 ToLocal(Transform t) => transform.InverseTransformPoint(t.position);
@@ -161,7 +209,8 @@ namespace Palace
             {
                 directionText = UIBuild.Text("Direction", centerRoot, "", 22f,
                     tableTheme != null ? tableTheme.mutedTextColor : Color.white, new Vector2(320f, 30f),
-                    new Vector2(0f, -150f), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+                    new Vector2(0f, PileLabelY - 36f), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+                if (GameSettings.LargeText) directionText.fontSize = 26f;
             }
             directionText.text = Loc.T(direction >= 0 ? "Play goes clockwise" : "Play goes anticlockwise");
         }

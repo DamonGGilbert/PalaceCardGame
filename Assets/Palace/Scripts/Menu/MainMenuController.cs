@@ -621,7 +621,7 @@ namespace Palace
                 ReloadMenu(1);
             });
             y -= dstep;
-            Row(d, "Text size", y);
+            Row(d, "Text & card size", y);
             UIKit.Segmented(d, GameSettings.TextSizeNames, GameSettings.LargeText ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
             {
                 if ((i == 1) == GameSettings.LargeText) return;
