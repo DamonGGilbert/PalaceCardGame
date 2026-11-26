@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Palace.Core;
+using TMPro;
 using UnityEngine;
 
 namespace Palace
@@ -15,6 +17,7 @@ namespace Palace
     ///   -palace-botlevel L    computer skill: 0 Easy, 1 Normal, 2 Hard
     ///   -palace-tutorial      play the guided game (tips are dismissed automatically)
     ///   -palace-swap          play with the optional swap-before-play mode
+    ///   -palace-clean         with -palace-shots: only take table shots with names, labels and buttons hidden
     /// Logs a summary line per game and any errors, then quits. Used to test real builds.
     /// </summary>
     public class AutoPlayHarness : MonoBehaviour
@@ -48,6 +51,7 @@ namespace Palace
             harness.controller = controller;
             harness.gamesWanted = games;
             harness.shotsDir = StringArg(args, "-palace-shots");
+            harness.clean = Array.IndexOf(args, "-palace-clean") >= 0; // table-only shots for the app icon
             if (!string.IsNullOrEmpty(harness.shotsDir)) Directory.CreateDirectory(harness.shotsDir);
             controller.GameFinished += harness.OnGameFinished;
             controller.EventStarted += harness.OnEventStarted;
@@ -96,6 +100,13 @@ namespace Palace
             }
 
             if (string.IsNullOrEmpty(shotsDir) || gamesPlayed > 0) return;
+            if (clean)
+            {
+                // Clean shots only: the table with no names, buttons or labels (for the app icon).
+                if (!cleanBusy && cleanIndex < CleanTurns.Length && game.State.TurnNumber >= CleanTurns[cleanIndex] && !controller.IsBusy)
+                    StartCoroutine(CleanShot());
+                return;
+            }
             if (!pileShotTaken && game.State.Discard.Count >= 6 && !controller.IsBusy)
             {
                 pileShotTaken = true;
@@ -113,13 +124,59 @@ namespace Palace
             }
         }
 
+        // ------------------------------------------------------------------ clean screenshots (app icon)
+
+        private static readonly int[] CleanTurns = { 8, 14, 20, 28, 36, 46, 58 };
+        private bool clean, cleanBusy;
+        private int cleanIndex;
+
+        private IEnumerator CleanShot()
+        {
+            cleanBusy = true;
+            controller.HoldAutoPlay = true;
+            yield return new WaitForSecondsRealtime(0.8f); // let the cards settle
+            while (controller.IsBusy) yield return null;
+            HideForCleanShot();
+            yield return null;
+            yield return null;
+            string path = Path.Combine(shotsDir, "clean_" + cleanIndex + ".png");
+            ScreenCapture.CaptureScreenshot(path); // (supersizing zooms the overlay UI instead of enlarging it)
+            Debug.Log("[AutoPlay] clean screenshot " + path);
+            yield return new WaitForSecondsRealtime(0.4f);
+            cleanIndex++;
+            if (cleanIndex >= CleanTurns.Length) Quit();
+            controller.HoldAutoPlay = false;
+            cleanBusy = false;
+        }
+
+        /// <summary>Hides everything that isn't cards or the table: names, avatars, count bubbles, labels, buttons.</summary>
+        private void HideForCleanShot()
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            TableView table = controller.Table;
+            if (typeof(GameController).GetField("hudRoot", flags)?.GetValue(controller) is RectTransform hud)
+                foreach (Transform child in hud)
+                    if (!table.transform.IsChildOf(child)) child.gameObject.SetActive(false);
+
+            foreach (var text in table.GetComponentsInChildren<TMP_Text>(true))
+                if (text.GetComponentInParent<CardView>(true) == null) text.enabled = false;
+
+            string[] seatParts = { "plate", "avatar", "avatarRing", "handBadge", "countBubble", "turnGlow", "placeBadge" };
+            foreach (var seat in table.GetComponentsInChildren<SeatView>(true))
+                foreach (string part in seatParts)
+                    if (typeof(SeatView).GetField(part, flags)?.GetValue(seat) is Component c && c != null) c.gameObject.SetActive(false);
+
+            if (typeof(TableView).GetField("effectBadge", flags)?.GetValue(table) is Component badge && badge != null) badge.gameObject.SetActive(false);
+            foreach (var ring in table.GetComponentsInChildren<DirectionRing>(true)) ring.gameObject.SetActive(false);
+        }
+
         // ------------------------------------------------------------------ effect screenshots
 
         private readonly System.Collections.Generic.HashSet<string> effectShots = new System.Collections.Generic.HashSet<string>();
 
         private void OnEventStarted(GameEvent e)
         {
-            if (string.IsNullOrEmpty(shotsDir)) return;
+            if (string.IsNullOrEmpty(shotsDir) || clean) return;
             switch (e.Type)
             {
                 case GameEventType.PileBurned: EffectShot("fx_burn", 0.55f); break;
