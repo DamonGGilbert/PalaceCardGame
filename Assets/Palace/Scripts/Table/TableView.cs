@@ -97,7 +97,14 @@ namespace Palace
         /// <summary>Scale of the cards in your hand (the hand area is scaled as a whole).</summary>
         public float HandScale => handScale;
 
-        private float PileLabelY => DeckPosition.y - (CardView.Height * 0.5f * pileCardScale + 22f);
+        // The middle, from the bottom up: deck and pile, their labels just above them, then one line that
+        // shows the direction of play (or a special effect such as "Play LOWER than 7" while it applies).
+        // Everything sits above the cards so your own bigger seat has room below the pile.
+        private float PileTopY => DeckPosition.y + CardView.Height * 0.5f * pileCardScale;
+        private float PileBottomY => DeckPosition.y - CardView.Height * 0.5f * pileCardScale;
+        private float PileLabelY => PileTopY + 16f;
+        private float InfoLineY => PileLabelY + (GameSettings.LargeText ? 42f : 38f);
+        private Vector2 centerAreaOffset;
 
         /// <summary>
         /// The table is built once in the scene, so the sizes are applied here when it wakes up:
@@ -108,9 +115,16 @@ namespace Palace
             bool large = GameSettings.LargeText;
             pileCardScale = large ? 1.12f : 1f;
             handScale = large ? 1.28f : 1.12f;
-            localSeatScale = large ? 1f : 0.9f;
+            // Your seat (two rows of table cards beside your name) fits between the pile and your hand.
+            localSeatScale = large ? 0.86f : 0.88f;
+            localSeatPosition = new Vector2(0f, large ? -209f : -206f);
+            seatPathSize = new Vector2(1440f, 700f); // top seats a little lower, so they can be bigger without leaving the screen
             maxSeatScale = large ? 1.15f : 1f;
-            centerAreaSize = new Vector2(470f + (pileCardScale - 0.85f) * 280f, 340f + (pileCardScale - 0.85f) * 200f);
+            minSeatScale = 0.5f; // big tables: seats shrink rather than overlap
+            float top = InfoLineY + 24f, bottom = PileBottomY - 12f;
+            centerAreaSize = new Vector2(470f + (pileCardScale - 0.85f) * 280f, top - bottom);
+            centerAreaOffset = new Vector2(0f, (top + bottom) * 0.5f);
+            if (effectBadge != null) effectBadge.rectTransform.anchoredPosition = new Vector2(0f, InfoLineY);
 
             var slotSize = new Vector2(CardView.Width, CardView.Height) * pileCardScale;
             if (discardSlot != null) discardSlot.rectTransform.sizeDelta = slotSize;
@@ -209,10 +223,11 @@ namespace Palace
             {
                 directionText = UIBuild.Text("Direction", centerRoot, "", 22f,
                     tableTheme != null ? tableTheme.mutedTextColor : Color.white, new Vector2(320f, 30f),
-                    new Vector2(0f, PileLabelY - 36f), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
+                    new Vector2(0f, InfoLineY), TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true);
                 if (GameSettings.LargeText) directionText.fontSize = 26f;
             }
             directionText.text = Loc.T(direction >= 0 ? "Play goes clockwise" : "Play goes anticlockwise");
+            directionText.gameObject.SetActive(effectBadge == null || !effectBadge.gameObject.activeSelf);
         }
 
         /// <summary>Big pop-up text such as "BURN!" or "SKIP". Fire and forget.</summary>
@@ -289,8 +304,8 @@ namespace Palace
             var items = new List<TableLayout.Item>
             {
                 new TableLayout.Item(localSeatPosition, local.Size * localSeatScale, false),
-                new TableLayout.Item(handAreaCenter, handAreaSize, false),
-                new TableLayout.Item(tableCenter, centerAreaSize, false)
+                new TableLayout.Item(HandCenter, handAreaSize * handScale, false),
+                new TableLayout.Item(tableCenter + centerAreaOffset, centerAreaSize, false)
             };
 
             for (int i = 1; i < count; i++)
@@ -393,6 +408,7 @@ namespace Palace
             bool show = !string.IsNullOrEmpty(message);
             effectBadge.gameObject.SetActive(show);
             if (show) effectText.text = message;
+            if (directionText != null) directionText.gameObject.SetActive(!show); // the effect takes the direction line's place
         }
 
         private static readonly Vector2 DeckPosition = new Vector2(-120f, 6f);

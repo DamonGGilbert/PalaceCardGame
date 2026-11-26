@@ -16,12 +16,17 @@ namespace Palace
     {
         public enum PlateSide { Below, Above, Left }
 
-        public const float TableCardScale = 0.6f;
-        public static readonly Vector2 StackedSize = new Vector2(300f, 196f);   // plate above or below the cards
-        public static readonly Vector2 SideBySideSize = new Vector2(530f, 144f); // plate to the left of the cards
+        public const float TableCardScale = 0.85f;   // table cards (was 0.6): bigger for everyone
+        public static readonly Vector2 StackedSize = new Vector2(390f, 316f);   // plate above or below the cards
+        public static readonly Vector2 SideBySideSize = new Vector2(630f, 264f); // plate to the left of the cards
 
-        private const float CardStep = 92f;          // horizontal distance between table cards
-        private const float FaceUpOffset = 13.2f;    // face-up cards sit slightly above the face-down ones
+        // Two rows, like cards laid out on a real table: the face-up row on top and the face-down row
+        // below it, shifted down so more than half of each face-down card shows.
+        private const float CardStep = 127f;                                     // horizontal distance between table cards
+        private const float RowGap = 94f;                                        // vertical distance between the two rows
+        private static float CardW => CardView.Width * TableCardScale;           // 119
+        private static float CardH => CardView.Height * TableCardScale;          // 167
+        private static Vector2 BlockSize => new Vector2(CardStep * 2f + CardW, CardH + RowGap);
 
         [SerializeField] private TableTheme tableTheme;
         [SerializeField] private CardTheme cardTheme;
@@ -63,6 +68,8 @@ namespace Palace
         private void Awake()
         {
             EnsureBuilt();
+            LayoutTableCards(); // seats come from a prefab built with the old layout, so lay the cards out again
+            SetPlateSide(plateSide);
             if (cardTheme != null)
             {
                 foreach (var fan in handFan) fan.sprite = cardTheme.CurrentBack; // card back chosen in Settings
@@ -344,19 +351,20 @@ namespace Palace
             switch (side)
             {
                 case PlateSide.Below:
-                    cardsBlock.anchoredPosition = new Vector2(0f, 26f);
+                    cardsBlock.anchoredPosition = new Vector2(0f, StackedSize.y * 0.5f - BlockSize.y * 0.5f);
                     plateRt.sizeDelta = new Vector2(StackedSize.x, 44f);
-                    plateRt.anchoredPosition = new Vector2(0f, -76f);
+                    plateRt.anchoredPosition = new Vector2(0f, -StackedSize.y * 0.5f + 22f);
                     break;
                 case PlateSide.Above:
-                    cardsBlock.anchoredPosition = new Vector2(0f, -26f);
+                    cardsBlock.anchoredPosition = new Vector2(0f, -StackedSize.y * 0.5f + BlockSize.y * 0.5f);
                     plateRt.sizeDelta = new Vector2(StackedSize.x, 44f);
-                    plateRt.anchoredPosition = new Vector2(0f, 76f);
+                    plateRt.anchoredPosition = new Vector2(0f, StackedSize.y * 0.5f - 22f);
                     break;
                 default:
-                    cardsBlock.anchoredPosition = new Vector2(131f, 0f);
+                    // Name plate on the left, the two rows of cards to its right.
+                    cardsBlock.anchoredPosition = new Vector2(SideBySideSize.x * 0.5f - BlockSize.x * 0.5f - 8f, 0f);
                     plateRt.sizeDelta = new Vector2(230f, 44f);
-                    plateRt.anchoredPosition = new Vector2(-145f, 0f);
+                    plateRt.anchoredPosition = new Vector2(-SideBySideSize.x * 0.5f + 115f, 0f);
                     break;
             }
 
@@ -380,13 +388,12 @@ namespace Palace
             Color glowColor = tableTheme != null ? tableTheme.turnGlow : new Color(1f, 0.8f, 0.3f, 0.5f);
             turnGlow = UIBuild.Image("TurnGlow", content, glowSprite, glowColor, StackedSize + new Vector2(150f, 120f), Vector2.zero);
 
-            cardsBlock = UIBuild.Rect("TableCards", content, new Vector2(CardStep * 2f + CardView.Width * TableCardScale, 144f), Vector2.zero);
+            cardsBlock = UIBuild.Rect("TableCards", content, BlockSize, Vector2.zero);
             faceDownCards = new CardView[3];
             faceUpCards = new CardView[3];
-            for (int i = 0; i < 3; i++)
-                faceDownCards[i] = SpawnCard("FaceDown" + (i + 1), new Vector2((i - 1) * CardStep, -FaceUpOffset));
-            for (int i = 0; i < 3; i++)
-                faceUpCards[i] = SpawnCard("FaceUp" + (i + 1), new Vector2((i - 1) * CardStep, FaceUpOffset));
+            for (int i = 0; i < 3; i++) faceDownCards[i] = SpawnCard("FaceDown" + (i + 1), Vector2.zero);
+            for (int i = 0; i < 3; i++) faceUpCards[i] = SpawnCard("FaceUp" + (i + 1), Vector2.zero);
+            LayoutTableCards();
 
             BuildPlate();
             SetPlateSide(PlateSide.Below);
@@ -436,6 +443,28 @@ namespace Palace
             }
             handCountText = UIBuild.Text("HandCount", handBadge, "3", 24f, textColor, new Vector2(32f, 40f),
                 new Vector2(22f, 0f), TextAlignmentOptions.Center, font, true);
+        }
+
+        /// <summary>Places the two rows of table cards (face-up row on top, face-down row below).</summary>
+        private void LayoutTableCards()
+        {
+            if (cardsBlock == null) return;
+            cardsBlock.sizeDelta = BlockSize;
+            for (int i = 0; i < 3; i++)
+            {
+                Place(faceDownCards[i], new Vector2((i - 1) * CardStep, -RowGap * 0.5f));
+                Place(faceUpCards[i], new Vector2((i - 1) * CardStep, RowGap * 0.5f));
+            }
+            // Face-down cards first, so the face-up row is drawn over the top edge of the row below.
+            foreach (var c in faceDownCards) if (c != null) c.transform.SetSiblingIndex(0);
+        }
+
+        private static void Place(CardView card, Vector2 position)
+        {
+            if (card == null) return;
+            var rt = (RectTransform)card.transform;
+            rt.anchoredPosition = position;
+            rt.localScale = Vector3.one * TableCardScale;
         }
 
         private static void SetAnchor(RectTransform rt, Vector2 anchor, Vector2 position)
