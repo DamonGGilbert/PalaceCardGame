@@ -699,6 +699,31 @@ namespace Palace
             Add("{0} is ready", "{0} jest gotowy", "{0} está listo");
             Add("Swapping is over", "Zamiana się skończyła", "El intercambio ha terminado");
 
+            // ---------------------------------------------------------- the story intro
+            Add("Skip", "Pomiń", "Saltar");
+            Add("Our story", "Nasza historia", "Nuestra historia");
+            Add("Back in college, my friends pulled out a battered deck of cards between lessons.",
+                "W college, między lekcjami, moi przyjaciele wyciągnęli zniszczoną talię kart.",
+                "En la universidad, entre clase y clase, mis amigos sacaron una baraja muy gastada.");
+            Add("They taught me a game: three cards face down, three face up, and one rule above all. Don't be the last one holding cards.",
+                "Nauczyli mnie gry: trzy karty zakryte, trzy odkryte i jedna najważniejsza zasada. Nie zostań ostatni z kartami w ręce.",
+                "Me enseñaron un juego: tres cartas boca abajo, tres boca arriba y una regla por encima de todo. No seas el último con cartas.");
+            Add("We played it every break. Loud, silly and fiercely competitive. Someone always ended up picking up the whole pile.",
+                "Graliśmy na każdej przerwie. Głośno, wesoło i z zaciętą rywalizacją. Ktoś zawsze kończył, zbierając cały stos.",
+                "Jugábamos en cada descanso. Ruidosos, divertidos y muy competitivos. Siempre había alguien que acababa llevándose todo el montón.");
+            Add("Those games became some of my favourite memories.",
+                "Te partie stały się jednymi z moich ulubionych wspomnień.",
+                "Esas partidas se convirtieron en algunos de mis mejores recuerdos.");
+            Add("So I made Shedhead, to keep that table going.",
+                "Dlatego stworzyłem Shedhead, żeby tamten stół grał dalej.",
+                "Por eso creé Shedhead, para que esa mesa siga en marcha.");
+            Add("To my friends who dealt me in: thank you.",
+                "Moim przyjaciołom, którzy wciągnęli mnie do gry: dziękuję.",
+                "A mis amigos, que me dejaron entrar en la partida: gracias.");
+            Add("I hope you have as much fun playing as we did back then.",
+                "Mam nadzieję, że będziesz się bawić tak dobrze jak my wtedy.",
+                "Espero que te diviertas tanto como nosotros entonces.");
+
             // ---------------------------------------------------------- game modes
             Add("Game mode", "Tryb gry", "Modo de juego");
             Add("Change", "Zmień", "Cambiar");

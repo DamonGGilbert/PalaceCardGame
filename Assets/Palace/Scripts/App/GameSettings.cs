@@ -132,6 +132,13 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.tutorialdone", value ? 1 : 0);
         }
 
+        /// <summary>Has the story intro played (it plays once, after the splash on the first launch)?</summary>
+        public static bool IntroSeen
+        {
+            get => PlayerPrefs.GetInt("palace.introseen", 0) == 1;
+            set => PlayerPrefs.SetInt("palace.introseen", value ? 1 : 0);
+        }
+
         /// <summary>Has the player been offered the guided game yet?</summary>
         public static bool TutorialOffered
         {

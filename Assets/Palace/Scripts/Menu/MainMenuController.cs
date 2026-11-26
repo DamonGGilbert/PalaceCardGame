@@ -305,6 +305,23 @@ namespace Palace
                 yield return null;
             }
 
+            // The very first launch: the story behind the game (replayable from Credits > Our story).
+            bool automated = Array.Exists(Environment.GetCommandLineArgs(), a => a.StartsWith("-palace-", StringComparison.Ordinal));
+            if (!GameSettings.IntroSeen && !automated)
+            {
+                GameSettings.IntroSeen = true;
+                GameSettings.Save();
+                Color c = mark.color;
+                yield return Tween.Run(0.6f, t =>
+                {
+                    mark.color = new Color(c.r, c.g, c.b, 1f - t);
+                    sub.alpha = 1f - t;
+                });
+                mark.gameObject.SetActive(false);
+                sub.gameObject.SetActive(false);
+                yield return IntroStory.Play(layer, null);
+            }
+
             Show(mainPanel);
             layer.SetAsLastSibling();
             yield return Tween.Fade(group, 1f, 0f, 0.5f);
@@ -701,6 +718,17 @@ namespace Palace
                 28f, new Vector2(900f, 440f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
             text.textWrappingMode = TextWrappingModes.Normal;
             text.richText = true;
+
+            // Replay the story from the first launch.
+            ((RectTransform)lastBackButton.transform).anchoredPosition = new Vector2(140f, -280f);
+            UIKit.Button(p, "Our story", new Vector2(240f, 70f), new Vector2(-140f, -280f), ReplayStory, true);
+        }
+
+        private void ReplayStory()
+        {
+            var layer = UIKit.Layer(root.parent, "StoryReplay", new Color(0.02f, 0.03f, 0.03f, 0.97f));
+            layer.SetAsLastSibling();
+            StartCoroutine(IntroStory.Play(layer, () => { if (layer != null) Destroy(layer.gameObject); }));
         }
 
         private Button lastBackButton;
