@@ -168,8 +168,8 @@
 - [x] Your Shedhead logo is the app icon (Assets/Palace/Resources/Brand/shedhead_logo.png) and opens the game on the splash screen
 - [x] Every name players see says Shedhead: menu title, credits, pop-ups, tips, notifications (all 3 languages); the app's
       display name is "Shedhead". Code, save keys and product ids keep their internal "palace" names
-- [ ] **You (before the stores):** set a real bundle id, e.g. com.yourname.shedhead (Project Settings → Player); it's still
-      the template's com.DefaultCompany.2D-URP
+- [x] App id set to **com.shedhead.game** (Android, iOS and Windows) and company name "Shedhead", applied by
+      Editor/PalaceBranding.cs; builds make an App Bundle (.aab) for Google Play. Never change the id after launch
 - [x] Universal icon: square, full-bleed, no transparency (Art/Icons/shedhead_icon.png) for iOS, Windows and older
       Android; Android adaptive icon layers keep the whole logo inside circle / squircle masks
 - [x] Saved progress carried over from the old "PalaceCardGame" name (App/PrefsMigration.cs; also covers a future

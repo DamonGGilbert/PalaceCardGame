@@ -14,10 +14,10 @@ check the current prices on each site.
 - [ ] Optional: a domain such as shedhead.com (a few pounds a year) for a homepage and the privacy policy
 
 ## 2. Unity setup (on your PC)
-- [ ] **(blocker)** Unity Hub → Installs → 6000.6.10f1 → Add modules → **Android Build Support** (tick OpenJDK and
+- [x] Unity Hub → Installs → 6000.6.10f1 → Add modules → **Android Build Support** (tick OpenJDK and
       Android SDK & NDK) and **iOS Build Support**
-- [ ] **(blocker)** Project Settings → Player: set **Company Name** and the app id, e.g. `com.yourname.shedhead`
-      (it's still the template's `com.DefaultCompany.2D-URP`). **Never change the app id after launch** – players'
+- [x] App id **`com.shedhead.game`** and Company Name "Shedhead" (set automatically by Palace → Setup → Apply
+      Shedhead Branding, which runs whenever the project opens). **Never change the app id after launch** – players'
       saves are tied to it
 - [ ] Run Palace → Setup → **Apply Shedhead Branding** (adds the Android adaptive icon once the Android module is in)
 - [ ] Let Unity paint the art when it asks (premium range, name fonts, table organising)

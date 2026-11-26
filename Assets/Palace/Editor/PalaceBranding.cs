@@ -26,6 +26,13 @@ namespace Palace.EditorTools
         public const string AndroidForegroundPath = "Assets/Palace/Art/Icons/shedhead_icon_android_fg.png";
         public const string AndroidBackgroundPath = "Assets/Palace/Art/Icons/shedhead_icon_android_bg.png";
         public const string ProductName = "Shedhead";
+        public const string CompanyName = "Shedhead";
+
+        /// <summary>
+        /// The app's permanent id in Google Play and the App Store. NEVER change this once the game is
+        /// published: a different id is a different app (new listing, no reviews, players lose their saves).
+        /// </summary>
+        public const string AppId = "com.shedhead.game";
 
         static PalaceBranding()
         {
@@ -49,6 +56,7 @@ namespace Palace.EditorTools
             if (icon == null) return false;
 
             if (PlayerSettings.productName != ProductName) PlayerSettings.productName = ProductName;
+            ApplyIdentity();
 
             // The default icon (every platform), plus iOS explicitly.
             SetIfDifferent(NamedBuildTarget.Unknown, icon);
@@ -60,6 +68,18 @@ namespace Palace.EditorTools
                 Debug.Log("[Palace] Shedhead icon set" + (android ? " (with the Android adaptive icon)" :
                     ". Install Android Build Support in Unity Hub, then run this again for the Android adaptive icon") + ".");
             return true;
+        }
+
+        /// <summary>
+        /// Company name and app id on every platform, plus the App Bundle (.aab) that Google Play wants.
+        /// Saved progress follows along: PrefsMigration copies Windows saves from the old company name.
+        /// </summary>
+        private static void ApplyIdentity()
+        {
+            if (PlayerSettings.companyName != CompanyName) PlayerSettings.companyName = CompanyName;
+            foreach (var target in new[] { NamedBuildTarget.Android, NamedBuildTarget.iOS, NamedBuildTarget.Standalone })
+                if (PlayerSettings.GetApplicationIdentifier(target) != AppId) PlayerSettings.SetApplicationIdentifier(target, AppId);
+            if (!EditorUserBuildSettings.buildAppBundle) EditorUserBuildSettings.buildAppBundle = true;
         }
 
         private static void SetIfDifferent(NamedBuildTarget target, Texture2D icon)

@@ -37,7 +37,7 @@ The game detects it and turns on real purchasing automatically (`PALACE_IAP`). N
 In the editor, Unity IAP shows its own fake purchase dialog, so you can test without paying.
 
 ### 2. Google Play Console
-1. Create the app (package name = Unity **Player Settings → Other Settings → Package Name**, e.g. `com.yourname.palace`).
+1. Create the app (package name = Unity **Player Settings → Other Settings → Package Name**, `com.shedhead.game`).
 2. **Monetize → Products → In-app products**: create the 7 products above with the same IDs and types.
 3. Upload a build to an **internal testing** track and add yourself as a licence tester to test purchases.
 4. Optional (recommended later): local receipt checks. **Services → In-App Purchasing → Receipt Validation Obfuscator**
