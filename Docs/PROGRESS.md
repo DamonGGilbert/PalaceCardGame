@@ -185,3 +185,12 @@
 - [x] 5 premium decks (28,000–35,000): Royal Ivory, Obsidian Gold, Rose Quartz, Emerald Prestige, Neon Noir
 - [x] 6 premium tables (38,000–50,000): Marble Hall, Gold Filigree, Royal Velvet, Neon Arcade, Galaxy, Holographic
 - [x] Gold PREMIUM ribbon and glow on the Customise screen; premium items listed before the flags
+
+## Launch preparation ✅ (code + docs)
+- [x] Tables load on demand (only the equipped one is in memory; Customise uses thumbnails); flag tables stored at 1536
+      wide and all tables at normal compression to cut the download
+- [x] Build settings checked: 64-bit ARM64 + IL2CPP, Android 8.0+, iOS 15+, landscape, version 1.0
+- [x] `Docs/privacy-policy.html` (fill in the [brackets], host it publicly), `Docs/Store-Listing.md` (title, descriptions,
+      keywords, screenshots, rating answers), `Docs/Release-Checklist.md` (everything left, in order, with costs)
+- [ ] **Blockers found:** In App Purchasing package not installed (shop unavailable in release builds); no ad network
+      connected (release builds have no ads); Android/iOS build modules not installed; app id still the template's
