@@ -240,6 +240,7 @@ namespace Palace
             GameLaunch.BotCount = GameSettings.BotCount;   // used by "Play Again" afterwards
             GameLaunch.BotLevel = GameSettings.BotLevel;
             GameLaunch.SwapMode = GameSettings.SwapMode;
+            GameLaunch.Rules = GameModes.BuildRules();
             GameLaunch.Tutorial = true;
             SceneManager.LoadScene(GameLaunch.GameScene);
         }
@@ -449,17 +450,18 @@ namespace Palace
             skillNote = UIKit.Label(p, "", 22f, new Vector2(780f, 36f), new Vector2(0f, -68f), TextAlignmentOptions.Center, UIKit.Muted);
             RefreshSkillNote();
 
-            // Optional game mode: swap hand and face-up cards before play.
-            UIKit.Label(p, "Swap before play", 28f, new Vector2(300f, 50f), new Vector2(-260f, -130f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.InfoButton(p, new Vector2(-75f, -130f), UIKit.SwapInfoTitle, UIKit.SwapInfoText);
-            UIKit.Segmented(p, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(230f, -130f),
-                i => GameSettings.SwapMode = i == 1);
+            // Game mode: Classic (the school rules), Big Battle, Strategy, Chaos or a custom mix.
+            UIKit.Label(p, "Game mode", 28f, new Vector2(240f, 50f), new Vector2(-290f, -130f), TextAlignmentOptions.Left, UIKit.Muted, true);
+            modeLabel = UIKit.Label(p, "", 30f, new Vector2(330f, 50f), new Vector2(0f, -130f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            UIKit.Button(p, "Change", new Vector2(210f, 64f), new Vector2(300f, -130f),
+                () => GameModePanel.Open(p, () => GameSettings.BotCount + 1, RefreshOpponents), false, 26f);
+            RefreshOpponents();
 
             UIKit.Button(p, "Start Game", new Vector2(340f, 80f), new Vector2(-185f, -225f), StartSinglePlayer, true, 34f);
             UIKit.Button(p, "Guided game", new Vector2(300f, 80f), new Vector2(180f, -225f), StartTutorial, false, 28f);
         }
 
-        private TextMeshProUGUI skillNote;
+        private TextMeshProUGUI skillNote, modeLabel;
 
         private void RefreshSkillNote()
         {
@@ -473,7 +475,9 @@ namespace Palace
         {
             int bots = GameSettings.BotCount;
             int players = bots + 1;
-            int decks = new HouseRules().DecksFor(players);
+            HouseRules rules = GameModes.BuildRules();
+            int decks = rules.DecksFor(players);
+            if (modeLabel != null) modeLabel.text = GameModes.Name(rules);
             opponentsLabel.text = Loc.F("Computer opponents: {0}", bots);
             tableSizeLabel.text = decks == 1 ? Loc.F("{0} players at the table, 1 deck", players) : Loc.F("{0} players at the table, {1} decks", players, decks);
         }
@@ -485,6 +489,7 @@ namespace Palace
             GameLaunch.BotCount = GameSettings.BotCount;
             GameLaunch.BotLevel = GameSettings.BotLevel;
             GameLaunch.SwapMode = GameSettings.SwapMode;
+            GameLaunch.Rules = GameModes.BuildRules();
             GameLaunch.Tutorial = false;
             GameLaunch.SpectateOnly = false;
             GameLaunch.Seed = 0;

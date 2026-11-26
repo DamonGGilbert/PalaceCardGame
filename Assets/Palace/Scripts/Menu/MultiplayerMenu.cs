@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Palace.Core;
 using Palace.Net;
 using TMPro;
 using UnityEngine;
@@ -22,7 +23,8 @@ namespace Palace
         private RectTransform foundList, seatList;
         private TMP_InputField addressInput, codeInput;
         private Button readyButton, startButton, addBotButton, removeBotButton;
-        private GameObject swapRow;
+        private GameObject modeButton;
+        private TextMeshProUGUI modeText;
         private bool localReady;
         private bool lookingForGames;
         private float nextListRefresh;
@@ -119,12 +121,10 @@ namespace Palace
             addBotButton = UIKit.Button(p, "+ Computer player", new Vector2(300f, 70f), new Vector2(-330f, -350f), () => Net.AddBot());
             removeBotButton = UIKit.Button(p, "- Computer player", new Vector2(300f, 70f), new Vector2(-10f, -350f), () => Net.RemoveBot());
             startButton = UIKit.Button(p, "Start game", new Vector2(280f, 70f), new Vector2(320f, -350f), () => Net.StartGame(), true);
-            // Host only: the optional "swap before play" mode for this room.
-            swapRow = UIBuild.Rect("SwapMode", p, new Vector2(700f, 70f), new Vector2(170f, -420f)).gameObject;
-            UIKit.Label(swapRow.transform, "Swap before play", 26f, new Vector2(300f, 50f), new Vector2(-190f, 0f), TextAlignmentOptions.Right, UIKit.Muted, true);
-            UIKit.InfoButton(swapRow.transform, new Vector2(-10f, 0f), UIKit.SwapInfoTitle, UIKit.SwapInfoText);
-            UIKit.Segmented(swapRow.transform, GameSettings.OnOffNames, GameSettings.SwapMode ? 1 : 0, new Vector2(300f, 60f), new Vector2(180f, 0f),
-                i => { GameSettings.SwapMode = i == 1; GameSettings.Save(); });
+            // The room's game mode: everyone sees it, only the host can change it.
+            modeText = UIKit.Label(p, "", 26f, new Vector2(620f, 56f), new Vector2(60f, -420f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            modeButton = UIKit.Button(p, "Game mode", new Vector2(220f, 66f), new Vector2(480f, -420f),
+                () => GameModePanel.Open(p, () => Mathf.Max(2, Net.Seats.Count), () => { Net.ModeChanged(); RefreshRoom(); }), false, 24f).gameObject;
 
             readyButton = UIKit.Button(p, "I'm ready", new Vector2(300f, 70f), new Vector2(160f, -350f), () =>
             {
@@ -276,7 +276,9 @@ namespace Palace
 
             bool host = net.IsHost;
             addBotButton.gameObject.SetActive(host);
-            swapRow.SetActive(host);
+            modeButton.SetActive(host);
+            HouseRules mode = host ? GameModes.BuildRules() : net.HostRules ?? new HouseRules();
+            modeText.text = GameModes.Summary(mode, Mathf.Max(2, net.Seats.Count));
             removeBotButton.gameObject.SetActive(host);
             startButton.gameObject.SetActive(host);
             readyButton.gameObject.SetActive(!host);

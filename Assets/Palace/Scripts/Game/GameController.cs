@@ -23,9 +23,6 @@ namespace Palace
     /// </summary>
     public class GameController : MonoBehaviour
     {
-        private static readonly string[] BotNames =
-            { "Alex", "Jordan", "Sam", "Charlie", "Riley", "Taylor", "Morgan", "Casey", "Jamie" };
-
         [SerializeField] private TableView table;
         [SerializeField] private TableTheme tableTheme;
         [SerializeField] private CardTheme cardTheme;
@@ -211,7 +208,7 @@ namespace Palace
         {
             awaitingHost = false;
             localPlayer = net.LocalPlayerIndex;
-            Game = new PalaceGame(state, new HouseRules(), 0);
+            Game = new PalaceGame(state, net.HostRules ?? new HouseRules(), 0); // the host's game mode
 
             if (!clientStarted || events.Any(e => e.Type == GameEventType.GameStarted))
             {
@@ -424,11 +421,13 @@ namespace Palace
             else
             {
                 int bots = Mathf.Clamp(GameLaunch.BotCount, 1, 9);
+                // Different computer names every game (never the same as yours).
+                string[] botNames = BotNames.Pick(bots, new System.Random(GameLaunch.Seed != 0 ? GameLaunch.Seed : Environment.TickCount), GameLaunch.PlayerName);
                 names.Add(GameLaunch.SpectateOnly ? "Bot" : GameLaunch.PlayerName);
                 isBot.Add(GameLaunch.SpectateOnly);
                 for (int i = 0; i < bots; i++)
                 {
-                    names.Add(BotNames[i]);
+                    names.Add(botNames[i]);
                     isBot.Add(true);
                 }
                 localPlayer = GameLaunch.SpectateOnly ? -1 : 0;
@@ -446,9 +445,10 @@ namespace Palace
             }
             else
             {
-                // Optional "swap before play" mode: your Single Player choice, or the host's setting online.
-                bool swap = IsNetHost ? GameSettings.SwapMode : GameLaunch.SwapMode && !GameLaunch.SpectateOnly;
-                Game = PalaceGame.Create(names, isBot, new HouseRules { SwapBeforePlay = swap }, seed);
+                // The game mode: your Single Player choice, or the host's setting online.
+                HouseRules rules = IsNetHost ? GameModes.BuildRules() : (GameLaunch.Rules ?? new HouseRules());
+                if (!IsNetHost) rules.SwapBeforePlay = GameLaunch.SwapMode && !GameLaunch.SpectateOnly;
+                Game = PalaceGame.Create(names, isBot, rules, seed);
                 botLevel = IsNetworked ? BotLevel.Normal : (BotLevel)Mathf.Clamp(GameLaunch.BotLevel, 0, 2);
             }
             isTutorial = tutorial;

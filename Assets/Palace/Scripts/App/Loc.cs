@@ -698,6 +698,57 @@ namespace Palace
             Add("Waiting for {0} players to be ready...", "Czekamy na gotowość graczy: {0}...", "Esperando a que {0} jugadores estén listos...");
             Add("{0} is ready", "{0} jest gotowy", "{0} está listo");
             Add("Swapping is over", "Zamiana się skończyła", "El intercambio ha terminado");
+
+            // ---------------------------------------------------------- game modes
+            Add("Game mode", "Tryb gry", "Modo de juego");
+            Add("Change", "Zmień", "Cambiar");
+            Add("Done", "Gotowe", "Hecho");
+            Add("Custom", "Własny", "Personalizado");
+            Add("Big Battle", "Wielka bitwa", "Gran batalla");
+            Add("Strategy", "Strategia", "Estrategia");
+            Add("Chaos", "Chaos", "Caos");
+            Add("Auto", "Auto", "Auto");
+            Add("Decks", "Talie", "Barajas");
+            Add("Cards in hand", "Karty w ręce", "Cartas en la mano");
+            Add("Four of a kind burns", "Czwórka pali stos", "Cuatro iguales queman");
+            Add("1 deck", "1 talia", "1 baraja");
+            Add("{0} decks", "talie: {0}", "{0} barajas");
+            Add("{0} cards in hand", "karty w ręce: {0}", "{0} cartas en la mano");
+            Add("swap first", "najpierw zamiana", "intercambio primero");
+            Add("no four of a kind burns", "czwórka nie pali", "cuatro iguales no queman");
+            Add("{0} players, 1 deck ({1} cards)", "Graczy: {0}, 1 talia ({1} kart)", "{0} jugadores, 1 baraja ({1} cartas)");
+            Add("{0} players, {1} decks ({2} cards)", "Graczy: {0}, talie: {1} ({2} kart)", "{0} jugadores, {1} barajas ({2} cartas)");
+            Add("Custom: your own mix of the options below.", "Własny: twoje połączenie opcji poniżej.", "Personalizado: tu propia mezcla de las opciones de abajo.");
+            Add("The school rules: one deck (two for big tables), 3 cards in hand.",
+                "Zasady ze szkoły: jedna talia (dwie przy dużym stole), 3 karty w ręce.",
+                "Las reglas del colegio: una baraja (dos en mesas grandes), 3 cartas en la mano.");
+            Add("Two decks shuffled together: a longer game with twice the 10s and 2s, and more four of a kinds.",
+                "Dwie potasowane talie: dłuższa gra z dwa razy większą liczbą dziesiątek i dwójek oraz częstszymi czwórkami.",
+                "Dos barajas mezcladas: una partida más larga con el doble de 10 y 2, y más cuatro iguales.");
+            Add("Swap before play, and 4 cards in hand for more choice every turn.",
+                "Zamiana przed grą i 4 karty w ręce, czyli większy wybór w każdej turze.",
+                "Intercambio antes de jugar y 4 cartas en la mano para elegir más en cada turno.");
+            Add("Three decks, 5 cards in hand and Swap before play. Anything can happen!",
+                "Trzy talie, 5 kart w ręce i zamiana przed grą. Wszystko może się zdarzyć!",
+                "Tres barajas, 5 cartas en la mano e intercambio antes de jugar. ¡Puede pasar de todo!");
+            Add("Four cards of the same rank in a row on top of the pile burn it, even if different players put them there.\n\n" +
+                "Whoever completes the four goes again, just like after a 10.\n\n" +
+                "Turn it off for longer games where only 10s burn the pile.",
+                "Cztery karty tej samej wartości z rzędu na wierzchu stosu palą go, nawet jeśli położyli je różni gracze.\n\n" +
+                "Kto dołoży czwartą kartę, gra jeszcze raz, tak jak po 10.\n\n" +
+                "Wyłącz to, by grać dłużej: wtedy stos palą tylko dziesiątki.",
+                "Cuatro cartas del mismo valor seguidas encima del montón lo queman, aunque las pusieran jugadores distintos.\n\n" +
+                "Quien completa los cuatro vuelve a jugar, igual que tras un 10.\n\n" +
+                "Desactívalo para partidas más largas en las que solo los 10 queman el montón.");
+            Add("How many 52-card decks are shuffled together. Auto uses one deck, or two for 6 or more players.\n\n" +
+                "More decks mean a longer game with more 10s, 2s and Aces, and four of a kinds come up more often.\n\n" +
+                "If the table needs more cards for the deal, another deck is added automatically.",
+                "Ile 52-kartowych talii tasujemy razem. Auto to jedna talia albo dwie przy 6 lub więcej graczach.\n\n" +
+                "Więcej talii to dłuższa gra z większą liczbą dziesiątek, dwójek i asów, a czwórki zdarzają się częściej.\n\n" +
+                "Jeśli do rozdania potrzeba więcej kart, kolejna talia dochodzi sama.",
+                "Cuántas barajas de 52 cartas se mezclan. Auto usa una baraja, o dos con 6 jugadores o más.\n\n" +
+                "Más barajas significan una partida más larga con más 10, 2 y ases, y los cuatro iguales salen más a menudo.\n\n" +
+                "Si la mesa necesita más cartas para repartir, se añade otra baraja automáticamente.");
             Add("No such player", "Nie ma takiego gracza", "Ese jugador no existe");
             Add("You've already pressed Ready", "Już naciśnięto Gotowe", "Ya has pulsado Listo");
 

@@ -1564,6 +1564,62 @@ MonoBehaviour:
     storeOnly: 0
     premium: 0
     style: 1
+  - id: fx_neon
+    displayName: Neon
+    price: 400
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 2
+  - id: fx_frost
+    displayName: Frost
+    price: 400
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 3
+  - id: fx_gold
+    displayName: Gold Rush
+    price: 600
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 4
+  - id: fx_galaxy
+    displayName: Galaxy
+    price: 600
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 5
+  - id: fx_toxic
+    displayName: Toxic
+    price: 450
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 6
+  - id: fx_confetti
+    displayName: Party
+    price: 500
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 7
+  - id: fx_lightning
+    displayName: Lightning
+    price: 700
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 8
+  - id: fx_shadow
+    displayName: Shadow
+    price: 700
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 9
   fonts:
   - id: font_default
     displayName: Classic
@@ -1669,6 +1725,41 @@ MonoBehaviour:
     premium: 0
     font: {fileID: 11400000, guid: ad89c0e85a294654688fa0a311b466ed, type: 2}
     sizeScale: 0.7
-  celebrations: []
+  celebrations:
+  - id: win_confetti
+    displayName: Confetti
+    price: 0
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 0
+  - id: win_fireworks
+    displayName: Fireworks
+    price: 500
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 1
+  - id: win_coins
+    displayName: Coin Shower
+    price: 500
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 2
+  - id: win_starburst
+    displayName: Starburst
+    price: 400
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 3
+  - id: win_bubbles
+    displayName: Bubbles
+    price: 350
+    preview: {fileID: 0}
+    storeOnly: 0
+    premium: 0
+    style: 4
   waterCaustics: {fileID: 2800000, guid: 0aba36866ec321745af159b340c9f43e, type: 3}
   feltMask: {fileID: 21300000, guid: ec761b52341da8c45a49ef3a6abdb0a6, type: 3}

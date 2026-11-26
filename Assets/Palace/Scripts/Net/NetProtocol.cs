@@ -95,7 +95,7 @@ namespace Palace.Net
         public static byte[] Reaction(int player, int index) => Build(MsgType.Reaction, w => { w.Write(player); w.Write((byte)index); });
         public static byte[] Rematch(int player) => Build(MsgType.Rematch, w => w.Write(player));
 
-        public static byte[] Lobby(IReadOnlyList<LobbySeat> seats) => Build(MsgType.Lobby, w =>
+        public static byte[] Lobby(IReadOnlyList<LobbySeat> seats, HouseRules mode = null) => Build(MsgType.Lobby, w =>
         {
             w.Write(seats.Count);
             foreach (var s in seats)
@@ -107,7 +107,35 @@ namespace Palace.Net
                 w.Write((sbyte)s.Avatar);
                 s.WriteLook(w);
             }
+            WriteMode(w, mode ?? new HouseRules());
         });
+
+        /// <summary>The host's game mode, sent after the seats (older versions simply stop reading before it).</summary>
+        private static void WriteMode(BinaryWriter w, HouseRules r)
+        {
+            w.Write((byte)1); // mode format version
+            w.Write((byte)r.DeckCount);
+            w.Write((byte)r.HandCards);
+            w.Write(r.FourOfAKindBurns);
+            w.Write(r.SwapBeforePlay);
+        }
+
+        /// <summary>Reads the mode after the lobby seats, or null if the host's version doesn't send one.</summary>
+        public static HouseRules ReadMode(BinaryReader r)
+        {
+            if (r.BaseStream.Position + 5 > r.BaseStream.Length) return null;
+            if (r.ReadByte() < 1) return null;
+            var rules = new HouseRules
+            {
+                DeckCount = r.ReadByte(),
+                HandCards = r.ReadByte(),
+                FourOfAKindBurns = r.ReadBoolean(),
+                SwapBeforePlay = r.ReadBoolean()
+            };
+            if (rules.HandCards < 1 || rules.HandCards > 9) rules.HandCards = HouseRules.HandSize;
+            if (rules.DeckCount > 4) rules.DeckCount = 0;
+            return rules;
+        }
 
         public static List<LobbySeat> ReadLobby(BinaryReader r)
         {

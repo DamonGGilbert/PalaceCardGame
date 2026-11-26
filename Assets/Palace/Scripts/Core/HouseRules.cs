@@ -8,7 +8,19 @@ namespace Palace.Core
     public sealed class HouseRules
     {
         public const int TableCards = 3;   // face-down and face-up cards per player
-        public const int HandSize = 3;     // cards kept in hand while the deck lasts
+        public const int HandSize = 3;     // the school rule: cards kept in hand while the deck lasts
+
+        /// <summary>
+        /// Game mode option: cards kept in hand while the deck lasts (3 = the school rule; 4 or 5 give
+        /// more choice each turn). Dealt at the start and topped up after each play.
+        /// </summary>
+        public int HandCards = HandSize;
+
+        /// <summary>
+        /// Game mode option: how many 52-card decks are shuffled together. 0 = automatic (one, or two
+        /// from <see cref="SecondDeckFromPlayers"/> players). More decks are added if the deal needs them.
+        /// </summary>
+        public int DeckCount = 0;
 
         /// <summary>Q1: from this many players a second 52-card deck is shuffled in.</summary>
         public int SecondDeckFromPlayers = 6;
@@ -52,6 +64,12 @@ namespace Palace.Core
         /// </summary>
         public bool FourOfAKindBurns = true;
 
-        public int DecksFor(int playerCount) => playerCount >= SecondDeckFromPlayers ? 2 : 1;
+        public int DecksFor(int playerCount)
+        {
+            int chosen = DeckCount > 0 ? DeckCount : (playerCount >= SecondDeckFromPlayers ? 2 : 1);
+            int dealt = playerCount * (TableCards * 2 + System.Math.Max(1, HandCards)); // the deal must fit
+            int needed = (dealt + 51) / 52;
+            return System.Math.Max(chosen, needed);
+        }
     }
 }

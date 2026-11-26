@@ -29,8 +29,7 @@ namespace Palace.Net
         public const int MaxPlayers = 10;
         private const string Channel = "palace";
 
-        private static readonly string[] BotNames =
-            { "Alex", "Jordan", "Sam", "Charlie", "Riley", "Taylor", "Morgan", "Casey", "Jamie" };
+        private readonly System.Random nameRng = new System.Random();
 
         public enum Mode { None, Lan, Online }
 
@@ -48,6 +47,9 @@ namespace Palace.Net
         public int LocalPlayerIndex { get; private set; } = -1;
         public string LastError { get; private set; }
         public readonly List<LobbySeat> Seats = new List<LobbySeat>();
+
+        /// <summary>Client: the host's game mode, from the room (null until the room is heard from).</summary>
+        public Palace.Core.HouseRules HostRules { get; private set; }
         public readonly LanDiscovery Discovery = new LanDiscovery();
 
         public event Action LobbyChanged;
@@ -266,9 +268,9 @@ namespace Palace.Net
         public void AddBot()
         {
             if (!IsHost || InGame || Seats.Count >= MaxPlayers) return;
-            int bots = 0;
-            foreach (var s in Seats) if (s.IsBot) bots++;
-            Seats.Add(new LobbySeat { Name = BotNames[bots % BotNames.Length], IsBot = true, Ready = true }); // the lobby labels it "computer"
+            var taken = new List<string>();
+            foreach (var s in Seats) taken.Add(s.Name);
+            Seats.Add(new LobbySeat { Name = BotNames.PickOne(nameRng, taken), IsBot = true, Ready = true }); // the lobby labels it "computer"
             BroadcastLobby();
         }
 
@@ -309,10 +311,13 @@ namespace Palace.Net
             return -1;
         }
 
+        /// <summary>Host: the game mode was changed in the room, so tell everyone.</summary>
+        public void ModeChanged() => BroadcastLobby();
+
         private void BroadcastLobby()
         {
             if (!IsHost) return;
-            byte[] data = NetProtocol.Lobby(Seats);
+            byte[] data = NetProtocol.Lobby(Seats, GameModes.BuildRules());
             foreach (var s in Seats)
                 if (!s.IsBot && s.ClientId != net.LocalClientId) SendTo(s.ClientId, data);
             if (CurrentMode == Mode.Lan) Discovery.UpdateAnnouncement(playerName, LanPort, Seats.Count);
@@ -507,6 +512,7 @@ namespace Palace.Net
                 case MsgType.Lobby:
                     Seats.Clear();
                     Seats.AddRange(NetProtocol.ReadLobby(r));
+                    HostRules = NetProtocol.ReadMode(r);
                     LocalPlayerIndex = PlayerIndexOf(net.LocalClientId);
                     Connected = true;
                     LobbyChanged?.Invoke();

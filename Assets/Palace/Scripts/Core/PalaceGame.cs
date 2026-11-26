@@ -76,7 +76,7 @@ namespace Palace.Core
                 foreach (var p in state.Players) p.FaceDown[slot] = game.DrawTop();
             for (int slot = 0; slot < HouseRules.TableCards; slot++)
                 foreach (var p in state.Players) p.FaceUp[slot] = game.DrawTop();
-            for (int k = 0; k < HouseRules.HandSize; k++)
+            for (int k = 0; k < rules.HandCards; k++)
                 foreach (var p in state.Players) p.Hand.Add(game.DrawTop());
 
             state.Current = firstPlayer >= 0 && firstPlayer < n ? firstPlayer : game.rng.Next(n); // Q6: random first player
@@ -556,7 +556,7 @@ namespace Palace.Core
         {
             PlayerState p = State.Players[player];
             var drawn = new List<Card>();
-            while (p.Hand.Count < HouseRules.HandSize && State.DrawPile.Count > 0)
+            while (p.Hand.Count < Rules.HandCards && State.DrawPile.Count > 0)
             {
                 Card c = DrawTop();
                 p.Hand.Add(c);

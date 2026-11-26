@@ -18,6 +18,7 @@ internal static class Program
         Simulations();
         BotLevelsAndTutorial();
         SwapBeforePlay();
+        GameModes();
         Console.WriteLine();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");
         return failed == 0 ? 0 : 1;
@@ -806,6 +807,90 @@ internal static class Program
         Check(got.Count == 2 && got[0].Avatar == 4 && got[0].Banner == "banner_flag_poland" && got[0].NameStyle == "name_neon" && got[0].Font == "font_bangers"
               && got[0].Effect == "fx_galaxy" && got[0].Celebration == "win_fireworks" && got[1].IsBot && got[1].Avatar == -1 && got[1].Effect == "",
             "pictures, banners, name styles, fonts, effects and celebrations reach every device");
+    }
+
+    // ------------------------------------------------------------------ game modes
+
+    private static void GameModes()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Game modes: decks and cards in hand");
+
+        var classic = new HouseRules();
+        Check(classic.DecksFor(2) == 1 && classic.DecksFor(5) == 1 && classic.DecksFor(6) == 2 && classic.DecksFor(10) == 2,
+            "Classic: one deck, two from 6 players (unchanged)");
+        Check(new HouseRules { DeckCount = 2 }.DecksFor(4) == 2 && new HouseRules { DeckCount = 3 }.DecksFor(2) == 3,
+            "a chosen number of decks is used (e.g. a 4-player game with 2 decks)");
+        Check(new HouseRules { DeckCount = 1 }.DecksFor(10) == 2, "if one deck can't deal 10 players, a second is added");
+        Check(new HouseRules { HandCards = 5 }.DecksFor(10) == 3, "10 players with 5 cards in hand get 3 decks so the deal fits");
+
+        var names = new List<string> { "A", "B", "C", "D" };
+        var bots = Enumerable.Repeat(true, 4).ToList();
+        var g = PalaceGame.Create(names, bots, new HouseRules { DeckCount = 2, HandCards = 5 }, 99);
+        Check(g.State.TotalCards == 104 && g.State.Players.All(p => p.Hand.Count == 5 && p.FaceDownCount == 3 && p.FaceUpCount == 3),
+            "a 2-deck, 5-card game deals 104 cards and 5 to each hand");
+        Check(g.State.DrawPile.Count == 104 - 4 * 11, "the rest of both decks is the draw pile");
+        Check(g.State.Players.Select(p => p.Hand.Concat(p.FaceUp.Where(c => c.HasValue).Select(c => c.Value))).SelectMany(x => x)
+                .Select(c => c.Id).Distinct().Count() == 4 * 8, "every card has its own id, even with two decks");
+
+        // After a play the hand is topped back up to the mode's size.
+        int actor = g.State.Current;
+        var move = BotBrain.Decide(g, actor, new Random(3));
+        BotBrain.Execute(g, actor, move);
+        Check(g.State.Players[actor].Hand.Count >= 5 || g.State.DrawPile.Count == 0, "the hand is refilled to 5 cards while the deck lasts");
+
+        // Full games in every mode mix: always legal, nothing lost, every game ends.
+        var rng = new Random(5150);
+        bool legal = true, conserved = true, ended = true, handsOk = true;
+        int played = 0;
+        for (int k = 0; k < 720; k++)
+        {
+            int n = 2 + k % 9;
+            var rules = new HouseRules
+            {
+                DeckCount = k % 4,
+                HandCards = 3 + (k / 4) % 3,
+                FourOfAKindBurns = (k / 12) % 2 == 0,
+                SwapBeforePlay = (k / 24) % 2 == 0
+            };
+            var game = PalaceGame.Create(Enumerable.Range(0, n).Select(i => "P" + i).ToList(), Enumerable.Repeat(true, n).ToList(), rules, rng.Next());
+            if (game.State.TotalCards != rules.DecksFor(n) * 52) conserved = false;
+            if (game.State.Players.Any(p => p.Hand.Count != rules.HandCards)) handsOk = false;
+            BotLevel level = (BotLevel)(k % 3);
+            if (rules.SwapBeforePlay)
+                foreach (var pl in game.State.Players)
+                {
+                    foreach (var (id, slot) in BotBrain.DecideSwaps(pl, level, rng))
+                        if (!game.SwapCards(pl.Index, id, slot).Ok) legal = false;
+                    if (!game.FinishSwap(pl.Index).Ok) legal = false;
+                }
+            int actions = 0;
+            while (game.State.Phase != GamePhase.GameOver && actions < 8000)
+            {
+                int a = game.State.ActingPlayer;
+                if (!BotBrain.Execute(game, a, BotBrain.Decide(game, a, rng, level)).Ok) { legal = false; break; }
+                if (CountCards(game.State) != game.State.TotalCards) conserved = false;
+                actions++;
+            }
+            if (game.State.Phase != GamePhase.GameOver) ended = false;
+            played++;
+        }
+        Check(handsOk, "every mode deals the chosen number of cards to each hand");
+        Check(legal, "every mode: bots only make legal moves");
+        Check(conserved, "every mode: no card is created or lost, with 1, 2 or 3 decks");
+        Check(ended, $"every mode: {played} games (1-3 decks, 3-5 cards, burns on/off, swap on/off) all end");
+
+        // Online: the host's mode reaches everyone in the room; an older host (no mode) means Classic.
+        var seats = new List<Palace.Net.LobbySeat> { new Palace.Net.LobbySeat { Name = "Host", Ready = true } };
+        byte[] lobby = Palace.Net.NetProtocol.Lobby(seats, new HouseRules { DeckCount = 2, HandCards = 4, FourOfAKindBurns = false, SwapBeforePlay = true });
+        var r = new BinaryReader(new MemoryStream(lobby, 1, lobby.Length - 1));
+        Palace.Net.NetProtocol.ReadLobby(r);
+        var mode = Palace.Net.NetProtocol.ReadMode(r);
+        Check(mode != null && mode.DeckCount == 2 && mode.HandCards == 4 && !mode.FourOfAKindBurns && mode.SwapBeforePlay,
+            "the host's game mode reaches every phone in the room");
+        var old = new BinaryReader(new MemoryStream(lobby, 1, lobby.Length - 1 - 5));
+        Palace.Net.NetProtocol.ReadLobby(old);
+        Check(Palace.Net.NetProtocol.ReadMode(old) == null, "a room from an older version (no mode sent) is treated as Classic");
     }
 
     private static int CountCards(GameState s)
