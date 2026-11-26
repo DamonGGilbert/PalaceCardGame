@@ -115,6 +115,10 @@ namespace Palace
             ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
             ring.SetStyle(fx.Style);
             BuildHud();
+            turnPrompt = TurnPrompt.Create(hudRoot);
+            turnPrompt.IsWaiting = () => WaitingForMe;
+            turnPrompt.CanNudge = () => selected.Count == 0 && !paused && !viewingPile && (coach == null || !coach.Holding);
+            turnPrompt.Nudge = NudgeMe;
             Progress.Celebrate += OnCelebrate;
 
             if (NetSession.Active && NetSession.Instance.InGame) StartNetworked();
@@ -1153,6 +1157,59 @@ namespace Palace
             localPlayer >= 0 && !busy && !awaitingHost && (!paused || IsNetworked) &&
             Game.State.Phase == GamePhase.Playing && Game.State.Current == localPlayer;
 
+        // ------------------------------------------------------------------ making your turn obvious
+
+        private TurnPrompt turnPrompt;
+
+        /// <summary>The game is waiting for you: your go, or your call after a 7 or an Ace.</summary>
+        private bool WaitingForMe
+        {
+            get
+            {
+                if (Game == null || localPlayer < 0 || busy || awaitingHost) return false;
+                GameState s = Game.State;
+                if (s.Phase == GamePhase.Playing) return s.Current == localPlayer;
+                return (s.Phase == GamePhase.AwaitingSevenCall || s.Phase == GamePhase.AwaitingAceChoice) && s.PendingPlayer == localPlayer;
+            }
+        }
+
+        /// <summary>"YOUR TURN" over the middle of the table, which is always on screen.</summary>
+        private void AnnounceYourTurn() => table.Announce("YOUR TURN", UIKit.Gold, new Vector2(0f, table.DiscardPoint.y), 80f);
+
+        /// <summary>You've been sitting on your go for a while: chime again and bounce the cards you can play.</summary>
+        private void NudgeMe()
+        {
+            AudioManager.Play(Sfx.YourTurn, 0.45f);
+            Haptics.Buzz();
+            AnnounceYourTurn();
+            if (GameSettings.AnimationScale <= 0f || Game.State.Phase != GamePhase.Playing || Game.MustPickUp(localPlayer)) return;
+
+            PlayerState me = Game.State.Players[localPlayer];
+            SeatView seat = SeatFor(localPlayer);
+            for (int i = 0; i < shownHand.Count && me.ActiveSource == PlaySource.Hand; i++)
+            {
+                if (!Game.CheckRank(shownHand[i].Rank).Legal) continue;
+                CardView view = hand.Find(shownHand[i].Id);
+                if (view != null) StartCoroutine(Hop(view.transform, i * 0.05f));
+            }
+            for (int k = 0; k < HouseRules.TableCards; k++)
+            {
+                if (me.ActiveSource == PlaySource.FaceUp && me.FaceUp[k].HasValue && Game.CheckRank(me.FaceUp[k].Value.Rank).Legal)
+                    StartCoroutine(Hop(seat.FaceUpCards[k].transform, k * 0.05f));
+                if (me.ActiveSource == PlaySource.FaceDown && me.FaceDown[k].HasValue)
+                    StartCoroutine(Hop(seat.FaceDownCards[k].transform, k * 0.05f));
+            }
+        }
+
+        private static IEnumerator Hop(Transform t, float delay)
+        {
+            if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+            if (t == null) yield break;
+            Vector3 start = t.localScale;
+            yield return Tween.Run(0.34f, k => { if (t != null) t.localScale = start * (1f + 0.14f * Mathf.Sin(k * Mathf.PI)); }, x => x);
+            if (t != null) t.localScale = start;
+        }
+
         private void OnHandCardTapped(Card card)
         {
             if (Game != null && Game.State.Phase == GamePhase.Swapping)
@@ -1772,7 +1829,7 @@ namespace Palace
                     {
                         AudioManager.Play(Sfx.YourTurn, 0.6f);
                         Haptics.Buzz();
-                        table.Announce("YOUR TURN", UIKit.Gold, new Vector2(735f, -312f), 44f); // just above the status text, clear of your cards
+                        AnnounceYourTurn();
                     }
                     break;
 

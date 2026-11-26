@@ -112,6 +112,12 @@ namespace Palace
                 pileShotTaken = true;
                 StartCoroutine(PileViewerShot());
             }
+            if (!turnShotTaken && game.State.TurnNumber >= 6 && game.State.Phase == GamePhase.Playing
+                && game.State.Current == 0 && !controller.IsBusy)
+            {
+                turnShotTaken = true;
+                StartCoroutine(YourTurnShots());
+            }
             if (!midShotTaken && game.State.TurnNumber >= 12 && !controller.IsBusy)
             {
                 midShotTaken = true;
@@ -122,6 +128,22 @@ namespace Palace
                 lateShotTaken = true;
                 Shot("game_late");
             }
+        }
+
+        // ------------------------------------------------------------------ your turn prompt
+
+        private bool turnShotTaken;
+
+        /// <summary>Waits on your own go like a distracted player: the edge glow, then the reminder after 8 seconds.</summary>
+        private IEnumerator YourTurnShots()
+        {
+            controller.HoldAutoPlay = true;
+            yield return new WaitForSecondsRealtime(0.5f);
+            Shot("your_turn_glow");
+            yield return new WaitForSecondsRealtime(7.7f); // the reminder fires at 8s: catch the bounce and the banner
+            Shot("your_turn_nudge");
+            yield return new WaitForSecondsRealtime(0.5f);
+            controller.HoldAutoPlay = false;
         }
 
         // ------------------------------------------------------------------ clean screenshots (app icon)
