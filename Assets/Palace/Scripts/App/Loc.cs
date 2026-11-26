@@ -702,6 +702,7 @@ namespace Palace
             Add("Card, table and sound art is generated in code for this game.", "Grafika kart, stołów i dźwięki są generowane w kodzie tej gry.", "El arte de cartas y mesas y los sonidos se generan por código para este juego.");
             Add("Classic court cards: Byron Knoll (public domain)", "Klasyczne figury: Byron Knoll (domena publiczna)", "Figuras clásicas: Byron Knoll (dominio público)");
             Add("Card faces", "Wygląd kart", "Caras de las cartas");
+            Add("LAST CARD", "OSTATNIA KARTA", "ÚLTIMA CARTA");
             Add("Text & card size", "Rozmiar tekstu i kart", "Tamaño de texto y cartas");
             Add("Simple", "Prosty", "Sencillo");
 

@@ -237,15 +237,67 @@ namespace Palace
         }
 
         // ------------------------------------------------------------------
-        // Hand size: a fan of card backs that grows with the hand, plus a count bubble
-        // that turns gold on the last card and orange/red for big hands.
+        // Hand size: a fan of card backs that grows with the hand, plus a big count bubble coloured by
+        // how close the player is to going out (the most important thing to know near the end):
+        //   1 red (pulsing, "LAST CARD")  2 orange  3 yellow  4-7 green  8-14 blue  15+ purple  0 grey
         // ------------------------------------------------------------------
 
         private const int MaxFanCards = 8;
-        private static readonly Color BubbleNormal = new Color(0.07f, 0.09f, 0.08f, 0.95f);
-        private static readonly Color BubbleLast = new Color(0.98f, 0.78f, 0.28f, 1f);
-        private static readonly Color BubbleBig = new Color(0.88f, 0.46f, 0.10f, 1f);
-        private static readonly Color BubbleHuge = new Color(0.78f, 0.16f, 0.12f, 1f);
+        private const float BubbleSize = 68f;
+        private static readonly Color BubbleNone = new Color(0.42f, 0.44f, 0.46f, 1f);   // 0: on the table cards
+        private static readonly Color BubbleLast = new Color(0.86f, 0.12f, 0.12f, 1f);   // 1
+        private static readonly Color BubbleTwo = new Color(0.95f, 0.47f, 0.08f, 1f);    // 2
+        private static readonly Color BubbleThree = new Color(0.98f, 0.80f, 0.16f, 1f);  // 3
+        private static readonly Color BubbleFew = new Color(0.20f, 0.62f, 0.30f, 1f);    // 4-7
+        private static readonly Color BubbleBig = new Color(0.18f, 0.42f, 0.82f, 1f);    // 8-14
+        private static readonly Color BubbleHuge = new Color(0.50f, 0.24f, 0.72f, 1f);   // 15+
+
+        private static Color BubbleColour(int count) =>
+            count <= 0 ? BubbleNone : count == 1 ? BubbleLast : count == 2 ? BubbleTwo : count == 3 ? BubbleThree
+            : count <= 7 ? BubbleFew : count <= 14 ? BubbleBig : BubbleHuge;
+
+        private Image countRim, lastGlow;
+
+        /// <summary>The bigger bubble with a dark rim, and the red glow for the last card (made once).</summary>
+        private void EnsureCountStyle()
+        {
+            if (countRim != null) return;
+            if (countLabel == null) // seats from the prefab: the label exists but isn't linked
+            {
+                var found = countBubble.transform.Find("Cards");
+                if (found != null) countLabel = found.GetComponent<TextMeshProUGUI>();
+            }
+            var rt = countBubble.rectTransform;
+            rt.sizeDelta = new Vector2(BubbleSize, BubbleSize);
+            rt.anchoredPosition = new Vector2(50f, 2f);
+            countText.rectTransform.sizeDelta = new Vector2(BubbleSize, BubbleSize);
+            countText.fontSize = 40f;
+            countText.outlineWidth = 0.2f;
+            countText.outlineColor = new Color32(0, 0, 0, 160);
+            if (countLabel != null)
+            {
+                countLabel.fontSize = 19f;
+                countLabel.rectTransform.sizeDelta = new Vector2(130f, 24f);
+                countLabel.rectTransform.anchoredPosition = new Vector2(0f, -BubbleSize * 0.5f - 12f);
+            }
+
+            Sprite circle = tableTheme != null ? tableTheme.circle : null;
+            // Red glow behind the bubble that pulses on the last card.
+            lastGlow = UIBuild.Image("LastCardGlow", handStack, FxSprites.Dot, new Color(1f, 0.15f, 0.1f, 0.85f),
+                new Vector2(BubbleSize * 2f, BubbleSize * 2f), rt.anchoredPosition);
+            lastGlow.raycastTarget = false;
+            var pulse = lastGlow.gameObject.AddComponent<Pulse>();
+            pulse.Amount = 0.25f;
+            pulse.Speed = 1.4f;
+            // A dark rim so the colour stands out on any table.
+            countRim = UIBuild.Image("CountRim", handStack, circle, new Color(0.03f, 0.03f, 0.03f, 0.95f),
+                new Vector2(BubbleSize + 8f, BubbleSize + 8f), rt.anchoredPosition);
+            countRim.raycastTarget = false;
+            int at = countBubble.transform.GetSiblingIndex();
+            lastGlow.transform.SetSiblingIndex(at);
+            countRim.transform.SetSiblingIndex(at + 1);
+            countBubble.transform.SetAsLastSibling();
+        }
 
         [SerializeField] private RectTransform handStack;
         [SerializeField] private System.Collections.Generic.List<Image> stackCards = new System.Collections.Generic.List<Image>();
@@ -271,10 +323,17 @@ namespace Palace
                 rt.localEulerAngles = new Vector3(0f, 0f, angle);
             }
 
+            EnsureCountStyle();
             countText.text = count.ToString();
-            if (countLabel != null) countLabel.text = Loc.T(count == 1 ? "card" : "cards");
-            countBubble.color = count == 1 ? BubbleLast : count >= 15 ? BubbleHuge : count >= 8 ? BubbleBig : BubbleNormal;
-            countText.color = count == 1 ? new Color(0.15f, 0.1f, 0.02f) : Color.white;
+            countBubble.color = BubbleColour(count);
+            countText.color = count == 3 ? new Color(0.18f, 0.12f, 0.02f) : Color.white; // dark on yellow, white on the rest
+            if (countLabel != null)
+            {
+                countLabel.text = Loc.T(count == 1 ? "LAST CARD" : "cards");
+                countLabel.color = count == 1 ? new Color(1f, 0.55f, 0.5f) : new Color(1f, 1f, 1f, 0.9f);
+                countLabel.fontStyle = count == 1 ? FontStyles.Bold : FontStyles.Normal;
+            }
+            UIBuild.SetActive(lastGlow, count == 1);
 
             if (shownCount >= 0 && count > shownCount && isActiveAndEnabled) StartCoroutine(PopCount());
             shownCount = count;
@@ -312,7 +371,7 @@ namespace Palace
 
             // A big, plain number: the decorative font's 0 looked like an o.
             var plainFont = TMP_Settings.instance != null ? TMP_Settings.defaultFontAsset : null;
-            countBubble = UIBuild.Image("CountBubble", handStack, tableTheme != null ? tableTheme.circle : null, BubbleNormal,
+            countBubble = UIBuild.Image("CountBubble", handStack, tableTheme != null ? tableTheme.circle : null, BubbleThree,
                 new Vector2(52f, 52f), new Vector2(44f, 0f));
             countText = UIBuild.Text("Count", countBubble.transform, "0", 30f, Color.white, new Vector2(52f, 52f), Vector2.zero,
                 TextAlignmentOptions.Center, plainFont != null ? plainFont : (tableTheme != null ? tableTheme.font : null), true, false);
