@@ -329,14 +329,25 @@ namespace Palace
             countText.color = count == 3 ? new Color(0.18f, 0.12f, 0.02f) : Color.white; // dark on yellow, white on the rest
             if (countLabel != null)
             {
-                countLabel.text = Loc.T(count == 1 ? "LAST CARD" : "cards");
-                countLabel.color = count == 1 ? new Color(1f, 0.55f, 0.5f) : new Color(1f, 1f, 1f, 0.9f);
-                countLabel.fontStyle = count == 1 ? FontStyles.Bold : FontStyles.Normal;
+                bool last = count == 1 && onLastCard; // the very last card (hand and table together)
+                countLabel.text = Loc.T(last ? "LAST CARD" : count == 1 ? "card" : "cards");
+                countLabel.color = last ? new Color(1f, 0.55f, 0.5f) : new Color(1f, 1f, 1f, 0.9f);
+                countLabel.fontStyle = last ? FontStyles.Bold : FontStyles.Normal;
             }
-            UIBuild.SetActive(lastGlow, count == 1);
+            UIBuild.SetActive(lastGlow, count == 1 && onLastCard);
 
             if (shownCount >= 0 && count > shownCount && isActiveAndEnabled) StartCoroutine(PopCount());
             shownCount = count;
+        }
+
+        private bool onLastCard;
+
+        /// <summary>True when this player has exactly one card left in total: the bubble says LAST CARD and glows.</summary>
+        public void SetLastCard(bool on)
+        {
+            if (onLastCard == on) return;
+            onLastCard = on;
+            if (shownCount >= 0) { int c = shownCount; shownCount = -1; SetHandCount(c); }
         }
 
         public void SetHandBadgeVisible(bool visible)

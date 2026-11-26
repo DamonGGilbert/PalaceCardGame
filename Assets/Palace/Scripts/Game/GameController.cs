@@ -462,8 +462,11 @@ namespace Palace
         }
 
         /// <summary>Seats in this screen's order (you at the bottom) plus your card taps and drags.</summary>
+        private readonly Dictionary<int, int> lastTotals = new Dictionary<int, int>(); // cards each player had last refresh
+
         private void BuildTable()
         {
+            lastTotals.Clear();
             int n = Game.State.Players.Count;
             var seatNames = new List<string>();
             for (int k = 0; k < n; k++) seatNames.Add(Game.State.Players[PlayerAtSeat(k)].Name);
@@ -1300,6 +1303,13 @@ namespace Palace
 
                 seat.SetHandCount(Mathf.Max(0, p.Hand.Count - (pendingCards.TryGetValue(i, out int flying) ? flying : 0)));
                 seat.SetFinished(p.FinishPosition);
+
+                // Down to the very last card (hand and table together): the big LAST CARD announcement.
+                int total = p.TotalCards;
+                if (lastTotals.TryGetValue(i, out int before) && before > 1 && total == 1 && !p.IsFinished && s.Phase != GamePhase.GameOver && s.Phase != GamePhase.Swapping)
+                    StartCoroutine(LastCardBanner.Play(hudRoot, p.Name, mine));
+                lastTotals[i] = total;
+                seat.SetLastCard(total == 1 && !p.IsFinished);
                 // While swapping, everyone who isn't ready yet is highlighted.
                 seat.SetTurn(swapping ? !p.SwapReady : s.Phase != GamePhase.GameOver && i == s.ActingPlayer);
             }

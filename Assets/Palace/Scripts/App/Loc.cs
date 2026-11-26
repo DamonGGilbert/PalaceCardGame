@@ -703,6 +703,7 @@ namespace Palace
             Add("Classic court cards: Byron Knoll (public domain)", "Klasyczne figury: Byron Knoll (domena publiczna)", "Figuras clásicas: Byron Knoll (dominio público)");
             Add("Card faces", "Wygląd kart", "Caras de las cartas");
             Add("LAST CARD", "OSTATNIA KARTA", "ÚLTIMA CARTA");
+            Add("YOU", "TY", "TÚ");
             Add("Text & card size", "Rozmiar tekstu i kart", "Tamaño de texto y cartas");
             Add("Simple", "Prosty", "Sencillo");
 
