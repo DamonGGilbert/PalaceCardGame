@@ -704,6 +704,8 @@ namespace Palace
             Add("Card faces", "Wygląd kart", "Caras de las cartas");
             Add("LAST CARD", "OSTATNIA KARTA", "ÚLTIMA CARTA");
             Add("YOU", "TY", "TÚ");
+            Add("WIN!", "WYGRYWASZ!", "¡GANAS!");
+            Add("WINS!", "WYGRYWA!", "¡GANA!");
             Add("Text & card size", "Rozmiar tekstu i kart", "Tamaño de texto y cartas");
             Add("Simple", "Prosty", "Sencillo");
 

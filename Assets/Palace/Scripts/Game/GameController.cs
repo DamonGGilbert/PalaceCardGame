@@ -1712,13 +1712,20 @@ namespace Palace
 
                 case GameEventType.PlayerFinished:
                 {
+                    if (e.Position == 1)
+                    {
+                        // The winner gets the big sweep-across banner (it plays its own sound) and their celebration.
+                        fx.Celebrate(SeatPointFor(e.Player) + new Vector2(0f, 40f), CelebrationOf(e.Player));
+                        RefreshAll();
+                        yield return LastCardBanner.PlayWin(hudRoot, s.Players[e.Player].Name, e.Player == localPlayer);
+                        break;
+                    }
                     bool last = e.Position == s.Players.Count;
                     string text = e.Player == localPlayer
                         ? (last ? Loc.T("You're the Shedhead!") : Loc.F("You finish {0}!", Loc.Ordinal(e.Position)))
                         : (last ? Loc.F("{0} is the Shedhead!", who) : Loc.F("{0} finishes {1}!", who, Loc.Ordinal(e.Position)));
                     table.Announce(text, UIKit.Gold, table.DiscardPoint + new Vector2(-120f, -10f), 56f);
-                    if (e.Position == 1 || e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
-                    if (e.Position == 1) fx.Celebrate(SeatPointFor(e.Player) + new Vector2(0f, 40f), CelebrationOf(e.Player)); // the winner's celebration
+                    if (e.Player == localPlayer) AudioManager.Play(Sfx.Win, 0.8f);
                     RefreshAll();
                     yield return Tween.Wait(Mathf.Max(0.4f, Tween.Scaled(0.9f)));
                     break;
