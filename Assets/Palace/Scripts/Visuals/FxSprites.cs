@@ -101,35 +101,6 @@ namespace Palace
             }
         }
 
-        private static Sprite edgeGlow;
-
-        /// <summary>
-        /// A soft glow that fades inwards from all four edges, with an empty middle (9-sliced, so it
-        /// stretches to frame the whole screen). Used for "your turn".
-        /// </summary>
-        public static Sprite EdgeGlow
-        {
-            get
-            {
-                if (edgeGlow != null) return edgeGlow;
-                const int size = 64;
-                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "fx_edge_glow", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-                var pixels = new Color32[size * size];
-                for (int y = 0; y < size; y++)
-                    for (int x = 0; x < size; x++)
-                    {
-                        float d = Mathf.Min(Mathf.Min(x + 0.5f, size - x - 0.5f), Mathf.Min(y + 0.5f, size - y - 0.5f));
-                        float a = Mathf.Pow(Mathf.Clamp01(1f - d / 31f), 2.2f);
-                        pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
-                    }
-                tex.SetPixels32(pixels);
-                tex.Apply();
-                edgeGlow = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect,
-                    new Vector4(31f, 31f, 31f, 31f));
-                return edgeGlow;
-            }
-        }
-
         private static Sprite MakeAlpha(string name, int size, Func<float, float, float> alpha)
         {
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)

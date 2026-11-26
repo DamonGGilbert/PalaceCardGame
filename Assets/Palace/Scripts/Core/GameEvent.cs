@@ -22,7 +22,8 @@ namespace Palace.Core
         GameOver,           // Players (finishing order)
         CardsSwapped,       // Player, Cards[0] = hand card now face-up, Cards[1] = face-up card now in hand, Slots[0]
         PlayerReady,        // Player has finished swapping
-        FaceUpTaken         // Player, Cards[0] = face-up card taken into the hand with the pile, Slots[0]
+        FaceUpTaken,        // Player, Cards[0] = face-up card taken into the hand with the pile, Slots[0]
+        TurnTimedOut        // Player ran out of time (multiplayer turn timer); a pick-up or a move made for them follows
     }
 
     /// <summary>

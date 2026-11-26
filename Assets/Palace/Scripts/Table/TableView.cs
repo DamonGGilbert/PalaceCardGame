@@ -230,6 +230,31 @@ namespace Palace
             directionText.gameObject.SetActive(effectBadge == null || !effectBadge.gameObject.activeSelf);
         }
 
+        private Image pileGlow;
+        private float pileGlowFade;
+
+        /// <summary>
+        /// A soft glow behind the pile that gently breathes while it's your go. Call it every frame;
+        /// it fades in and out by itself.
+        /// </summary>
+        public void TickPileGlow(bool on)
+        {
+            if (discardSlot == null) return;
+            if (pileGlow == null)
+            {
+                if (!on) return;
+                Sprite sprite = tableTheme != null && tableTheme.softGlow != null ? tableTheme.softGlow : FxSprites.Dot;
+                pileGlow = UIBuild.Image("PileGlow", discardSlot.transform.parent, sprite, Color.clear, Vector2.one, discardSlot.rectTransform.anchoredPosition);
+                pileGlow.transform.SetSiblingIndex(discardSlot.transform.GetSiblingIndex()); // behind the slot and the pile cards
+            }
+            pileGlowFade = Mathf.MoveTowards(pileGlowFade, on ? 1f : 0f, Time.unscaledDeltaTime / 0.35f);
+            float breathe = GameSettings.AnimationScale > 0f ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.6f) : 0.6f;
+            Color c = tableTheme != null ? tableTheme.turnGlow : new Color(1f, 0.78f, 0.3f);
+            pileGlow.color = new Color(c.r, c.g, c.b, pileGlowFade * Mathf.Lerp(0.35f, 0.75f, breathe));
+            pileGlow.rectTransform.sizeDelta = discardSlot.rectTransform.sizeDelta + new Vector2(120f, 120f) * (1f + 0.05f * breathe);
+            pileGlow.enabled = pileGlowFade > 0.001f;
+        }
+
         /// <summary>Big pop-up text such as "BURN!" or "SKIP". Fire and forget.</summary>
         public void Announce(string message, Color color, Vector2 position, float size = 64f)
         {

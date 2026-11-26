@@ -312,6 +312,47 @@ namespace Palace
         {
             LanDiscovery.LoopbackOnly = true;
             yield return new WaitForSecondsRealtime(0.5f);
+            if (role == "online-host" || role == "online-join")
+            {
+                // Online test through Unity Lobby + Relay. The host writes its join code to -palace-codefile,
+                // and the joiner waits for that file and joins with the code.
+                string[] args = System.Environment.GetCommandLineArgs();
+                int at = System.Array.IndexOf(args, "-palace-codefile");
+                string codeFile = at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
+                if (role == "online-host")
+                {
+                    var hosting = Net.HostOnline("Host");
+                    while (!hosting.IsCompleted) yield return null;
+                    if (!hosting.Result) { Debug.Log("[NetTest] online host failed: " + Net.LastError); yield break; }
+                    Debug.Log("[NetTest] online code " + Net.JoinCode);
+                    if (codeFile != null) System.IO.File.WriteAllText(codeFile, Net.JoinCode);
+                    EnterRoom();
+                    while (Net.Seats.Count(s => !s.IsBot) < 2) yield return null;
+                    while (Net.Seats.Count < players) Net.AddBot();
+                    while (!Net.CanStart) yield return null;
+                    yield return new WaitForSecondsRealtime(0.5f);
+                    Debug.Log("[NetTest] host starting with " + Net.Seats.Count + " players");
+                    Net.StartGame();
+                }
+                else
+                {
+                    while (codeFile == null || !System.IO.File.Exists(codeFile)) yield return null;
+                    string code = System.IO.File.ReadAllText(codeFile).Trim();
+                    Debug.Log("[NetTest] joining online with code " + code);
+                    var joining = Net.JoinOnline(code, "Guest");
+                    while (!joining.IsCompleted) yield return null;
+                    if (!joining.Result) { Debug.Log("[NetTest] online join failed: " + Net.LastError); yield break; }
+                    float until = Time.unscaledTime + 20f;
+                    while (!Net.Connected && Time.unscaledTime < until) yield return null;
+                    if (!Net.Connected) { Debug.Log("[NetTest] online join never connected"); yield break; }
+                    EnterRoom();
+                    yield return new WaitForSecondsRealtime(0.3f);
+                    localReady = true;
+                    Net.SetReady(true);
+                    Debug.Log("[NetTest] joined online and ready");
+                }
+                yield break;
+            }
             if (role == "host")
             {
                 if (!Net.HostLan("Host")) yield break;

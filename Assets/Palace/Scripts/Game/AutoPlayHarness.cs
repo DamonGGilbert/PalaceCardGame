@@ -52,6 +52,7 @@ namespace Palace
             harness.gamesWanted = games;
             harness.shotsDir = StringArg(args, "-palace-shots");
             harness.clean = Array.IndexOf(args, "-palace-clean") >= 0; // table-only shots for the app icon
+            harness.idleTurnTest = Array.IndexOf(args, "-palace-idle-turn") >= 0; // network games: let the turn clock run out once
             if (!string.IsNullOrEmpty(harness.shotsDir)) Directory.CreateDirectory(harness.shotsDir);
             controller.GameFinished += harness.OnGameFinished;
             controller.EventStarted += harness.OnEventStarted;
@@ -93,6 +94,10 @@ namespace Palace
                 return;
             }
 
+            if (idleTurnTest && !idleTested && Palace.Net.NetSession.Active && game.State.TurnNumber >= 6 && !controller.IsBusy
+                && game.State.Phase == GamePhase.Playing && game.State.Current == controller.LocalPlayerIndex)
+                StartCoroutine(IdleTurnTest());
+
             if (!dragTested && game.State.TurnNumber >= 3 && !controller.IsBusy)
             {
                 CardView card = controller.FindPlayableHandCard();
@@ -112,8 +117,8 @@ namespace Palace
                 pileShotTaken = true;
                 StartCoroutine(PileViewerShot());
             }
-            if (!turnShotTaken && game.State.TurnNumber >= 6 && game.State.Phase == GamePhase.Playing
-                && game.State.Current == 0 && !controller.IsBusy)
+            if (!turnShotTaken && !idleTurnTest && game.State.TurnNumber >= 6 && game.State.Phase == GamePhase.Playing
+                && game.State.Current == controller.LocalPlayerIndex && !controller.IsBusy)
             {
                 turnShotTaken = true;
                 StartCoroutine(YourTurnShots());
@@ -128,6 +133,33 @@ namespace Palace
                 lateShotTaken = true;
                 Shot("game_late");
             }
+        }
+
+        // ------------------------------------------------------------------ multiplayer turn timer
+
+        private bool idleTurnTest, idleTested;
+
+        /// <summary>Sits on one of your goes in a network game until the clock runs out, then checks you picked up the pile.</summary>
+        private IEnumerator IdleTurnTest()
+        {
+            idleTested = true;
+            controller.HoldAutoPlay = true;
+            PalaceGame game = controller.Game;
+            int me = controller.LocalPlayerIndex;
+            int handBefore = game.State.Players[me].Hand.Count, pile = game.State.Discard.Count;
+            float start = Time.unscaledTime;
+            yield return new WaitForSecondsRealtime(4f);
+            if (!string.IsNullOrEmpty(shotsDir)) Shot("turn_timer");
+            yield return new WaitForSecondsRealtime(12.5f);
+            if (!string.IsNullOrEmpty(shotsDir)) Shot("turn_timer_low");
+            while (controller.Game.State.Current == me && Time.unscaledTime - start < 40f) yield return null;
+            float took = Time.unscaledTime - start;
+            while (controller.IsBusy) yield return null;
+            int handAfter = controller.Game.State.Players[me].Hand.Count;
+            bool ok = took >= GameController.TurnSeconds - 0.5f && took < GameController.TurnSeconds + 6f && (pile == 0 || handAfter == handBefore + pile);
+            Debug.Log($"[AutoPlay] turn timer: the go ended after {took:0.0}s, hand {handBefore} -> {handAfter} (pile had {pile}) " + (ok ? "OK" : "FAILED"));
+            if (!ok) errors++;
+            controller.HoldAutoPlay = false;
         }
 
         // ------------------------------------------------------------------ your turn prompt

@@ -369,6 +369,24 @@ namespace Palace.Core
             return result;
         }
 
+        /// <summary>
+        /// Multiplayer turn timer: the player ran out of time, so they pick up the pile whether or not they
+        /// could have played (no face-up card goes with it). Fails when the pile is empty, so the caller
+        /// can make a move for them instead.
+        /// </summary>
+        public CommandResult PickUpOnTimeout(int player)
+        {
+            if (State.Phase != GamePhase.Playing) return CommandResult.Fail("Waiting for a choice to be made");
+            if (player != State.Current) return CommandResult.Fail("It isn't your turn");
+            if (State.Discard.Count == 0) return CommandResult.Fail("There is nothing to pick up");
+
+            var result = new CommandResult { Ok = true };
+            result.Events.Add(new GameEvent { Type = GameEventType.TurnTimedOut, Player = player });
+            Collect(result, player);
+            SetTurn(result, NextActiveFrom(player));
+            return result;
+        }
+
         // ------------------------------------------------------------------ swap before play (optional mode)
 
         /// <summary>Swap one hand card with one face-up card. Only before play starts, and only until you're ready.</summary>

@@ -145,6 +145,56 @@ namespace Palace
             avatarInitial.gameObject.SetActive(sprite == null);
         }
 
+        // ------------------------------------------------------------------ multiplayer turn timer
+
+        private Image timerTrack, timerRing, timerShade;
+        private TextMeshProUGUI timerText;
+
+        /// <summary>
+        /// The countdown round this player's picture: a ring that empties (green, then amber, then red)
+        /// with the seconds left over the picture. fraction &lt; 0 hides it.
+        /// </summary>
+        public void SetTimer(float fraction, int seconds)
+        {
+            EnsureBuilt();
+            bool show = fraction >= 0f && avatar != null;
+            if (timerRing == null)
+            {
+                if (!show) return;
+                Transform parent = avatar.transform.parent;
+                Vector2 at = avatar.rectTransform.anchoredPosition;
+                timerTrack = UIBuild.Image("TimerTrack", parent, FxSprites.Ring, new Color(0f, 0f, 0f, 0.55f), new Vector2(96f, 96f), Vector2.zero);
+                timerRing = UIBuild.Image("TimerRing", parent, FxSprites.Ring, Color.green, new Vector2(96f, 96f), Vector2.zero);
+                timerRing.type = Image.Type.Filled;
+                timerRing.fillMethod = Image.FillMethod.Radial360;
+                timerRing.fillOrigin = (int)Image.Origin360.Top;
+                timerRing.fillClockwise = false;
+                timerShade = UIBuild.Image("TimerShade", avatar.transform, tableTheme != null ? tableTheme.circle : FxSprites.Dot,
+                    new Color(0f, 0f, 0f, 0.6f), new Vector2(56f, 56f), Vector2.zero);
+                timerText = UIBuild.Text("TimerText", timerShade.transform, "", 32f, Color.white, new Vector2(56f, 56f), Vector2.zero,
+                    TextAlignmentOptions.Center, tableTheme != null ? tableTheme.font : null, true, false);
+                timerText.outlineWidth = 0.2f;
+                timerText.outlineColor = new Color32(0, 0, 0, 220);
+                foreach (var img in new[] { timerTrack, timerRing })
+                {
+                    var r = img.rectTransform;
+                    r.anchorMin = r.anchorMax = avatar.rectTransform.anchorMin;
+                    r.anchoredPosition = at;
+                }
+            }
+            timerTrack.gameObject.SetActive(show);
+            timerRing.gameObject.SetActive(show);
+            timerShade.gameObject.SetActive(show);
+            if (!show) return;
+
+            fraction = Mathf.Clamp01(fraction);
+            timerRing.fillAmount = fraction;
+            Color green = new Color(0.35f, 0.85f, 0.4f), amber = new Color(1f, 0.75f, 0.2f), red = new Color(0.95f, 0.25f, 0.2f);
+            timerRing.color = fraction > 0.5f ? Color.Lerp(amber, green, (fraction - 0.5f) * 2f) : Color.Lerp(red, amber, fraction * 2f);
+            timerText.text = seconds.ToString();
+            timerText.color = seconds <= 5 ? new Color(1f, 0.55f, 0.5f) : Color.white;
+        }
+
         public void SetTurn(bool value)
         {
             EnsureBuilt();

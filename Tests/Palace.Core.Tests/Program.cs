@@ -318,6 +318,22 @@ internal static class Program
             Check(!g2.PickUp(0).Ok, "can't pick up when a card is playable");
         }
 
+        Section("Running out of time picks up the pile (multiplayer turn timer)");
+        {
+            var g = Table(3);
+            Pile(g, Rank.Five, Rank.Six);
+            Give(g, 0, Rank.Nine, Rank.Ten);
+            var r = g.PickUpOnTimeout(0);
+            Check(r.Ok && g.State.Players[0].Hand.Count == 4 && g.State.Discard.Count == 0, "the pile is taken even with playable cards");
+            Check(r.Events[0].Type == GameEventType.TurnTimedOut, "the time-out is announced first");
+            Check(g.State.Current == 1, "play passes on");
+            Check(!g.PickUpOnTimeout(0).Ok, "only on your own turn");
+
+            var g2 = Table(3);
+            Give(g2, 0, Rank.Nine);
+            Check(!g2.PickUpOnTimeout(0).Ok, "nothing to pick up: refused (a move is made for them instead)");
+        }
+
         Section("Four of a kind in a row burns the pile (Q20)");
         {
             var g = Table(3);

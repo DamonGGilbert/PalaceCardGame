@@ -198,7 +198,15 @@ namespace Palace.Net
 
         private static async Task SignIn()
         {
-            if (UnityServices.State != ServicesInitializationState.Initialized) await UnityServices.InitializeAsync();
+            if (UnityServices.State != ServicesInitializationState.Initialized)
+            {
+                // Testing only: two copies on one computer would otherwise sign in as the same player.
+                string[] args = Environment.GetCommandLineArgs();
+                int at = Array.IndexOf(args, "-palace-profile");
+                var options = new InitializationOptions();
+                if (at >= 0 && at + 1 < args.Length) options.SetProfile(args[at + 1]);
+                await UnityServices.InitializeAsync(options);
+            }
             if (!AuthenticationService.Instance.IsSignedIn) await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
 

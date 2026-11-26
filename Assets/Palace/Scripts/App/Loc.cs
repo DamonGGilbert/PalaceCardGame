@@ -425,6 +425,9 @@ namespace Palace
             Add("LOWER than 7", "NIŻEJ niż 7", "MENOR que 7");
             Add("ACE = {0}", "AS = {0}", "AS = {0}");
             Add("YOUR TURN", "TWOJA TURA", "TU TURNO");
+            Add("TIME'S UP!", "KONIEC CZASU!", "¡SE ACABÓ EL TIEMPO!");
+            Add("You ran out of time", "Skończył ci się czas", "Se te acabó el tiempo");
+            Add("{0} ran out of time", "{0}: koniec czasu", "A {0} se le acabó el tiempo");
             Add("JACK", "WALET", "JOTA");
             Add("QUEEN", "DAMA", "REINA");
             Add("KING", "KRÓL", "REY");

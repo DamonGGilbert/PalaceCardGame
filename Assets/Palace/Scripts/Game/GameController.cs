@@ -115,7 +115,8 @@ namespace Palace
             ring = DirectionRing.Create((RectTransform)table.transform, table.TableCenter, table.FeltSiblingIndex + 1);
             ring.SetStyle(fx.Style);
             BuildHud();
-            turnPrompt = TurnPrompt.Create(hudRoot);
+            turnPrompt = TurnPrompt.Create(transform);
+            turnPrompt.Glow = on => table.TickPileGlow(on);
             turnPrompt.IsWaiting = () => WaitingForMe;
             turnPrompt.CanNudge = () => selected.Count == 0 && !paused && !viewingPile && (coach == null || !coach.Holding);
             turnPrompt.Nudge = NudgeMe;
@@ -134,6 +135,8 @@ namespace Palace
 
         private NetSession net;   // null in single player
         private bool IsNetworked => net != null;
+        /// <summary>Testing: the seat played at this device (-1 when only watching).</summary>
+        public int LocalPlayerIndex => localPlayer;
         private bool IsNetHost => net != null && net.IsHost;
         private bool IsNetClient => net != null && !net.IsHost;
         public bool IsWaitingForHost => awaitingHost;
@@ -525,6 +528,7 @@ namespace Palace
                 return;
             }
             if (statusText != null) UpdateStatus();
+            TickTurnTimer();
             HandleKeyboard();
             coach?.Tick();
             bool singlePlayerPause = !IsNetworked && (paused || viewingPile || (coach != null && coach.Holding));
@@ -1156,6 +1160,74 @@ namespace Palace
         private bool LocalCanAct =>
             localPlayer >= 0 && !busy && !awaitingHost && (!paused || IsNetworked) &&
             Game.State.Phase == GamePhase.Playing && Game.State.Current == localPlayer;
+
+        // ------------------------------------------------------------------ multiplayer turn timer
+
+        /// <summary>Seconds each person has for their go in Wi-Fi and online games.</summary>
+        public const float TurnSeconds = 20f;
+        /// <summary>The host waits a moment longer than the clock shows, as other devices may start it a little later.</summary>
+        private const float TimeoutGrace = 1f;
+
+        private int timerPlayer = -1;
+        private float timerStart;
+        private int timerShownSeconds = -1;
+        private bool timerFired;
+
+        /// <summary>
+        /// Every device shows a countdown on the seat of the person whose go it is, starting once the table
+        /// has settled. It resets for every new go. When it runs out, the host makes that player pick up
+        /// the pile (or, with nothing to pick up, makes a move for them). Computer players aren't timed.
+        /// </summary>
+        private void TickTurnTimer()
+        {
+            int actor = -1;
+            if (IsNetworked && Game != null && !busy)
+            {
+                GameState s = Game.State;
+                bool turnPhase = s.Phase == GamePhase.Playing || s.Phase == GamePhase.AwaitingSevenCall || s.Phase == GamePhase.AwaitingAceChoice;
+                int who = turnPhase ? s.ActingPlayer : -1;
+                if (who >= 0 && !s.Players[who].IsBot && !takenOver.Contains(who) && !s.Players[who].IsFinished) actor = who;
+            }
+
+            if (actor != timerPlayer)
+            {
+                if (timerPlayer >= 0 && timerPlayer < table.Seats.Count) SeatFor(timerPlayer).SetTimer(-1f, 0);
+                timerPlayer = actor;
+                timerStart = Time.unscaledTime;
+                timerShownSeconds = -1;
+                timerFired = false;
+            }
+            if (actor < 0) return;
+
+            float left = TurnSeconds - (Time.unscaledTime - timerStart);
+            int seconds = Mathf.CeilToInt(Mathf.Max(0f, left));
+            SeatFor(actor).SetTimer(left / TurnSeconds, seconds);
+            if (seconds != timerShownSeconds)
+            {
+                // Your own last five seconds tick, so you notice without looking.
+                if (actor == localPlayer && seconds <= 5 && seconds > 0) AudioManager.Play(Sfx.Select, 0.35f);
+                if (actor == localPlayer && seconds == 5) Haptics.Buzz();
+                timerShownSeconds = seconds;
+            }
+
+            if (IsNetHost && !timerFired && left <= -TimeoutGrace)
+            {
+                timerFired = true;
+                TimeOutTurn(actor);
+            }
+        }
+
+        /// <summary>Host: someone's clock ran out. They pick up the pile; with an empty pile (or a 7 / Ace call waiting) a move is made for them.</summary>
+        private void TimeOutTurn(int player)
+        {
+            CommandResult result = Game.PickUpOnTimeout(player);
+            if (!result.Ok)
+            {
+                result = BotBrain.Execute(Game, player, BotBrain.Decide(Game, player, botRng, BotLevel.Normal));
+                if (result.Ok) result.Events.Insert(0, new GameEvent { Type = GameEventType.TurnTimedOut, Player = player });
+            }
+            if (result.Ok) Execute(result);
+        }
 
         // ------------------------------------------------------------------ making your turn obvious
 
@@ -1822,6 +1894,15 @@ namespace Palace
                         noticeMessage = Loc.F("{0} is ready", who);
                         noticeUntil = Time.unscaledTime + 1.5f;
                     }
+                    break;
+
+                case GameEventType.TurnTimedOut:
+                    // Multiplayer turn timer: the pick-up (or the move made for them) follows.
+                    AudioManager.Play(Sfx.Skip, 0.7f);
+                    table.Announce("TIME'S UP!", new Color(1f, 0.45f, 0.4f), new Vector2(0f, table.DiscardPoint.y), 80f);
+                    if (e.Player == localPlayer) Toast("You ran out of time");
+                    else { noticeMessage = Loc.F("{0} ran out of time", who); noticeUntil = Time.unscaledTime + 2.5f; }
+                    yield return Tween.Wait(Mathf.Max(0.4f, Tween.Scaled(0.7f)));
                     break;
 
                 case GameEventType.TurnChanged:
