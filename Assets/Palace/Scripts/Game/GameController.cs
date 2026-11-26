@@ -1721,6 +1721,13 @@ namespace Palace
                         break;
                     }
                     bool last = e.Position == s.Players.Count;
+                    if (last)
+                    {
+                        // The Shedhead gets the big banner too (it plays its own sound).
+                        RefreshAll();
+                        yield return LastCardBanner.PlayShedhead(hudRoot, s.Players[e.Player].Name, e.Player == localPlayer);
+                        break;
+                    }
                     string text = e.Player == localPlayer
                         ? (last ? Loc.T("You're the Shedhead!") : Loc.F("You finish {0}!", Loc.Ordinal(e.Position)))
                         : (last ? Loc.F("{0} is the Shedhead!", who) : Loc.F("{0} finishes {1}!", who, Loc.Ordinal(e.Position)));

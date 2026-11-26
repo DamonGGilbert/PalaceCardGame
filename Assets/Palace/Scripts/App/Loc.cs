@@ -706,6 +706,9 @@ namespace Palace
             Add("YOU", "TY", "TÚ");
             Add("WIN!", "WYGRYWASZ!", "¡GANAS!");
             Add("WINS!", "WYGRYWA!", "¡GANA!");
+            Add("YOU'RE THE", "JESTEŚ", "ERES EL");
+            Add("{0} IS THE", "{0} JEST", "{0} ES EL");
+            Add("SHEDHEAD!", "SHEDHEAD!", "¡SHEDHEAD!");
             Add("Text & card size", "Rozmiar tekstu i kart", "Tamaño de texto y cartas");
             Add("Simple", "Prosty", "Sencillo");
 

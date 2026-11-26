@@ -276,14 +276,18 @@ namespace Palace
             skipButton.transition = Selectable.Transition.None;
             skipButton.onClick.AddListener(() => skip = true);
 
-            // The Shedhead logo pops in with a little bounce, then the subtitle fades in underneath.
-            var mark = UIBuild.Image("Logo", layer, Logo, Color.white, new Vector2(560f, 560f), new Vector2(0f, 60f));
+            // The Shedhead logo (a picture of the game, the same as the app icon) pops in with a little bounce,
+            // with the name under it; then the subtitle fades in underneath.
+            bool hasLogo = Logo != null;
+            var mark = UIBuild.Image("Logo", layer, Logo, hasLogo ? Color.white : Color.clear, new Vector2(440f, 440f), new Vector2(0f, 120f));
             mark.preserveAspect = true;
-            if (Logo == null) // safety net: the name in text if the image is missing
-                UIBuild.Text("Title", mark.transform, "SHEDHEAD", 150f, UIKit.Gold, new Vector2(1200f, 220f), Vector2.zero,
-                    TextAlignmentOptions.Center, UIKit.Font, true).characterSpacing = 14f;
+            var nameText = UIBuild.Text("Title", mark.transform, "SHEDHEAD", hasLogo ? 112f : 150f, UIKit.Gold, new Vector2(1200f, 160f),
+                new Vector2(0f, hasLogo ? -310f : 0f), TextAlignmentOptions.Center, UIKit.Font, true);
+            nameText.characterSpacing = 14f;
+            nameText.outlineWidth = 0.18f;
+            nameText.outlineColor = new Color32(0, 0, 0, 200);
             var sub = UIBuild.Text("Subtitle", layer, "THE CLASSIC CARD GAME", 34f, UIKit.Muted, new Vector2(1200f, 60f),
-                new Vector2(0f, -270f), TextAlignmentOptions.Center, UIKit.Font, true);
+                new Vector2(0f, -300f), TextAlignmentOptions.Center, UIKit.Font, true);
             sub.characterSpacing = 8f;
             sub.alpha = 0f;
 
@@ -314,7 +318,8 @@ namespace Palace
                 Color c = mark.color;
                 yield return Tween.Run(0.6f, t =>
                 {
-                    mark.color = new Color(c.r, c.g, c.b, 1f - t);
+                    mark.color = new Color(c.r, c.g, c.b, c.a * (1f - t));
+                    nameText.alpha = 1f - t;
                     sub.alpha = 1f - t;
                 });
                 mark.gameObject.SetActive(false);
