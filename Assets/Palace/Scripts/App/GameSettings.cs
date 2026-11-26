@@ -169,6 +169,20 @@ namespace Palace
             set => PlayerPrefs.SetInt("palace.fourcolour", value ? 1 : 0);
         }
 
+        public static readonly string[] CardFaceNames = { "Classic", "Simple" };
+
+        /// <summary>
+        /// Card faces: 0 Classic (traditional pip patterns, picture court cards, compact corners, like a
+        /// real deck) or 1 Simple (one big suit symbol and big corners, easiest to read on small screens).
+        /// </summary>
+        public static int CardFaceStyle
+        {
+            get => Mathf.Clamp(PlayerPrefs.GetInt("palace.cardfaces", 0), 0, 1);
+            set => PlayerPrefs.SetInt("palace.cardfaces", Mathf.Clamp(value, 0, 1));
+        }
+
+        public static bool ClassicFaces => CardFaceStyle == 0;
+
         /// <summary>Larger text everywhere (where it fits).</summary>
         public static bool LargeText
         {

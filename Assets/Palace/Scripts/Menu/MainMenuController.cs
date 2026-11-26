@@ -611,7 +611,8 @@ namespace Palace
 
             // ---- Display
             Transform d = tabs[1];
-            y = 230f;
+            const float dstep = 76f; // one more row than the other tabs, so a little tighter
+            y = 245f;
             Row(d, "Language", y);
             UIKit.Segmented(d, GameSettings.LanguageNames, GameSettings.Language, controlSize, new Vector2(controlX, y), i =>
             {
@@ -619,7 +620,7 @@ namespace Palace
                 GameSettings.Language = i;
                 ReloadMenu(1);
             });
-            y -= step;
+            y -= dstep;
             Row(d, "Text size", y);
             UIKit.Segmented(d, GameSettings.TextSizeNames, GameSettings.LargeText ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
             {
@@ -627,23 +628,30 @@ namespace Palace
                 GameSettings.LargeText = i == 1;
                 ReloadMenu(1);
             });
-            y -= step;
+            y -= dstep;
+            Row(d, "Card faces", y);
+            UIKit.Segmented(d, GameSettings.CardFaceNames, GameSettings.CardFaceStyle, controlSize, new Vector2(controlX, y), i =>
+            {
+                GameSettings.CardFaceStyle = i;
+                OnCosmeticsChanged();
+            });
+            y -= dstep;
             Row(d, "Card colours", y);
             UIKit.Segmented(d, GameSettings.CardColourNames, GameSettings.FourColourDeck ? 1 : 0, controlSize, new Vector2(controlX, y), i =>
             {
                 GameSettings.FourColourDeck = i == 1;
                 OnCosmeticsChanged();
             });
-            y -= step;
+            y -= dstep;
             Row(d, "Hand order", y);
             UIKit.Segmented(d, GameSettings.HandOrderNames, GameSettings.HandOrder, controlSize, new Vector2(controlX, y), i => GameSettings.HandOrder = i);
-            y -= step;
+            y -= dstep;
             Row(d, "Frame rate", y);
             UIKit.Segmented(d, GameSettings.FrameRateNames, GameSettings.FrameRateIndex, controlSize, new Vector2(controlX, y), i => GameSettings.FrameRateIndex = i);
-            y -= step;
+            y -= dstep;
             Row(d, "Reactions", y);
             UIKit.Segmented(d, GameSettings.OnOffNames, GameSettings.ShowReactions ? 1 : 0, controlSize, new Vector2(controlX, y), i => GameSettings.ShowReactions = i == 1);
-            y -= step;
+            y -= dstep;
             var note = UIKit.Label(d, "4 colours: diamonds are blue and clubs are green, so every suit stands out. Reactions Off hides everyone's quick reactions.",
                 22f, new Vector2(960f, 60f), new Vector2(0f, y + 10f), TextAlignmentOptions.Center, UIKit.Muted);
             note.textWrappingMode = TextWrappingModes.Normal;
@@ -713,7 +721,8 @@ namespace Palace
                 Loc.T("Additional programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
                 Loc.T("Made with Unity") + "\n" + Loc.T("Fonts: Alegreya and Liberation Sans (SIL Open Font License)") + "\n" +
                 Loc.T("Name fonts: Google Fonts (SIL Open Font License and Apache License 2.0)") + "\n" +
-                Loc.T("All card art, table art and sounds are generated in code for this game.") + "\n" +
+                Loc.T("Card, table and sound art is generated in code for this game.") + "\n" +
+                Loc.T("Classic court cards: Byron Knoll (public domain)") + "\n" +
                 Loc.T("Translations: English, Polski, Español"),
                 28f, new Vector2(900f, 440f), new Vector2(0f, 20f), TextAlignmentOptions.Center, UIKit.Text);
             text.textWrappingMode = TextWrappingModes.Normal;

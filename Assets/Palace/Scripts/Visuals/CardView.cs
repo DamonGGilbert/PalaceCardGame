@@ -210,6 +210,7 @@ namespace Palace
 
             face = UIBuild.StretchImage("Face", visual, null, Color.white);
             courtFrame = UIBuild.StretchImage("CourtFrame", face.transform, null, Color.white, 20f);
+            EnsureClassicParts();
 
             var anchorTopLeft = new Vector2(0f, 1f);
             var anchorBottomRight = new Vector2(1f, 0f);
@@ -306,6 +307,31 @@ namespace Palace
                 img.color = ink;
             }
 
+            // Classic faces: compact corners, pip patterns and court pictures, like a real deck.
+            EnsureClassicParts();
+            Sprite courtArt = GameSettings.ClassicFaces && c.IsCourt ? CourtArt.Get(c.Rank, c.Suit) : null;
+            bool classic = GameSettings.ClassicFaces && (!c.IsCourt || courtArt != null);
+            LayoutCorners(classic);
+            UIBuild.SetActive(courtPicture, courtArt != null);
+            if (classic)
+            {
+                UIBuild.SetActive(centerLetter, false);
+                UIBuild.SetActive(courtFrame, false);
+                if (courtIcon != null) UIBuild.SetActive(courtIcon, false);
+                bool pips = c.Rank >= Rank.Two && c.Rank <= Rank.Ten;
+                ShowPips(pips ? (int)c.Rank : 0, suitSprite, ink);
+                UIBuild.SetActive(suitCenter, c.Rank == Rank.Ace);
+                if (courtArt != null) courtPicture.sprite = courtArt;
+                if (c.Rank == Rank.Ace)
+                {
+                    suitCenter.rectTransform.sizeDelta = new Vector2(84f, 84f);
+                    suitCenter.rectTransform.anchoredPosition = Vector2.zero;
+                }
+                return;
+            }
+            ShowPips(0, null, ink);
+            UIBuild.SetActive(suitCenter, true);
+
             bool court = c.IsCourt;
             Sprite picture = court && theme != null ? theme.GetCourtIcon(c.Rank) : null;
             UIBuild.SetActive(centerLetter, court && picture == null);
@@ -341,6 +367,98 @@ namespace Palace
         }
 
         [SerializeField] private Image courtIcon;
+        [SerializeField] private Image courtPicture;
+        [SerializeField] private RectTransform pipRoot;
+        private readonly System.Collections.Generic.List<Image> pipImages = new System.Collections.Generic.List<Image>();
+        private bool? compactCorners;
+
+        // Traditional pip patterns: (column, row) with columns -1/0/1 and rows from +1 (top) to -1 (bottom).
+        // Pips in the bottom half are drawn upside down, as on a real card.
+        private static readonly Vector2[][] PipLayouts =
+        {
+            null, null,
+            new[] { P(0, 1), P(0, -1) },                                                                 // 2
+            new[] { P(0, 1), P(0, 0), P(0, -1) },                                                        // 3
+            new[] { P(-1, 1), P(1, 1), P(-1, -1), P(1, -1) },                                            // 4
+            new[] { P(-1, 1), P(1, 1), P(0, 0), P(-1, -1), P(1, -1) },                                   // 5
+            new[] { P(-1, 1), P(1, 1), P(-1, 0), P(1, 0), P(-1, -1), P(1, -1) },                         // 6
+            new[] { P(-1, 1), P(1, 1), P(0, 0.5f), P(-1, 0), P(1, 0), P(-1, -1), P(1, -1) },             // 7
+            new[] { P(-1, 1), P(1, 1), P(0, 0.5f), P(-1, 0), P(1, 0), P(0, -0.5f), P(-1, -1), P(1, -1) }, // 8
+            new[] { P(-1, 1), P(1, 1), P(-1, 1f / 3f), P(1, 1f / 3f), P(0, 0),
+                    P(-1, -1f / 3f), P(1, -1f / 3f), P(-1, -1), P(1, -1) },                              // 9
+            new[] { P(-1, 1), P(1, 1), P(0, 2f / 3f), P(-1, 1f / 3f), P(1, 1f / 3f),
+                    P(-1, -1f / 3f), P(1, -1f / 3f), P(0, -2f / 3f), P(-1, -1), P(1, -1) }              // 10
+        };
+
+        private static Vector2 P(float column, float row) => new Vector2(column, row);
+
+        /// <summary>The Classic court picture and pip holder, placed just under the corner labels.</summary>
+        private void EnsureClassicParts()
+        {
+            if (courtPicture != null && pipRoot != null) return;
+            int under = courtFrame.transform.GetSiblingIndex() + 1;
+            if (courtPicture == null)
+            {
+                courtPicture = UIBuild.Image("CourtArt", face.transform, null, Color.white, new Vector2(78f, 125f), Vector2.zero);
+                courtPicture.preserveAspect = true;
+                courtPicture.raycastTarget = false;
+                courtPicture.transform.SetSiblingIndex(under);
+                UIBuild.SetActive(courtPicture, false);
+            }
+            if (pipRoot == null)
+            {
+                pipRoot = UIBuild.Rect("Pips", face.transform, new Vector2(Width, Height), Vector2.zero);
+                pipRoot.SetSiblingIndex(under + 1);
+            }
+        }
+
+        private const float PipColumn = 25f, PipTop = 66f;
+
+        private void ShowPips(int count, Sprite suit, Color ink)
+        {
+            Vector2[] layout = count >= 2 && count <= 10 ? PipLayouts[count] : null;
+            int n = layout?.Length ?? 0;
+            while (pipImages.Count < n)
+            {
+                var img = UIBuild.Image("Pip", pipRoot, null, Color.white, new Vector2(24f, 24f), Vector2.zero);
+                img.preserveAspect = true;
+                img.raycastTarget = false;
+                pipImages.Add(img);
+            }
+            float size = count >= 7 ? 22f : 25f;
+            for (int i = 0; i < pipImages.Count; i++)
+            {
+                var img = pipImages[i];
+                bool on = i < n;
+                UIBuild.SetActive(img, on);
+                if (!on) continue;
+                Vector2 p = layout[i];
+                img.sprite = suit;
+                img.color = ink;
+                var rt = img.rectTransform;
+                rt.sizeDelta = new Vector2(size, size);
+                rt.anchoredPosition = new Vector2(p.x * PipColumn, p.y * PipTop);
+                rt.localEulerAngles = new Vector3(0f, 0f, p.y < 0f ? 180f : 0f);
+            }
+        }
+
+        /// <summary>Corner labels: compact (Classic, out of the way of the pips and picture) or big (Simple).</summary>
+        private void LayoutCorners(bool compact)
+        {
+            if (compactCorners == compact) return;
+            compactCorners = compact;
+            float rankSize = compact ? 27f : 34f;
+            Vector2 rankPos = compact ? new Vector2(16f, -20f) : new Vector2(26f, -25f);
+            Vector2 suitPos = compact ? new Vector2(16f, -44f) : new Vector2(26f, -56f);
+            Vector2 suitSize = compact ? new Vector2(18f, 18f) : new Vector2(24f, 24f);
+            rankTop.fontSize = rankBottom.fontSize = rankSize;
+            rankTop.characterSpacing = rankBottom.characterSpacing = compact ? -6f : 0f; // keeps "10" narrow
+            rankTop.rectTransform.anchoredPosition = rankPos;
+            rankBottom.rectTransform.anchoredPosition = -rankPos;
+            suitTop.rectTransform.anchoredPosition = suitPos;
+            suitBottom.rectTransform.anchoredPosition = -suitPos;
+            suitTop.rectTransform.sizeDelta = suitBottom.rectTransform.sizeDelta = suitSize;
+        }
 
         private void EnsureCourtIcon()
         {
