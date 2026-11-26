@@ -11,6 +11,9 @@
 | `palace.coins.big` | Consumable | 20,000 coins (best value) | £5.99 |
 | `palace.removeads` | Non-consumable | Bonus coins with no ad to watch (same daily limit) | £2.99 |
 
+> **Launch is ad-free:** Remove Ads is hidden in the game until an ad network is set up (`ShopCatalog.Offered()`), so
+> only create the three coin bags in the stores for now.
+
 Bigger bags are better value per pound (about 2,000 / 2,700 / 3,300 coins per £), which nudges players towards
 the bigger bag without making the small one feel like a rip-off.
 
@@ -38,7 +41,7 @@ In the editor, Unity IAP shows its own fake purchase dialog, so you can test wit
 
 ### 2. Google Play Console
 1. Create the app (package name = Unity **Player Settings → Other Settings → Package Name**, `com.shedhead.game`).
-2. **Monetize → Products → In-app products**: create the 7 products above with the same IDs and types.
+2. **Monetize → Products → In-app products**: create the coin products above (not Remove Ads while the game has no ads) with the same IDs and types.
 3. Upload a build to an **internal testing** track and add yourself as a licence tester to test purchases.
 4. Optional (recommended later): local receipt checks. **Services → In-App Purchasing → Receipt Validation Obfuscator**
    with your Play licence key.
@@ -46,7 +49,7 @@ In the editor, Unity IAP shows its own fake purchase dialog, so you can test wit
 ### 3. App Store Connect
 1. Create the app (bundle ID = the same Package Name / Bundle Identifier).
 2. Sign the **Paid Applications Agreement** (Business section). Purchases won't work until it's active.
-3. **In-App Purchases**: create the 7 products. *Consumable* for the coin packs, *Non-Consumable* for the rest.
+3. **In-App Purchases**: create the coin products (Remove Ads only once ads are added). *Consumable* for the coin packs, *Non-Consumable* for the rest.
 4. Test with a **Sandbox** account on a real iPhone (iOS builds need a Mac with Xcode).
 
 ### 4. Rewarded ads (next step)

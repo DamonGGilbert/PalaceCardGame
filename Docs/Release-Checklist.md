@@ -25,10 +25,10 @@ check the current prices on each site.
 - Already set correctly: 64-bit ARM64 + IL2CPP for Android, Android 8.0+, iOS 15+, landscape only
 
 ## 3. Money (the game earns nothing until these are done)
-- [ ] **(blocker for purchases)** Install **In App Purchasing** (Window → Package Manager → Unity Registry). Without
-      it, release builds show "shop unavailable"
-- [ ] Create the 4 products in both stores with the exact ids in `Docs/Monetization-Setup.md`
-      (`palace.coins.small`, `palace.coins.medium`, `palace.coins.big`, `palace.removeads`)
+- [x] In App Purchasing 5.5.1 added to the project (Unity downloads it on next open; real purchases switch on by themselves)
+- [ ] Create the 3 coin products in both stores with the exact ids in `Docs/Monetization-Setup.md`
+      (`palace.coins.small`, `palace.coins.medium`, `palace.coins.big`). Launch is ad-free, so `palace.removeads` is
+      hidden in the game and isn't created until ads are added
 - [ ] Set up payments/tax/bank details in Google Play Console and App Store Connect (needed to sell anything)
 - [ ] **Rewarded ads:** create a Unity LevelPlay account, add the Android and iOS apps, then install the
       **Ads Mediation** package and give me the app keys and ad unit ids to connect it. Until then, release builds
@@ -45,10 +45,10 @@ check the current prices on each site.
 - [ ] Optional: Mobile Notifications package for streak reminders (`Docs/Notifications-Setup.md`)
 
 ## 5. Privacy and ratings
-- [ ] **(blocker)** Host `Docs/privacy-policy.html` publicly after filling in the [brackets]. Easiest: GitHub
-      Pages, or any website. Put the link in both stores and in the game's Credits if you like
-- [ ] Google Play **Data safety** form – answer from the policy: device identifiers (ads), app activity (game progress if
-      cloud save), purchase history, no data sold
+- [x] Privacy policy live at **https://damonggilbert.github.io/PalaceCardGame/privacy.html** (gh-pages branch; written for the
+      ad-free launch, contact shedheadgame@gmail.com). Update it (and the gh-pages copy) before adding ads or cloud save
+- [ ] Google Play **Data safety** form – answer from the policy. At launch: purchase history (handled by Google Play);
+      the name and picture shown to other online players; no ads, no advertising ID, no data sold or shared for ads
 - [ ] Apple **App Privacy** labels – same answers
 - [ ] Content rating questionnaires (IARC on Google, age rating on Apple) – see `Docs/Store-Listing.md`
 - [ ] Target audience: **13+** only

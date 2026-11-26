@@ -76,7 +76,7 @@ namespace Palace
 
         private void OnStoreConnected()
         {
-            var definitions = ShopCatalog.Products
+            var definitions = ShopCatalog.Offered()
                 .Select(p => new ProductDefinition(p.Id, p.Type == ShopProductType.Consumable ? ProductType.Consumable : ProductType.NonConsumable))
                 .ToList();
             store.FetchProducts(definitions);

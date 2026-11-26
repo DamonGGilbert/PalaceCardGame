@@ -34,6 +34,19 @@ namespace Palace
                 Type = ShopProductType.NonConsumable, FallbackPrice = "£2.99", AdFree = true }
         };
 
+        /// <summary>
+        /// What's on sale right now. Remove Ads is only offered once the game actually shows ads (an
+        /// ad network is set up); selling it in a game with no ads would be misleading. Someone who
+        /// already owns it keeps it.
+        /// </summary>
+        public static System.Collections.Generic.List<ShopProduct> Offered()
+        {
+            var list = new System.Collections.Generic.List<ShopProduct>();
+            foreach (var p in Products)
+                if (!p.AdFree || RewardedAds.Available || Shop.IsOwned(p.Id)) list.Add(p);
+            return list;
+        }
+
         public static ShopProduct Find(string id)
         {
             foreach (var p in Products) if (p.Id == id) return p;

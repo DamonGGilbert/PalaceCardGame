@@ -35,6 +35,9 @@ namespace Palace
             set => backend = value;
         }
 
+        /// <summary>Does this build show ads at all? False in release builds until an ad network is set up.</summary>
+        public static bool Available => !(Backend is NoAdBackend);
+
         private static string TodayKey => "palace.ads." + DateTime.UtcNow.ToString("yyyyMMdd");
         public static int RemainingToday => Mathf.Max(0, DailyLimit - PlayerPrefs.GetInt(TodayKey, 0));
         public static bool CanClaim => RemainingToday > 0 && (Shop.HasAdFree || Backend.IsReady);

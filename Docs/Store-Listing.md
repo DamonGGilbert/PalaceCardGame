@@ -63,7 +63,7 @@ Shuffle up. Burn the pile. Don't be the Shedhead.
 
 ## Age rating (questionnaires)
 - No violence, gambling with real money, or mature content. The cards are not gambling: coins can't be cashed out.
-- **Yes** to: in-app purchases; ads (once LevelPlay is on); users interact online (names shown to other players).
+- **Yes** to: in-app purchases; users interact online (names shown to other players).
 - Expect roughly PEGI 3 / Everyone (Google, via IARC) and 9+ or 12+ (Apple, because of online play and ads).
 - Target audience on Google Play: **13+** only. Don't tick under-13 age groups (that brings the Families policy and
   stricter ad rules).
@@ -83,5 +83,5 @@ Sizes: Google Play needs at least 2 phone screenshots (16:9 landscape works, 192
 1024 x 500: the Shedhead logo on the left over the pub table, three cards fanned on the right.
 
 ## Support and privacy
-- Support email: [SUPPORT EMAIL]
-- Privacy policy URL: [where you host Docs/privacy-policy.html]
+- Support email: shedheadgame@gmail.com
+- Privacy policy URL: https://damonggilbert.github.io/PalaceCardGame/privacy.html

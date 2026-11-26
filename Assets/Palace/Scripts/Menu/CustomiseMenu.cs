@@ -395,20 +395,26 @@ namespace Palace
         private void BuildShop()
         {
             Shop.Initialize();
-            var products = ShopCatalog.Products;
-            LayoutGrid(products.Length + 1);
+            var products = ShopCatalog.Offered();
 
             // Top row: the ad things (free bonus coins, and Remove Ads). Second row: the coin bags.
-            // Each row is centred, so it looks tidy whatever is in it.
+            // Each row is centred, so it looks tidy whatever is in it. Without ads (no ad network yet)
+            // there's no ad row: just the coin bags.
+            bool ads = RewardedAds.Available || Shop.HasAdFree;
             var adRow = new List<ShopProduct>();
             var coinRow = new List<ShopProduct>();
             foreach (var product in products) (product.AdFree ? adRow : coinRow).Add(product);
+            LayoutGrid(ads ? products.Count + 1 : coinRow.Count);
 
             float rowY0 = SlotPosition(0).y, rowY1 = SlotPosition((int)Columns).y;
-            int adCount = adRow.Count + 1;
-            BuildBonusTile(new Vector2(RowX(0, adCount), rowY0));
-            for (int i = 0; i < adRow.Count; i++) BuildProductTile(adRow[i], new Vector2(RowX(i + 1, adCount), rowY0));
-            for (int i = 0; i < coinRow.Count; i++) BuildProductTile(coinRow[i], new Vector2(RowX(i, coinRow.Count), rowY1));
+            if (ads)
+            {
+                int adCount = adRow.Count + 1;
+                BuildBonusTile(new Vector2(RowX(0, adCount), rowY0));
+                for (int i = 0; i < adRow.Count; i++) BuildProductTile(adRow[i], new Vector2(RowX(i + 1, adCount), rowY0));
+            }
+            float coinY = ads ? rowY1 : rowY0;
+            for (int i = 0; i < coinRow.Count; i++) BuildProductTile(coinRow[i], new Vector2(RowX(i, coinRow.Count), coinY));
 
             string status = Shop.Backend != null && !string.IsNullOrEmpty(Shop.Backend.StatusMessage) ? Shop.Backend.StatusMessage : "";
             message.text = Loc.T(!string.IsNullOrEmpty(shopNote) ? shopNote : status);
