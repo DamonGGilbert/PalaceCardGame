@@ -19,7 +19,12 @@ Build the game for Windows, then run it with:
 It plays one bot game, saves `clean_0.png` to `clean_6.png` at different turns, and quits. If the info plate
 has moved, change the numbers in `Patch(...)` in the tool.
 
+## Play Store feature graphic
+`Docs/StoreAssets/play-feature-graphic-1024x500.png` is made from the same screenshot: the table fills the
+banner, with SHEDHEAD and "THE CLASSIC CARD GAME" (in the game's Alegreya font) on a dark fade down the left.
+To remake it, run from the `tool-feature` folder:
+`dotnet run -- <screenshot> ../../../Assets/Palace/Fonts/Alegreya.ttf <output png>`
+
 ## The old logo
-`old-wordmark-logo/` has the previous "Shedhead" lettering logo and icons. To switch back, copy them over the
-same files. The Play Store feature graphic (`Docs/StoreAssets/play-feature-graphic-1024x500.png`) still uses
-the lettering logo.
+`old-wordmark-logo/` has the previous "Shedhead" lettering logo, icons and feature graphic. To switch back,
+copy them over the same files.
