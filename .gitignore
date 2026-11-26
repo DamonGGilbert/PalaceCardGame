@@ -47,3 +47,9 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Android signing keys: never commit these (keep them backed up privately instead)
+*.keystore
+*.jks
+*.keystore.meta
+*.jks.meta
