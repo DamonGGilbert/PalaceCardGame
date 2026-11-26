@@ -193,9 +193,29 @@ namespace Palace
             }
             bool custom = skin != null && skin.font != null;
             nameText.font = custom ? skin.font : defaultNameFont;
+            // An outline (from the banner or name style) gives the text its own copy of the font's
+            // material, and that copy still points at the OLD font's letter sheet, which drew the name
+            // in garbled shapes. Go back to the new font's own material, then put the outline back.
+            if (nameText.font != null) nameText.fontSharedMaterial = nameText.font.material;
+            ReapplyOutline();
             float size = defaultNameSize * (custom ? skin.sizeScale : 1f);
             nameText.fontSize = size;
             if (nameText.enableAutoSizing) nameText.fontSizeMax = size;
+        }
+
+        /// <summary>The name's outline: the name style's if it has one, otherwise the banner's.</summary>
+        private void ReapplyOutline()
+        {
+            if (nameStyle != null)
+            {
+                nameText.outlineWidth = nameStyle.outlineWidth;
+                nameText.outlineColor = nameStyle.outline;
+            }
+            else if (banner != null && banner.textOutline > 0f)
+            {
+                nameText.outlineWidth = banner.textOutline;
+                nameText.outlineColor = new Color32(20, 12, 6, 255);
+            }
         }
 
         public void ApplyNameStyle(NameStyle style)

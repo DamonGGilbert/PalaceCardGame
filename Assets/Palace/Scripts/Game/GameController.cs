@@ -480,9 +480,9 @@ namespace Palace
             for (int k = 0; k < n; k++)
             {
                 PlayerLook look = looks[PlayerAtSeat(k)];
+                seats[k].ApplyFont(look.Font); // font first: outlines are built on the font that is showing
                 if (look.Banner != null) seats[k].ApplyBanner(look.Banner);
                 if (look.NameStyle != null) seats[k].ApplyNameStyle(look.NameStyle);
-                seats[k].ApplyFont(look.Font);
             }
             for (int k = 0; k < HouseRules.TableCards; k++)
             {
