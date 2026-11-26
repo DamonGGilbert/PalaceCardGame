@@ -687,8 +687,8 @@ namespace Palace
             Transform p = BuildScreen("Credits", new Vector2(1000f, 680f), out creditsPanel);
             var text = UIKit.Label(p,
                 "<color=#F2C24D><b>SHEDHEAD</b></color>\n\n" +
-                Loc.T("Game design and house rules") + "\n<b>Damon Gilbert</b>\n\n" +
-                Loc.T("Programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
+                Loc.T("Game design, house rules and programming") + "\n<b>Damon Gilbert</b>\n\n" +
+                Loc.T("Additional programming, art and sound") + "\n<b>" + Loc.T("Built with Claude (Anthropic)") + "</b>\n\n" +
                 Loc.T("Made with Unity") + "\n" + Loc.T("Fonts: Alegreya and Liberation Sans (SIL Open Font License)") + "\n" +
                 Loc.T("Name fonts: Google Fonts (SIL Open Font License and Apache License 2.0)") + "\n" +
                 Loc.T("All card art, table art and sounds are generated in code for this game.") + "\n" +

@@ -12,7 +12,7 @@ namespace Palace.EditorTools
     [InitializeOnLoad]
     public static class PalaceArtCheck
     {
-        private const string AskedKey = "Palace.ArtCheckAsked";
+        private const string AskedKey = "Palace.ArtCheckAsked.v2"; // bumped when there is something new to offer
 
         static PalaceArtCheck()
         {
@@ -50,10 +50,15 @@ namespace Palace.EditorTools
                     return;
                 }
 
-                // Only the name fonts are missing: that's quick to fix on its own.
-                if (lib != null && lib.fonts.Count <= 1 &&
-                    EditorUtility.DisplayDialog("Palace: add the name fonts?",
-                        "New name fonts are ready to add to the Customise screen (a few seconds).", "Add them", "Later"))
+                // Name fonts missing, or still the old kind that made letters at run time (and could
+                // draw them in the wrong font): rebuild them, which is quick.
+                bool fontsMissing = lib != null && lib.fonts.Count <= 1;
+                bool fontsOld = lib != null && lib.fonts.Exists(f => f.font != null && f.font.atlasPopulationMode == TMPro.AtlasPopulationMode.Dynamic);
+                if ((fontsMissing || fontsOld) &&
+                    EditorUtility.DisplayDialog(fontsMissing ? "Palace: add the name fonts?" : "Palace: fix the name fonts?",
+                        fontsMissing ? "New name fonts are ready to add to the Customise screen (a few seconds)."
+                                     : "The name fonts need rebuilding so every letter shows correctly (about a minute).",
+                        fontsMissing ? "Add them" : "Fix them", "Later"))
                     PalaceNameFonts.RebuildMenu();
                 return;
             }

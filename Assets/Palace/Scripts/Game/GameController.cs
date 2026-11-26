@@ -107,7 +107,7 @@ namespace Palace
             hand = new HandView(table);
             hand.CardTapped += OnHandCardTapped;
             hand.CanDrag = c => BeginDrag(c, PlaySource.Hand);
-            hand.CardDragged += (v, e) => OnDragging(e);
+            hand.CardDragged += (v, e) => { OnDragging(e); DragFollowers(v); }; // other selected cards travel with it
             hand.CardDropped += (v, e) => OnDropped(v, e, PlaySource.Hand, -1);
 
             // Equipped cosmetics: table, deck, card back, effects (banner + name style are applied per seat).
@@ -823,7 +823,13 @@ namespace Palace
             at.y = Mathf.Clamp(at.y, -420f, 440f);
 
             bool emoji = Reactions.IsEmoji(index);
-            var bubble = UIKit.Panel(tableHud, emoji ? new Vector2(130f, 120f) : new Vector2(330f, 82f), at, new Color(0.98f, 0.95f, 0.86f, 0.97f));
+            // A light cream speech bubble with a dark outline: readable on every table, dark or light.
+            Vector2 size = emoji ? new Vector2(130f, 120f) : new Vector2(330f, 82f);
+            var outline = UIBuild.Image("Bubble", tableHud, FxSprites.Bubble, new Color(0.16f, 0.10f, 0.04f, 0.9f), size + new Vector2(6f, 6f), at);
+            outline.type = Image.Type.Sliced;
+            outline.raycastTarget = false;
+            var bubble = UIBuild.Image("Fill", outline.transform, FxSprites.Bubble, new Color(0.99f, 0.96f, 0.88f, 1f), size, Vector2.zero);
+            bubble.type = Image.Type.Sliced;
             bubble.raycastTarget = false;
             if (emoji)
             {
@@ -835,9 +841,9 @@ namespace Palace
                 var text = UIKit.Label(bubble.transform, Reactions.Phrases[index], 28f, new Vector2(310f, 70f), Vector2.zero, TextAlignmentOptions.Center, UIKit.Ink, true);
                 text.raycastTarget = false;
             }
-            bubbles[player] = bubble.gameObject;
+            bubbles[player] = outline.gameObject;
             AudioManager.Play(Sfx.Select, 0.5f);
-            StartCoroutine(BubbleLife(bubble.rectTransform));
+            StartCoroutine(BubbleLife(outline.rectTransform));
         }
 
         private IEnumerator BubbleLife(RectTransform rt)
@@ -1080,6 +1086,29 @@ namespace Palace
         }
 
         private void OnDragging(UnityEngine.EventSystems.PointerEventData e) => table.SetDropHighlight(IsOverPile(e));
+
+        /// <summary>
+        /// Dragging one of several selected hand cards: the others fan out behind it and travel with it,
+        /// so it's clear they'll all be played. (If it isn't dropped on the pile, the hand lays them out again.)
+        /// </summary>
+        private void DragFollowers(CardView dragged)
+        {
+            if (localPlayer < 0 || selectedSource != PlaySource.Hand || selected.Count < 2 || !dragged.CurrentCard.HasValue) return;
+            if (!selected.Contains(dragged.CurrentCard.Value.Id)) return;
+            var lead = (RectTransform)dragged.transform;
+            int k = 0;
+            foreach (int id in selected)
+            {
+                if (id == dragged.CurrentCard.Value.Id) continue;
+                CardView follower = hand.Find(id);
+                if (follower == null) continue;
+                k++;
+                var rt = (RectTransform)follower.transform;
+                rt.SetSiblingIndex(Mathf.Max(0, lead.GetSiblingIndex() - 1)); // just behind the card being dragged
+                rt.anchoredPosition = lead.anchoredPosition + new Vector2(-22f * k, -6f * k);
+                rt.localEulerAngles = new Vector3(0f, 0f, 5f * k);
+            }
+        }
 
         private void OnDropped(CardView view, UnityEngine.EventSystems.PointerEventData e, PlaySource source, int slot)
         {

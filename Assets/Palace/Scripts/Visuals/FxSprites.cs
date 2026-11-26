@@ -73,6 +73,34 @@ namespace Palace
             return MakeAlpha(name, size, (x, y) => Mathf.Clamp01(0.5f - distance(x, y)));
         }
 
+        private static Sprite bubble;
+
+        /// <summary>A white rounded rectangle that stretches cleanly (9-sliced): speech bubbles and light panels.</summary>
+        public static Sprite Bubble
+        {
+            get
+            {
+                if (bubble != null) return bubble;
+                const int size = 64;
+                const float radius = 20f;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "fx_bubble", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+                var pixels = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                    for (int x = 0; x < size; x++)
+                    {
+                        float qx = Mathf.Max(Mathf.Abs(x + 0.5f - size * 0.5f) - (size * 0.5f - radius - 1f), 0f);
+                        float qy = Mathf.Max(Mathf.Abs(y + 0.5f - size * 0.5f) - (size * 0.5f - radius - 1f), 0f);
+                        float d = Length(qx, qy) - radius;
+                        pixels[y * size + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(0.5f - d) * 255f));
+                    }
+                tex.SetPixels32(pixels);
+                tex.Apply();
+                bubble = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect,
+                    new Vector4(radius + 2f, radius + 2f, radius + 2f, radius + 2f));
+                return bubble;
+            }
+        }
+
         private static Sprite MakeAlpha(string name, int size, Func<float, float, float> alpha)
         {
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)

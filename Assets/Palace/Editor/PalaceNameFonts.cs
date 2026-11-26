@@ -62,11 +62,27 @@ namespace Palace.EditorTools
             }
         }
 
+        /// <summary>Every letter a name can use: English, Polish (ą ć ę ł ń ó ś ź ż) and Spanish (á é í ñ ó ú ü ¿ ¡), plus digits and symbols.</summary>
+        private static string NameCharacters()
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int c = 32; c <= 126; c++) sb.Append((char)c);    // basic Latin
+            for (int c = 160; c <= 255; c++) sb.Append((char)c);   // Latin-1: Spanish, French, German...
+            for (int c = 256; c <= 383; c++) sb.Append((char)c);   // Latin Extended-A: Polish, Czech...
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Name fonts are STATIC: every letter is baked into the font when it's made, so nothing is
+        /// generated while the game runs. (Generating letters at run time drew some fonts, such as
+        /// Pixel, with another font's letter shapes.) Older dynamic versions are replaced.
+        /// </summary>
         private static TMP_FontAsset CreateOrLoad(string file)
         {
             string assetPath = Folder + "/" + file + " SDF.asset";
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
-            if (existing != null) return existing;
+            if (existing != null && existing.atlasPopulationMode == AtlasPopulationMode.Static) return existing;
+            if (existing != null) AssetDatabase.DeleteAsset(assetPath); // an older dynamic version
 
             string ttf = Folder + "/" + file + ".ttf";
             if (!File.Exists(ttf)) return null;
@@ -74,7 +90,8 @@ namespace Palace.EditorTools
             var source = AssetDatabase.LoadAssetAtPath<Font>(ttf);
             if (source == null) return null;
 
-            var asset = TMP_FontAsset.CreateFontAsset(source, 90, 9, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
+            // 48pt sampling is plenty for names (shown at about 24pt) and fits every letter in one 1024 atlas.
+            var asset = TMP_FontAsset.CreateFontAsset(source, 48, 5, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, false);
             if (asset == null) return null;
             asset.name = file + " SDF";
             AssetDatabase.CreateAsset(asset, assetPath);
@@ -85,6 +102,13 @@ namespace Palace.EditorTools
                 atlas.name = file + " SDF Atlas";
                 AssetDatabase.AddObjectToAsset(atlas, asset);
             }
+
+            // Bake the letters now (from this font's own file), then lock the font so it never changes at run time.
+            asset.TryAddCharacters(NameCharacters(), out string missing);
+            asset.atlasPopulationMode = AtlasPopulationMode.Static;
+            foreach (var atlas in asset.atlasTextures) EditorUtility.SetDirty(atlas);
+            if (!string.IsNullOrEmpty(missing))
+                Debug.Log("[Palace] " + file + " has no " + missing.Length + " of the name letters; the game font fills those in.");
             // Letters a display font lacks (Polish / Spanish accents, symbols) come from the game font.
             var fallback = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(PalaceArtGenerator.SerifAssetPath);
             asset.fallbackFontAssetTable = new List<TMP_FontAsset>();

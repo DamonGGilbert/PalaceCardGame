@@ -183,8 +183,8 @@ namespace Palace
             Add("Install the Cloud Save package to enable this (see Docs/Cloud-Save-Setup.md).", "Zainstaluj pakiet Cloud Save, aby to włączyć (zob. Docs/Cloud-Save-Setup.md).", "Instala el paquete Cloud Save para activarlo (ver Docs/Cloud-Save-Setup.md).");
 
             // ---------------------------------------------------------- credits
-            Add("Game design and house rules", "Projekt gry i zasady domowe", "Diseño del juego y reglas de la casa");
-            Add("Programming, art and sound", "Programowanie, grafika i dźwięk", "Programación, arte y sonido");
+            Add("Game design, house rules and programming", "Projekt gry, zasady domowe i programowanie", "Diseño del juego, reglas de la casa y programación");
+            Add("Additional programming, art and sound", "Dodatkowe programowanie, grafika i dźwięk", "Programación adicional, arte y sonido");
             Add("Built with Claude (Anthropic)", "Zbudowane z Claude (Anthropic)", "Creado con Claude (Anthropic)");
             Add("Made with Unity", "Stworzone w Unity", "Hecho con Unity");
             Add("Fonts: Alegreya and Liberation Sans (SIL Open Font License)", "Czcionki: Alegreya i Liberation Sans (SIL Open Font License)", "Fuentes: Alegreya y Liberation Sans (SIL Open Font License)");
