@@ -48,4 +48,10 @@ Palace.exe -palace-net join -palace-autoplay 1
   whoever is playing counts down for everyone, and your own last five seconds tick. If it runs out, that player
   picks up the pile (with an empty pile, or a 7 / Ace call waiting, the computer makes the move for them).
   Computer players and single-player games are not timed.
-- If the host leaves, the game ends for everyone. Host handover is possible later.
+- **Dropped connections:** if a player loses signal or the app is closed, a computer player plays for them and
+  their device keeps trying to get back in for 60 seconds ("Reconnecting..."). Once back, they get their seat and
+  the table as it is now. Phones stay awake during multiplayer games, since a locked screen drops the connection.
+- **Versions:** the host turns away a copy of the game on a different version, saying who needs to update. Raise
+  `NetProtocol.ProtocolVersion` whenever a change means old and new copies can't play together.
+- **iPhone:** the build adds the "local network" permission sentence iOS needs for Wi-Fi games.
+- If the host leaves or loses connection, the game ends for everyone. Host handover is possible later.

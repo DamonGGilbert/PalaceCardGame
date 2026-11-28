@@ -238,6 +238,9 @@ namespace Palace.Net
                 foreach (var seat in Seats)
                     if (!seat.IsBot && seat.ClientId != net.LocalClientId) SendTo(seat.ClientId, NetProtocol.Closing("The host left the game."));
 
+            leavingOnPurpose = true;
+            Reconnecting = false;
+            StopAllCoroutines();
             Discovery.Stop();
             if (net != null && net.IsListening) net.Shutdown();
             var s = session;
@@ -248,6 +251,8 @@ namespace Palace.Net
 
         private void Reset()
         {
+            leavingOnPurpose = false;
+            Reconnecting = false;
             Connected = false;
             InGame = false;
             IsHost = false;
@@ -460,6 +465,16 @@ namespace Palace.Net
                     int picture = r.BaseStream.Position < r.BaseStream.Length ? r.ReadSByte() : -1;
                     var look = new LobbySeat();
                     if (r.BaseStream.Position < r.BaseStream.Length) look.ReadLook(r);
+                    int version = r.BaseStream.Position + 4 <= r.BaseStream.Length ? r.ReadInt32() : 0;
+                    string token = r.BaseStream.Position < r.BaseStream.Length ? r.ReadString() : "";
+                    if (version != NetProtocol.ProtocolVersion)
+                    {
+                        SendTo(sender, NetProtocol.Closing(version < NetProtocol.ProtocolVersion
+                            ? "Your Shedhead is older than the host's. Update the game to join."
+                            : "The host's Shedhead is older than yours. Ask them to update the game."));
+                        return;
+                    }
+                    if (InGame && TryRejoin(sender, token)) return;
                     if (InGame || Seats.Count >= MaxPlayers)
                     {
                         SendTo(sender, NetProtocol.Closing(InGame ? "That game has already started." : "That game is full."));
@@ -470,6 +485,7 @@ namespace Palace.Net
                         name = string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
                         if (name.Length > 14) name = name.Substring(0, 14);
                         look.ClientId = sender;
+                        look.Token = token ?? "";
                         look.Name = name;
                         look.Avatar = picture < AvatarArt.Count ? picture : -1;
                         Seats.Add(look);
@@ -553,6 +569,16 @@ namespace Palace.Net
                     break;
                 case MsgType.Closing:
                     pendingClose = r.ReadString();
+                    Debug.Log("[Palace] the host closed the connection: " + pendingClose);
+                    break;
+                case MsgType.Rejoined:
+                    LocalPlayerIndex = r.ReadInt32();
+                    Connected = true;
+                    if (Reconnecting)
+                    {
+                        Reconnecting = false;
+                        Reconnected?.Invoke();
+                    }
                     break;
             }
         }
@@ -564,7 +590,7 @@ namespace Palace.Net
         private void OnClientConnected(ulong clientId)
         {
             if (!IsHost && clientId == net.LocalClientId)
-                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName, GameSettings.AvatarIfUnlocked, MyLook())); // ask for a seat
+                SendTo(NetworkManager.ServerClientId, NetProtocol.Hello(playerName, GameSettings.AvatarIfUnlocked, MyLook(), rejoinToken)); // ask for a seat (or our seat back)
         }
 
         private void OnClientDisconnected(ulong clientId)
@@ -581,13 +607,129 @@ namespace Palace.Net
                 else
                 {
                     Seats[i].IsBot = true;   // a computer player takes over their cards
+                    Seats[i].Dropped = true; // ...until they come back (TryRejoin)
                     ClientLeft?.Invoke(clientId);
                 }
                 return;
             }
 
-            if ((clientId == net.LocalClientId || clientId == NetworkManager.ServerClientId) && pendingClose == null)
+            if (clientId != net.LocalClientId && clientId != NetworkManager.ServerClientId) return;
+            if (InGame && !leavingOnPurpose && pendingClose == null)
+            {
+                StartReconnecting(); // mid-game: try to get back in before giving up
+                return;
+            }
+            if (pendingClose == null)
                 pendingClose = Connected || InGame ? "Lost connection to the host." : "Couldn't reach that game.";
+        }
+
+        // ==================================================================
+        // Dropped connections
+        // ==================================================================
+
+        /// <summary>How long a player who dropped out keeps trying to get back into the game.</summary>
+        public const float RejoinSeconds = 60f;
+
+        private readonly string rejoinToken = Guid.NewGuid().ToString("N");
+        private bool leavingOnPurpose;
+
+        /// <summary>Client: the connection dropped mid-game and we're trying to get back in.</summary>
+        public bool Reconnecting { get; private set; }
+        public event Action ReconnectStarted;
+        public event Action Reconnected;
+        /// <summary>Host: a player who dropped out is back in their seat (player index, device).</summary>
+        public event Action<int, ulong> ClientRejoined;
+
+        /// <summary>Host: a device asking for a seat mid-game. If it's someone who dropped out, give their seat back.</summary>
+        private bool TryRejoin(ulong sender, string token)
+        {
+            if (string.IsNullOrEmpty(token)) return false;
+            for (int i = 0; i < Seats.Count; i++)
+            {
+                LobbySeat seat = Seats[i];
+                if (!seat.Dropped || seat.Token != token) continue;
+                seat.ClientId = sender;
+                seat.IsBot = false;
+                seat.Dropped = false;
+                SendTo(sender, NetProtocol.Rejoined(i));
+                BroadcastLobby();
+                ClientRejoined?.Invoke(i, sender);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Testing: drop the connection as if the signal went, to exercise rejoining.</summary>
+        public void SimulateDrop()
+        {
+            if (IsHost || !InGame || net == null || !net.IsListening) return;
+            net.Shutdown();
+            StartReconnecting();
+        }
+
+        private void StartReconnecting()
+        {
+            if (Reconnecting) return;
+            Reconnecting = true;
+            Connected = false;
+            ReconnectStarted?.Invoke();
+            StartCoroutine(ReconnectLoop());
+        }
+
+        private System.Collections.IEnumerator ReconnectLoop()
+        {
+            float giveUp = Time.unscaledTime + RejoinSeconds;
+            while (Reconnecting && Time.unscaledTime < giveUp)
+            {
+                while (net.ShutdownInProgress) yield return null;
+                if (net.IsListening) net.Shutdown();
+                while (net.ShutdownInProgress) yield return null;
+
+                if (CurrentMode == Mode.Lan)
+                {
+                    transport.SetConnectionData(HostAddress.Trim(), LanPort);
+                    net.StartClient();
+                }
+                else
+                {
+                    var attempt = RejoinOnline();
+                    while (!attempt.IsCompleted) yield return null;
+                }
+
+                // Wait for the host to give the seat back (it answers the Hello sent on connecting).
+                float until = Mathf.Min(giveUp, Time.unscaledTime + 8f);
+                while (Reconnecting && Time.unscaledTime < until) yield return null;
+                if (!Reconnecting) yield break;
+                yield return new WaitForSecondsRealtime(1.5f);
+            }
+            if (!Reconnecting) yield break;
+            Reconnecting = false;
+            pendingClose = "Lost connection to the host.";
+        }
+
+        /// <summary>Back into the online session: reconnect if Unity still has us as a member, otherwise join by code again.</summary>
+        private async Task RejoinOnline()
+        {
+            string id = session?.Id;
+            try
+            {
+                await SignIn();
+                if (!string.IsNullOrEmpty(id))
+                {
+                    try
+                    {
+                        session = await MultiplayerService.Instance.ReconnectToSessionAsync(id);
+                        return;
+                    }
+                    catch (Exception e) { Debug.Log("[Palace] reconnect to session failed, joining by code: " + e.Message); }
+                }
+                if (session != null) { try { await session.LeaveAsync(); } catch (Exception) { } }
+                session = await MultiplayerService.Instance.JoinSessionByCodeAsync(JoinCode);
+            }
+            catch (Exception e)
+            {
+                Debug.Log("[Palace] rejoin attempt failed: " + e.Message);
+            }
         }
     }
 }

@@ -52,6 +52,7 @@ namespace Palace
             harness.gamesWanted = games;
             harness.shotsDir = StringArg(args, "-palace-shots");
             harness.clean = Array.IndexOf(args, "-palace-clean") >= 0; // table-only shots for the app icon
+            harness.dropTest = Array.IndexOf(args, "-palace-drop") >= 0;          // network games: lose the connection once and rejoin
             harness.idleTurnTest = Array.IndexOf(args, "-palace-idle-turn") >= 0; // network games: let the turn clock run out once
             if (!string.IsNullOrEmpty(harness.shotsDir)) Directory.CreateDirectory(harness.shotsDir);
             controller.GameFinished += harness.OnGameFinished;
@@ -94,6 +95,10 @@ namespace Palace
                 return;
             }
 
+            if (dropTest && !dropTested && Palace.Net.NetSession.Active && !Palace.Net.NetSession.Instance.IsHost
+                && game.State.TurnNumber >= 10 && !controller.IsBusy)
+                StartCoroutine(DropTest());
+
             if (idleTurnTest && !idleTested && Palace.Net.NetSession.Active && game.State.TurnNumber >= 6 && !controller.IsBusy
                 && game.State.Phase == GamePhase.Playing && game.State.Current == controller.LocalPlayerIndex)
                 StartCoroutine(IdleTurnTest());
@@ -133,6 +138,32 @@ namespace Palace
                 lateShotTaken = true;
                 Shot("game_late");
             }
+        }
+
+        // ------------------------------------------------------------------ dropped connection
+
+        private bool dropTest, dropTested;
+
+        /// <summary>Cuts this device's connection mid-game (like losing signal) and checks it gets its seat back.</summary>
+        private IEnumerator DropTest()
+        {
+            dropTested = true;
+            var net = Palace.Net.NetSession.Instance;
+            int turnBefore = controller.Game.State.TurnNumber;
+            float start = Time.unscaledTime;
+            Debug.Log("[AutoPlay] rejoin test: dropping the connection at turn " + turnBefore);
+            net.SimulateDrop();
+            yield return new WaitForSecondsRealtime(1f);
+            if (!string.IsNullOrEmpty(shotsDir)) Shot("reconnecting");
+            while (net.Reconnecting && Time.unscaledTime - start < Palace.Net.NetSession.RejoinSeconds + 5f) yield return null;
+            float took = Time.unscaledTime - start;
+            bool back = Palace.Net.NetSession.Active && !net.Reconnecting;
+            // The game should carry on with this device playing again: wait for a few more turns.
+            float until = Time.unscaledTime + 30f;
+            while (back && controller.Game.State.TurnNumber < turnBefore + 4 && Time.unscaledTime < until) yield return null;
+            bool ok = back && controller.Game.State.TurnNumber >= turnBefore + 4 && controller.LocalPlayerIndex >= 0;
+            Debug.Log($"[AutoPlay] rejoin test: back={back} after {took:0.0}s, turn now {controller.Game.State.TurnNumber} " + (ok ? "OK" : "FAILED"));
+            if (!ok) errors++;
         }
 
         // ------------------------------------------------------------------ multiplayer turn timer

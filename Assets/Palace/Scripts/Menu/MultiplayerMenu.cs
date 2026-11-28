@@ -311,12 +311,14 @@ namespace Palace
         public IEnumerator RunNetTest(string role, int players)
         {
             LanDiscovery.LoopbackOnly = true;
+            string[] args = System.Environment.GetCommandLineArgs();
+            int fake = System.Array.IndexOf(args, "-palace-fake-version"); // pretend to be an older/newer copy
+            if (fake >= 0 && fake + 1 < args.Length && int.TryParse(args[fake + 1], out int v)) NetProtocol.VersionOverride = v;
             yield return new WaitForSecondsRealtime(0.5f);
             if (role == "online-host" || role == "online-join")
             {
                 // Online test through Unity Lobby + Relay. The host writes its join code to -palace-codefile,
                 // and the joiner waits for that file and joins with the code.
-                string[] args = System.Environment.GetCommandLineArgs();
                 int at = System.Array.IndexOf(args, "-palace-codefile");
                 string codeFile = at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
                 if (role == "online-host")

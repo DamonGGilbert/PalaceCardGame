@@ -17,7 +17,8 @@ namespace Palace.Net
         Error = 8,        // host -> client: that move was refused
         Closing = 9,      // host -> clients: the host has left
         Reaction = 10,    // client -> host: a quick reaction; host -> clients: who sent which reaction
-        Rematch = 11      // client -> host: I want a rematch; host -> clients: who wants one
+        Rematch = 11,     // client -> host: I want a rematch; host -> clients: who wants one
+        Rejoined = 12     // host -> client: after a dropped connection, you have your seat back (player index)
     }
 
     public sealed class LobbySeat
@@ -29,6 +30,9 @@ namespace Palace.Net
         public int Avatar = -1;  // profile picture (AvatarArt), -1 = initial letter
         // What this player wears (cosmetic ids), so everyone at the table sees it. Empty = the default.
         public string Banner = "", NameStyle = "", Font = "", Effect = "", Celebration = "";
+        // Host only (never sent): the device's rejoin token, and whether it dropped out mid-game.
+        public string Token = "";
+        public bool Dropped;
 
         public void WriteLook(BinaryWriter w)
         {
@@ -80,11 +84,26 @@ namespace Palace.Net
     {
         // ------------------------------------------------------------------ lobby
 
-        public static byte[] Hello(string name, int avatar = -1, LobbySeat look = null) => Build(MsgType.Hello, w =>
+        /// <summary>
+        /// Raise this whenever a change means older copies of the game can't play with newer ones
+        /// (message layout, rules, anything both sides must agree on). The host turns away a mismatch
+        /// with a message saying who needs to update.
+        /// </summary>
+        public const int ProtocolVersion = 2;
+        /// <summary>Testing only (-palace-fake-version): pretend to be another version.</summary>
+        public static int VersionOverride = -1;
+
+        /// <summary>
+        /// Asking for a seat. The token identifies this device for the rest of the game, so after a
+        /// dropped connection the host can give the same seat back.
+        /// </summary>
+        public static byte[] Hello(string name, int avatar = -1, LobbySeat look = null, string token = "") => Build(MsgType.Hello, w =>
         {
             w.Write(name ?? "Player");
             w.Write((sbyte)avatar);
             (look ?? new LobbySeat()).WriteLook(w);
+            w.Write(VersionOverride >= 0 ? VersionOverride : ProtocolVersion);
+            w.Write(token ?? "");
         });
         public static byte[] Ready(bool ready) => Build(MsgType.Ready, w => w.Write(ready));
         public static byte[] InGame() => Build(MsgType.InGame, w => { });
@@ -94,6 +113,7 @@ namespace Palace.Net
         /// <summary>A quick reaction (index into Reactions.Phrases) from a player; the host fills in who sent it.</summary>
         public static byte[] Reaction(int player, int index) => Build(MsgType.Reaction, w => { w.Write(player); w.Write((byte)index); });
         public static byte[] Rematch(int player) => Build(MsgType.Rematch, w => w.Write(player));
+        public static byte[] Rejoined(int player) => Build(MsgType.Rejoined, w => w.Write(player));
 
         public static byte[] Lobby(IReadOnlyList<LobbySeat> seats, HouseRules mode = null) => Build(MsgType.Lobby, w =>
         {

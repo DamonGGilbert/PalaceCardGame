@@ -360,6 +360,13 @@ namespace Palace
             Add("That game is full.", "Ta gra jest pełna.", "Esa partida está llena.");
             Add("The host left the game.", "Gospodarz opuścił grę.", "El anfitrión ha salido de la partida.");
             Add("Lost connection to the host.", "Utracono połączenie z gospodarzem.", "Se perdió la conexión con el anfitrión.");
+            Add("Your Shedhead is older than the host's. Update the game to join.", "Twój Shedhead jest starszy niż u gospodarza. Zaktualizuj grę, aby dołączyć.", "Tu Shedhead es más antiguo que el del anfitrión. Actualiza el juego para unirte.");
+            Add("The host's Shedhead is older than yours. Ask them to update the game.", "Shedhead gospodarza jest starszy niż twój. Poproś go o aktualizację gry.", "El Shedhead del anfitrión es más antiguo que el tuyo. Pídele que actualice el juego.");
+            Add("{0} lost connection. A computer player is playing for them.", "{0} stracił(a) połączenie. Komputer gra za niego/nią.", "{0} perdió la conexión. Un jugador de la computadora juega por él/ella.");
+            Add("{0} is back", "{0} wrócił(a)", "{0} ha vuelto");
+            Add("Connection lost", "Utracono połączenie", "Conexión perdida");
+            Add("Reconnecting... A computer player is playing for you until you're back.", "Łączenie ponownie... Do twojego powrotu komputer gra za ciebie.", "Reconectando... Un jugador de la computadora juega por ti hasta que vuelvas.");
+            Add("You're back in the game", "Wróciłeś do gry", "Has vuelto a la partida");
             Add("{0}'s game   (1 player)", "Gra: {0}   (1 gracz)", "Partida de {0}   (1 jugador)");
             Add("{0}'s game   ({1} players)", "Gra: {0}   (graczy: {1})", "Partida de {0}   ({1} jugadores)");
             Add("Waiting for players to join (or add computer players)", "Czekanie na graczy (lub dodaj graczy komputerowych)", "Esperando jugadores (o añade jugadores CPU)");

@@ -153,8 +153,11 @@ namespace Palace
             net = NetSession.Instance;
             net.Disconnected += OnNetDisconnected;
             net.ErrorReceived += OnNetError;
+            // A phone that locks itself drops out of the game, so keep the screen on while playing with others.
+            Screen.sleepTimeout = SleepTimeout.NeverSleep;
             if (net.IsHost)
             {
+                net.ClientRejoined += OnClientRejoined;
                 net.CommandReceived += OnRemoteCommand;
                 net.ClientInGame += OnClientInGame;
                 net.ClientLeft += OnClientLeft;
@@ -165,6 +168,8 @@ namespace Palace
             else
             {
                 botRng = new System.Random(Environment.TickCount);
+                net.ReconnectStarted += OnReconnectStarted;
+                net.Reconnected += OnReconnected;
                 net.RematchRequested += OnRematchRequested;
                 net.ReactionReceived += OnNetReaction;
                 net.ReportInGame();
@@ -241,8 +246,42 @@ namespace Palace
             {
                 if (kv.Value != client) continue;
                 takenOver.Add(kv.Key);
-                if (Game != null) Toast(Loc.F("{0} left. A computer player takes over.", Game.State.Players[kv.Key].Name));
+                if (Game != null) Toast(Loc.F("{0} lost connection. A computer player is playing for them.", Game.State.Players[kv.Key].Name));
             }
+        }
+
+        /// <summary>Host: a player who dropped out is back. They get their seat, and the table as it is now.</summary>
+        private void OnClientRejoined(int player, ulong client)
+        {
+            remoteClients[player] = client;
+            takenOver.Remove(player);
+            clientsInGame.Add(client);
+            if (Game == null) return;
+            net.SendUpdate(client, Game.State, new List<GameEvent>(), player);
+            Toast(Loc.F("{0} is back", Game.State.Players[player].Name));
+        }
+
+        // ------------------------------------------------------------------ client: dropped connection
+
+        private GameObject reconnectPanel;
+
+        private void OnReconnectStarted()
+        {
+            if (reconnectPanel != null) return;
+            var layer = UIKit.Layer(hudRoot, "Reconnecting", UIKit.Scrim);
+            var panel = UIKit.Panel(layer, new Vector2(720f, 260f), Vector2.zero);
+            UIKit.Label(panel.transform, "Connection lost", 40f, new Vector2(660f, 60f), new Vector2(0f, 60f), TextAlignmentOptions.Center, UIKit.Gold, true);
+            UIKit.Label(panel.transform, "Reconnecting... A computer player is playing for you until you're back.", 26f,
+                new Vector2(640f, 90f), new Vector2(0f, -30f), TextAlignmentOptions.Center, UIKit.Text).textWrappingMode = TextWrappingModes.Normal;
+            reconnectPanel = layer.gameObject;
+        }
+
+        private void OnReconnected()
+        {
+            if (reconnectPanel != null) Destroy(reconnectPanel);
+            reconnectPanel = null;
+            awaitingHost = false;
+            Toast("You're back in the game");
         }
 
         private void OnNetDisconnected(string reason)
@@ -270,6 +309,10 @@ namespace Palace
             net.ClientLeft -= OnClientLeft;
             net.RematchRequested -= OnRematchRequested;
             net.ReactionReceived -= OnNetReaction;
+            net.ClientRejoined -= OnClientRejoined;
+            net.ReconnectStarted -= OnReconnectStarted;
+            net.Reconnected -= OnReconnected;
+            Screen.sleepTimeout = SleepTimeout.SystemSetting;
         }
 
         /// <summary>Where a player sits on THIS screen: you are always seat 0 at the bottom.</summary>
@@ -420,8 +463,9 @@ namespace Palace
                 {
                     LobbySeat seat = net.Seats[i];
                     names.Add(seat.Name);
-                    isBot.Add(seat.IsBot);
-                    if (!seat.IsBot && seat.ClientId != net.LocalClientId) remoteClients[i] = seat.ClientId;
+                    isBot.Add(seat.IsBot && !seat.Dropped); // someone still trying to get back in keeps their seat
+                    if (seat.Dropped) takenOver.Add(i);     // ...with a computer playing for them meanwhile
+                    else if (!seat.IsBot && seat.ClientId != net.LocalClientId) remoteClients[i] = seat.ClientId;
                 }
                 localPlayer = 0;
             }
