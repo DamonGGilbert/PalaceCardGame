@@ -1225,7 +1225,7 @@ namespace Palace
         private void TickTurnTimer()
         {
             int actor = -1;
-            if (IsNetworked && Game != null && !busy)
+            if (IsNetworked && Game != null && !busy && !net.Reconnecting)
             {
                 GameState s = Game.State;
                 bool turnPhase = s.Phase == GamePhase.Playing || s.Phase == GamePhase.AwaitingSevenCall || s.Phase == GamePhase.AwaitingAceChoice;

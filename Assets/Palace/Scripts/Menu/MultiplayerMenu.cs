@@ -327,7 +327,7 @@ namespace Palace
                     while (!hosting.IsCompleted) yield return null;
                     if (!hosting.Result) { Debug.Log("[NetTest] online host failed: " + Net.LastError); yield break; }
                     Debug.Log("[NetTest] online code " + Net.JoinCode);
-                    if (codeFile != null) System.IO.File.WriteAllText(codeFile, Net.JoinCode);
+                    if (codeFile != null) { System.IO.File.WriteAllText(codeFile + ".tmp", Net.JoinCode); System.IO.File.Move(codeFile + ".tmp", codeFile); } // appears whole
                     EnterRoom();
                     while (Net.Seats.Count(s => !s.IsBot) < 2) yield return null;
                     while (Net.Seats.Count < players) Net.AddBot();
@@ -338,8 +338,13 @@ namespace Palace
                 }
                 else
                 {
-                    while (codeFile == null || !System.IO.File.Exists(codeFile)) yield return null;
-                    string code = System.IO.File.ReadAllText(codeFile).Trim();
+                    string code = null;
+                    while (code == null) // the host writes the file once its game exists
+                    {
+                        try { if (codeFile != null && System.IO.File.Exists(codeFile)) code = System.IO.File.ReadAllText(codeFile).Trim(); }
+                        catch (System.IO.IOException) { }
+                        if (code == null) yield return null;
+                    }
                     Debug.Log("[NetTest] joining online with code " + code);
                     var joining = Net.JoinOnline(code, "Guest");
                     while (!joining.IsCompleted) yield return null;

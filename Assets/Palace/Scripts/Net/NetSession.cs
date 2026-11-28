@@ -707,22 +707,14 @@ namespace Palace.Net
             pendingClose = "Lost connection to the host.";
         }
 
-        /// <summary>Back into the online session: reconnect if Unity still has us as a member, otherwise join by code again.</summary>
+        /// <summary>Back into the online session by joining with the code again.</summary>
         private async Task RejoinOnline()
         {
-            string id = session?.Id;
+            // (ReconnectToSessionAsync was tried first, but after a dropped Relay connection Unity has already
+            // removed us from the session, so it always failed and logged an error. Joining by code works.)
             try
             {
                 await SignIn();
-                if (!string.IsNullOrEmpty(id))
-                {
-                    try
-                    {
-                        session = await MultiplayerService.Instance.ReconnectToSessionAsync(id);
-                        return;
-                    }
-                    catch (Exception e) { Debug.Log("[Palace] reconnect to session failed, joining by code: " + e.Message); }
-                }
                 if (session != null) { try { await session.LeaveAsync(); } catch (Exception) { } }
                 session = await MultiplayerService.Instance.JoinSessionByCodeAsync(JoinCode);
             }

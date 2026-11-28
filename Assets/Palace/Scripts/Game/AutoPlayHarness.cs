@@ -305,7 +305,8 @@ namespace Palace
             dragTested = true;
             controller.HoldAutoPlay = true;
             int turnBefore = controller.Game.State.TurnNumber;
-            int handBefore = controller.Game.State.Players[0].Hand.Count;
+            int me = controller.LocalPlayerIndex;
+            int handBefore = controller.Game.State.Players[me].Hand.Count, pileBefore = controller.Game.State.Discard.Count, burnedBefore = controller.Game.State.BurnedCount;
 
             var canvas = controller.Table.GetComponentInParent<Canvas>();
             Camera cam = canvas.worldCamera;
@@ -334,7 +335,9 @@ namespace Palace
             while (controller.IsBusy || controller.IsWaitingForHost) yield return null;
             yield return new WaitForSecondsRealtime(0.2f);
             while (controller.IsBusy) yield return null;
-            bool played = controller.Game.State.TurnNumber != turnBefore || controller.Game.State.Players[0].Hand.Count != handBefore;
+            // (A 10 or a 2 lets you play again, so the turn number alone may not move: look at your hand and the pile too.)
+            GameState after = controller.Game.State;
+            bool played = after.TurnNumber != turnBefore || after.Players[me].Hand.Count != handBefore || after.Discard.Count != pileBefore || after.BurnedCount != burnedBefore;
             Debug.Log("[AutoPlay] drag-and-drop test: " + (played ? "card was played by dragging it onto the pile" : "FAILED - nothing was played"));
             if (!played) errors++;
             controller.HoldAutoPlay = false;
