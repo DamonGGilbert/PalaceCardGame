@@ -84,6 +84,7 @@ namespace Palace
         private static void Merge(Snapshot remote)
         {
             if (remote == null) return;
+            WalletGuard.EnsureChecked(); // check the local save before mixing in the cloud copy
             foreach (string id in remote.owned) PlayerPrefs.SetInt("palace.own." + id, 1);           // never lose unlocks
             foreach (string id in remote.purchases) PlayerPrefs.SetInt("palace.iap.owned." + id, 1); // never lose purchases
             Progress.ImportJson(remote.progress);                                                     // keeps the copy with more XP
@@ -98,7 +99,7 @@ namespace Palace
                 }
                 PlayerPrefs.SetString(SavedAtKey, remote.savedAt.ToString());
             }
-            PlayerPrefs.Save();
+            WalletGuard.Resign(); // fingerprints the merged unlocks and coins, and saves
         }
 
         // ------------------------------------------------------------------ syncing

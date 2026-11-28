@@ -29,10 +29,13 @@ and the game shows each store's local price automatically.
 - Each order's transaction ID is recorded, so nothing is ever granted twice.
 - Google Play receipts are checked on the device once the licence key is added (step 2.4), so cheat apps that fake
   a purchase get nothing.
-- Coins are kept on the device, so someone determined could edit their own total on a hacked phone. That only
-  gives them free cosmetics: it can't affect other players (multiplayer moves are checked by the host, and there
-  are no leaderboards). Moving coins onto a server would close that gap, but costs money and needs an account
-  system, so it isn't worth it unless the game adds leaderboards or trading.
+- Coins and unlocks are protected on the device (`WalletGuard`): while the game runs, coins are kept scrambled
+  so memory-editing cheat apps (GameGuardian, Cheat Engine) can't find or change them, and every save carries a
+  fingerprint. If the saved coins or unlocks are edited, the last trusted values come back on the next start.
+  Honest players never notice; saves from before this was added are trusted once. A determined hacker could
+  still dig the key out of the game, and it can't affect other players either way (multiplayer moves are
+  checked by the host, and there are no leaderboards). The complete fix would be coins on a server, which costs
+  money and needs accounts, so it's only worth it if the game adds leaderboards or trading.
 - Non-consumables are restored automatically on a new device or reinstall, and with the **Restore purchases** button
   (Apple requires this button).
 - Without the In App Purchasing package, the editor and development builds use a free **test store**.

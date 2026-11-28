@@ -117,7 +117,7 @@ namespace Palace
 
             // The first visit each day pays the streak reward (not in automated test runs).
             string[] runArgs = Environment.GetCommandLineArgs();
-            bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0 || Array.IndexOf(runArgs, "-palace-nametest") >= 0;
+            bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0 || Array.IndexOf(runArgs, "-palace-nametest") >= 0 || Array.IndexOf(runArgs, "-palace-wallettest") >= 0;
             int streakCoins = automated ? 0 : Progress.CheckIn();
             if (streakCoins > 0) StartCoroutine(DailyRewardWhenReady(streakCoins));
             StreakReminder.Refresh(GameSettings.StreakReminders); // moves tomorrow's reminder along, so it never nags after you've played
@@ -141,6 +141,7 @@ namespace Palace
             }
             else if (Array.IndexOf(args, "-palace-menushots") >= 0) StartCoroutine(MenuShots());
             else if (Array.IndexOf(args, "-palace-nametest") >= 0) StartCoroutine(NameTest());
+            else if (Array.IndexOf(args, "-palace-wallettest") >= 0) StartCoroutine(WalletTest());
             else if (Array.IndexOf(args, "-palace-autoplay") >= 0 && netArg < 0) SceneManager.LoadScene(GameLaunch.GameScene);
         }
 
@@ -761,6 +762,83 @@ namespace Palace
         }
 
         // ------------------------------------------------------------------ testing only
+
+        /// <summary>
+        /// Testing only (-palace-wallettest): checks WalletGuard in the real game. Honest changes must pass,
+        /// an edited save and an edited memory value must be put back, and an old save without fingerprints
+        /// must be trusted. Everything it touches is put back afterwards.
+        /// </summary>
+        private IEnumerator WalletTest()
+        {
+            while (!mainPanel.activeSelf) yield return null;
+            yield return new WaitForSecondsRealtime(0.5f);
+            if (popup != null) ClosePopup();
+
+            // Remember everything this test changes.
+            var lib = CosmeticLibrary.Instance;
+            var keys = new List<string> { "palace.coins", "palace.sig", "palace.ui.k2", "palace.ui.k3" };
+            var items = new List<CosmeticItem>();
+            foreach (CosmeticCategory c in Enum.GetValues(typeof(CosmeticCategory))) items.AddRange(lib.Items(c));
+            foreach (var item in items) keys.Add("palace.own." + item.id);
+            foreach (var p in ShopCatalog.Products) keys.Add("palace.iap.owned." + p.Id);
+            var saved = new Dictionary<string, (bool has, int i, string s)>();
+            foreach (string k in keys) saved[k] = (PlayerPrefs.HasKey(k), PlayerPrefs.GetInt(k, int.MinValue), PlayerPrefs.GetString(k, null));
+
+            int passed = 0, failed = 0;
+            void Check(bool ok, string what) { if (ok) passed++; else failed++; Debug.Log("[WalletTest] " + (ok ? "OK    " : "FAILED ") + what); }
+            var buyable = items.Find(it => it.price > 0 && !it.storeOnly && !Cosmetics.Owns(it));
+            var grantable = items.FindLast(it => it.price > 0 && !Cosmetics.Owns(it) && it != buyable);
+
+            // 1. Honest play: earning, buying, a reward unlock and a purchase all keep the fingerprint valid.
+            WalletGuard.ForgetCheck();
+            int start = Cosmetics.Coins;
+            Cosmetics.AddCoins(Cosmetics.PriceOf(buyable) + 500);
+            bool bought = Cosmetics.TryBuy(buyable);
+            Cosmetics.Grant(grantable.id);
+            Shop.Grant("palace.coins.small", null);
+            int honest = Cosmetics.Coins;
+            WalletGuard.ForgetCheck();
+            Check(Cosmetics.Coins == honest && !WalletGuard.LastCheckFoundTampering && bought && Cosmetics.Owns(buyable) && Cosmetics.Owns(grantable),
+                $"honest play passes the check (coins {start} -> {honest}, bought {buyable.id}, unlocked {grantable.id})");
+
+            // 2. A save editor sets a huge coin total and unlocks an item: both are put back on the next start.
+            var stolen = items.Find(it => it.price > 0 && !Cosmetics.Owns(it));
+            PlayerPrefs.SetInt("palace.coins", 999999);
+            PlayerPrefs.SetInt("palace.own." + stolen.id, 1);
+            WalletGuard.ForgetCheck();
+            Check(Cosmetics.Coins == honest && !Cosmetics.Owns(stolen) && WalletGuard.LastCheckFoundTampering,
+                $"an edited save is caught: 999,999 coins back to {Cosmetics.Coins}, {stolen.id} locked again");
+
+            // 3. A memory editor changes the coins while the game runs: the saved value comes back.
+            WalletGuard.SimulateMemoryEdit(999999);
+            Check(Cosmetics.Coins == honest, $"a memory edit is caught: coins read {Cosmetics.Coins}");
+
+            // 4. Someone deletes the fingerprints but keeps the backup: still caught.
+            PlayerPrefs.SetInt("palace.coins", 50000);
+            PlayerPrefs.DeleteKey("palace.sig");
+            WalletGuard.ForgetCheck();
+            Check(Cosmetics.Coins == honest && WalletGuard.LastCheckFoundTampering, "deleting the fingerprint is caught");
+
+            // 5. A save from before this update (no fingerprint or backup at all) is trusted once, not wiped.
+            foreach (string k in new[] { "palace.sig", "palace.ui.k2", "palace.ui.k3" }) PlayerPrefs.DeleteKey(k);
+            WalletGuard.ForgetCheck();
+            Check(Cosmetics.Coins == honest && !WalletGuard.LastCheckFoundTampering && Cosmetics.Owns(buyable),
+                "an older save without fingerprints keeps its coins and unlocks");
+            WalletGuard.ForgetCheck();
+            Check(!WalletGuard.LastCheckFoundTampering && Cosmetics.Coins == honest, "...and is fingerprinted from then on");
+
+            // Put everything back as it was.
+            foreach (var kv in saved)
+            {
+                if (!kv.Value.has) PlayerPrefs.DeleteKey(kv.Key);
+                else if (kv.Value.i != int.MinValue) PlayerPrefs.SetInt(kv.Key, kv.Value.i);
+                else PlayerPrefs.SetString(kv.Key, kv.Value.s);
+            }
+            PlayerPrefs.Save();
+            WalletGuard.ForgetCheck();
+            Debug.Log($"[WalletTest] done: {passed} passed, {failed} failed (saved values restored, coins {Cosmetics.Coins})");
+            Application.Quit();
+        }
 
         /// <summary>
         /// Testing only (-palace-nametest folder): types names into the real "Your name" boxes, as a player

@@ -20,11 +20,10 @@ namespace Palace
 
         public static int Coins
         {
-            get => PlayerPrefs.GetInt("palace.coins", 0);
+            get => WalletGuard.Coins; // scrambled in memory, fingerprinted on disk (WalletGuard)
             private set
             {
-                PlayerPrefs.SetInt("palace.coins", Mathf.Max(0, value));
-                PlayerPrefs.Save();
+                WalletGuard.SetCoins(value); // also saves
                 CloudProgress.MarkLocalChange();
                 Changed?.Invoke();
             }
@@ -33,7 +32,7 @@ namespace Palace
         public static void AddCoins(int amount) => Coins += amount;
 
         /// <summary>Cloud restore only: set coins without marking a new local change.</summary>
-        public static void SetCoinsFromCloud(int coins) => PlayerPrefs.SetInt("palace.coins", Mathf.Max(0, coins));
+        public static void SetCoinsFromCloud(int coins) => WalletGuard.SetCoins(coins);
 
         public static void NotifyChanged() => Changed?.Invoke();
 
@@ -61,7 +60,13 @@ namespace Palace
         // ------------------------------------------------------------------ owning and equipping
 
         public static bool Owns(CosmeticItem item) =>
-            item != null && ((item.price <= 0 && !item.storeOnly) || PlayerPrefs.GetInt("palace.own." + item.id, 0) == 1);
+            item != null && ((item.price <= 0 && !item.storeOnly) || OwnsId(item.id));
+
+        private static bool OwnsId(string id)
+        {
+            WalletGuard.EnsureChecked(); // edited saves are put back before anything is read
+            return PlayerPrefs.GetInt("palace.own." + id, 0) == 1;
+        }
 
         /// <summary>Buy with coins. Returns false if there aren't enough (or it's a shop-only item).</summary>
         public static bool TryBuy(CosmeticItem item)
@@ -77,8 +82,9 @@ namespace Palace
         /// <summary>Unlock without coins (e.g. after a real-money purchase).</summary>
         public static void Grant(string itemId)
         {
+            WalletGuard.EnsureChecked();
             PlayerPrefs.SetInt("palace.own." + itemId, 1);
-            PlayerPrefs.Save();
+            WalletGuard.Resign(); // also saves
             CloudProgress.MarkLocalChange();
             Changed?.Invoke();
         }

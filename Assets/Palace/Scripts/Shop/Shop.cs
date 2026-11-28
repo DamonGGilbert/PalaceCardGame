@@ -40,7 +40,11 @@ namespace Palace
             Backend.Initialize();
         }
 
-        public static bool IsOwned(string productId) => PlayerPrefs.GetInt("palace.iap.owned." + productId, 0) == 1;
+        public static bool IsOwned(string productId)
+        {
+            WalletGuard.EnsureChecked(); // edited saves are put back before anything is read
+            return PlayerPrefs.GetInt("palace.iap.owned." + productId, 0) == 1;
+        }
 
         /// <summary>Remove Ads bought: bonus coins without watching ads.</summary>
         public static bool HasAdFree => ShopCatalog.Products.Any(p => p.AdFree && IsOwned(p.Id));
@@ -70,6 +74,7 @@ namespace Palace
         /// </summary>
         public static bool Grant(string productId, string transactionId)
         {
+            WalletGuard.EnsureChecked();
             ShopProduct product = ShopCatalog.Find(productId);
             if (product == null)
             {
@@ -89,8 +94,8 @@ namespace Palace
             if (txKey != null) PlayerPrefs.SetInt(txKey, 1);
             if (product.Type == ShopProductType.NonConsumable) PlayerPrefs.SetInt("palace.iap.owned." + product.Id, 1);
             foreach (string unlock in product.Unlocks) PlayerPrefs.SetInt("palace.own." + unlock, 1);
-            if (product.Coins > 0) Cosmetics.AddCoins(product.Coins); // saves PlayerPrefs (including everything above)
-            PlayerPrefs.Save();
+            if (product.Coins > 0) Cosmetics.AddCoins(product.Coins);
+            WalletGuard.Resign(); // fingerprints the new unlocks and coins, and saves
             CloudProgress.MarkLocalChange(); // back the purchase up to the cloud too
 
             Report(Loc.F("Thank you! {0} has been added.", Loc.T(product.Title)));
