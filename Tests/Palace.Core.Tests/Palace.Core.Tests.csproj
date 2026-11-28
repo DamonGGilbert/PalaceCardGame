@@ -17,6 +17,7 @@
     <Compile Include="..\..\Assets\Palace\Scripts\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\Palace\Scripts\Net\NetProtocol.cs" Link="Net\NetProtocol.cs" />
     <Compile Include="..\..\Assets\Palace\Scripts\App\PlayerNames.cs" Link="App\PlayerNames.cs" />
+    <Compile Include="..\..\Assets\Palace\Scripts\App\NameFilter.cs" Link="App\NameFilter.cs" />
   </ItemGroup>
 
 </Project>

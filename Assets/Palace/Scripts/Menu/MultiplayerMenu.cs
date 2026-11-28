@@ -64,8 +64,7 @@ namespace Palace
             Transform p = Panel("Multiplayer", new Vector2(1100f, 760f), out home);
 
             UIKit.Label(p, "Your name", 28f, new Vector2(260f, 50f), new Vector2(-300f, 230f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(110f, 230f), GameSettings.PlayerName, "Enter your name", 14,
-                v => GameSettings.PlayerName = v);
+            UIKit.NameInput(p, new Vector2(420f, 64f), new Vector2(110f, 230f));
 
             UIKit.Label(p, "Same Wi-Fi", 30f, new Vector2(460f, 50f), new Vector2(-240f, 140f), TextAlignmentOptions.Center, UIKit.Gold, true);
             UIKit.Label(p, "Online", 30f, new Vector2(460f, 50f), new Vector2(240f, 140f), TextAlignmentOptions.Center, UIKit.Gold, true);

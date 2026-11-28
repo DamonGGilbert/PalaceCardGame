@@ -6,7 +6,7 @@ namespace Palace
     /// Makes any player name safe to show. Names come from other devices in multiplayer, and the game's
     /// text supports formatting tags, so a name like "&lt;size=400&gt;" or "&lt;color=#0000&gt;" could cover
     /// the screen or hide itself on everyone else's table. This strips tag brackets and invisible
-    /// characters, squashes spaces and limits the length.
+    /// characters, squashes spaces and limits the length; a name NameFilter blocks becomes the fallback.
     /// </summary>
     public static class PlayerNames
     {
@@ -31,6 +31,7 @@ namespace Palace
             }
             string clean = sb.ToString().Trim();
             if (clean.Length > MaxLength) clean = clean.Substring(0, MaxLength).Trim();
+            if (NameFilter.IsBlocked(clean)) return fallback; // rude, sexual or hateful names (see NameFilter)
             return clean.Length > 0 ? clean : fallback;
         }
 

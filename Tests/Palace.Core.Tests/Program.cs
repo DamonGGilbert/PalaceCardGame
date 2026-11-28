@@ -588,6 +588,25 @@ internal static class Program
         Check(Palace.PlayerNames.Clean("Da" + (char)0x200B + "mon") == "Damon", "invisible characters are removed from names");
         Check(Palace.PlayerNames.Clean("   ") == "Player" && Palace.PlayerNames.Clean("<>") == "Player", "an empty name gets a stand-in");
 
+        // Bad-name filter: disguised rude names are caught, ordinary names (with rude words hidden inside) are not.
+        string[] rude =
+        {
+            "fuck", "FUCK", "Fuuuuck", "f.u.c.k", "f u c k", "f*ck", "xXfuckXx", "sh1t", "$hit", "a$$hole", "b1tch",
+            "dick", "Big Dick", "d.i.c.k", "diiick", "cock", "tits", "sexy girl", "porn star", "boobs", "69",
+            "nigger", "N1gga", "hitler", "rapist", "kurwa", "KURWA", "chuj", "jebać", "dupa", "puta", "mierda", "cabrón"
+        };
+        var missed = rude.Where(n => !Palace.NameFilter.IsBlocked(n)).ToList();
+        Check(missed.Count == 0, "rude names are blocked" + (missed.Count > 0 ? " (missed: " + string.Join(", ", missed) + ")" : ""));
+        string[] fine =
+        {
+            "Damon", "Bob", "Bobby", "Dickens", "Hancock", "Peacock", "Cassandra", "Essex", "Sexton", "Grape",
+            "Therapist", "Titus", "Analise", "Cumberbatch", "Pollard", "Vergara", "Fukuda", "Pedro", "Milford",
+            "Sushi Tom", "Matt", "Ashton", "Kuba", "Zoë", "José", "Łukasz", "Grandma 2024", "Player 7"
+        };
+        var wrong = fine.Where(Palace.NameFilter.IsBlocked).ToList();
+        Check(wrong.Count == 0, "ordinary names are allowed" + (wrong.Count > 0 ? " (blocked: " + string.Join(", ", wrong) + ")" : ""));
+        Check(Palace.PlayerNames.Clean("fuck") == "Player", "a blocked name from another device shows as Player");
+
         Check(roundTripOk, "every player's view of the table arrives intact (" + updates + " updates checked)");
         Check(privacyOk, "no other player's hand, face-down card or deck order is ever sent");
         Check(eventsOk, "cards drawn by other players stay hidden");

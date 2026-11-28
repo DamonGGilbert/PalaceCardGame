@@ -234,6 +234,33 @@ namespace Palace
             return input;
         }
 
+        /// <summary>
+        /// The "Your name" box. Saves the name when you finish typing; a rude, sexual or hateful name
+        /// (NameFilter) isn't saved: your previous name comes back and a short note says why.
+        /// </summary>
+        public static TMP_InputField NameInput(Transform parent, Vector2 size, Vector2 position)
+        {
+            TextMeshProUGUI note = null;
+            TMP_InputField input = null;
+            input = Input(parent, size, position, GameSettings.PlayerName, "Enter your name", PlayerNames.MaxLength, typed =>
+            {
+                if (NameFilter.IsBlocked(typed))
+                {
+                    input.SetTextWithoutNotify(GameSettings.PlayerName);
+                    note.text = Loc.T("Please choose a different name.");
+                    note.gameObject.SetActive(true);
+                    return;
+                }
+                GameSettings.PlayerName = typed;
+                input.SetTextWithoutNotify(GameSettings.PlayerName); // shows the tidied name
+                note.gameObject.SetActive(false);
+            });
+            note = Label(parent, "", 20f, new Vector2(size.x + 80f, 26f), position + new Vector2(0f, -size.y * 0.5f - 13f),
+                TextAlignmentOptions.Center, new Color(1f, 0.6f, 0.5f));
+            note.gameObject.SetActive(false);
+            return input;
+        }
+
         public static ScrollRect ScrollText(Transform parent, Vector2 size, Vector2 position, string text, float fontSize)
         {
             var view = UIBuild.Image("Scroll View", parent, null, new Color(0f, 0f, 0f, 0.001f), size, position);

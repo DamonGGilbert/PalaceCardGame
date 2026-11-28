@@ -85,11 +85,50 @@ namespace Palace
 
         private void OnPurchasePending(PendingOrder order)
         {
+            // Fake purchases (from cheat apps on hacked phones) are closed without giving anything.
+            if (!ReceiptIsGenuine(order))
+            {
+                Shop.Report(Loc.T("That purchase couldn't be verified, so nothing was added."));
+                store.ConfirmPurchase(order);
+                return;
+            }
+
             // Grant + save first; only then confirm. If saving failed, leaving it unconfirmed
             // means the store delivers it again next launch.
             foreach (var item in order.CartOrdered.Items())
                 if (!Shop.Grant(item.Product.definition.id, order.Info.TransactionID)) return;
             store.ConfirmPurchase(order);
+        }
+
+#if PALACE_RECEIPT_CHECK && UNITY_ANDROID && !UNITY_EDITOR
+        private UnityEngine.Purchasing.Security.CrossPlatformValidator validator;
+#endif
+
+        /// <summary>
+        /// Google Play: checks the purchase was really signed by Google, using the licence key Unity stored
+        /// in GooglePlayTangle (Services > In-App Purchasing > Receipt Validation Obfuscator; see
+        /// Docs/Monetization-Setup.md). Until that key is added this lets every purchase through. On iPhone,
+        /// Apple's StoreKit checks purchases itself; the editor's fake store isn't checked.
+        /// </summary>
+        private bool ReceiptIsGenuine(PendingOrder order)
+        {
+#if PALACE_RECEIPT_CHECK && UNITY_ANDROID && !UNITY_EDITOR
+            if (!UnityEngine.Purchasing.Security.GooglePlayTangle.IsPopulated) return true;
+            try
+            {
+                validator ??= new UnityEngine.Purchasing.Security.CrossPlatformValidator(
+                    UnityEngine.Purchasing.Security.GooglePlayTangle.Data(), Application.identifier);
+                validator.Validate(order.Info.Receipt);
+                return true;
+            }
+            catch (UnityEngine.Purchasing.Security.IAPSecurityException e)
+            {
+                Debug.LogWarning("[Palace] Purchase receipt failed the check: " + e.Message);
+                return false;
+            }
+#else
+            return true;
+#endif
         }
 
         private static void OnPurchaseConfirmed(Order order)

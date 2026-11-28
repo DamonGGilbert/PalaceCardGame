@@ -27,6 +27,12 @@ and the game shows each store's local price automatically.
 - Purchases use Unity IAP 5's two-step flow. Content is granted and saved **before** the purchase is confirmed,
   so a crash can't lose something a player paid for. Unconfirmed purchases are re-delivered on next launch.
 - Each order's transaction ID is recorded, so nothing is ever granted twice.
+- Google Play receipts are checked on the device once the licence key is added (step 2.4), so cheat apps that fake
+  a purchase get nothing.
+- Coins are kept on the device, so someone determined could edit their own total on a hacked phone. That only
+  gives them free cosmetics: it can't affect other players (multiplayer moves are checked by the host, and there
+  are no leaderboards). Moving coins onto a server would close that gap, but costs money and needs an account
+  system, so it isn't worth it unless the game adds leaderboards or trading.
 - Non-consumables are restored automatically on a new device or reinstall, and with the **Restore purchases** button
   (Apple requires this button).
 - Without the In App Purchasing package, the editor and development builds use a free **test store**.
@@ -43,8 +49,17 @@ In the editor, Unity IAP shows its own fake purchase dialog, so you can test wit
 1. Create the app (package name = Unity **Player Settings → Other Settings → Package Name**, `com.shedhead.game`).
 2. **Monetize → Products → In-app products**: create the coin products above (not Remove Ads while the game has no ads) with the same IDs and types.
 3. Upload a build to an **internal testing** track and add yourself as a licence tester to test purchases.
-4. Optional (recommended later): local receipt checks. **Services → In-App Purchasing → Receipt Validation Obfuscator**
-   with your Play licence key.
+4. Receipt checking (stops fake purchases from cheat apps on hacked Android phones), about 5 minutes:
+   1. Play Console → your app → **Monetize with Play → Monetization setup** → copy the **Licensing** key
+      (a long block of letters starting `MIIB...`). It's a public key, so it's safe to paste into Unity.
+   2. Unity → **Services → In-App Purchasing → Receipt Validation Obfuscator** (or Project Settings → Services →
+      In-App Purchasing) → paste the key → **Obfuscate Google Play License Key**.
+   3. Unity makes `Assets/Scripts/UnityPurchasing/generated/GooglePlayTangle.cs`. The game spots it and switches
+      checking on by itself (`PALACE_RECEIPT_CHECK`; or run **Palace → Setup → Refresh Optional Features**).
+   4. Commit that file. From then on, a purchase whose receipt wasn't really signed by Google is closed without
+      giving anything, and the player sees "That purchase couldn't be verified". Licence-tester purchases still work.
+
+   iPhone needs nothing: Apple's StoreKit checks purchases itself.
 
 ### 3. App Store Connect
 1. Create the app (bundle ID = the same Package Name / Bundle Identifier).

@@ -450,8 +450,7 @@ namespace Palace
             Transform p = BuildScreen("Single Player", new Vector2(900f, 740f), out singlePanel);
 
             UIKit.Label(p, "Your name", 28f, new Vector2(300f, 50f), new Vector2(-250f, 222f), TextAlignmentOptions.Left, UIKit.Muted, true);
-            UIKit.Input(p, new Vector2(420f, 64f), new Vector2(160f, 222f), GameSettings.PlayerName, "Enter your name", 14,
-                v => GameSettings.PlayerName = v);
+            UIKit.NameInput(p, new Vector2(420f, 64f), new Vector2(160f, 222f));
 
             opponentsLabel = UIKit.Label(p, "", 30f, new Vector2(700f, 50f), new Vector2(0f, 148f), TextAlignmentOptions.Center, UIKit.Text, true);
             UIKit.Slider(p, new Vector2(640f, 44f), new Vector2(0f, 98f), 1, 9, GameSettings.BotCount, true, v =>

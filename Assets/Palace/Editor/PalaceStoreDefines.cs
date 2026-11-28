@@ -9,6 +9,8 @@ namespace Palace.EditorTools
     ///   In App Purchasing  -> PALACE_IAP        (real store purchases)
     ///   Cloud Save         -> PALACE_CLOUDSAVE  (progress backup / restore)
     ///   Mobile Notifications -> PALACE_NOTIFICATIONS (optional daily streak reminders)
+    /// and, once Unity has made the Google Play licence key file (Receipt Validation Obfuscator):
+    ///   GooglePlayTangle.cs  -> PALACE_RECEIPT_CHECK (fake purchases are refused)
     /// The game always compiles either way; nothing to do by hand.
     /// </summary>
     [InitializeOnLoad]
@@ -20,6 +22,9 @@ namespace Palace.EditorTools
             ("com.unity.services.cloudsave", "PALACE_CLOUDSAVE"),
             ("com.unity.mobile.notifications", "PALACE_NOTIFICATIONS")
         };
+
+        private const string ReceiptDefine = "PALACE_RECEIPT_CHECK";
+        private const string ReceiptKeyFile = "Assets/Scripts/UnityPurchasing/generated/GooglePlayTangle.cs";
 
         static PalaceStoreDefines()
         {
@@ -40,6 +45,12 @@ namespace Palace.EditorTools
                     if (installed && !has) defines = string.IsNullOrEmpty(defines) ? define : defines + ";" + define;
                     if (!installed && has) defines = string.Join(";", System.Array.FindAll(defines.Split(';'), d => d != define));
                 }
+                // Receipt checking switches on once Unity has made the licence key file (Receipt Validation Obfuscator).
+                bool tangle = System.IO.File.Exists(ReceiptKeyFile);
+                bool hasCheck = (";" + defines + ";").Contains(";" + ReceiptDefine + ";");
+                if (tangle && !hasCheck) defines = string.IsNullOrEmpty(defines) ? ReceiptDefine : defines + ";" + ReceiptDefine;
+                if (!tangle && hasCheck) defines = string.Join(";", System.Array.FindAll(defines.Split(';'), d => d != ReceiptDefine));
+
                 if (defines != original) PlayerSettings.SetScriptingDefineSymbols(target, defines);
             }
         }

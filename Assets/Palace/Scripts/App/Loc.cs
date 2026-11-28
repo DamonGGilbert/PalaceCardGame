@@ -125,6 +125,8 @@ namespace Palace
             // ---------------------------------------------------------- single player
             Add("Your name", "Twoje imię", "Tu nombre");
             Add("Enter your name", "Wpisz swoje imię", "Escribe tu nombre");
+            Add("Please choose a different name.", "Wybierz inną nazwę.", "Elige otro nombre.");
+            Add("That purchase couldn't be verified, so nothing was added.", "Nie udało się potwierdzić zakupu, więc nic nie dodano.", "No se pudo verificar la compra, así que no se añadió nada.");
             Add("Computer opponents: {0}", "Przeciwnicy komputerowi: {0}", "Rivales del ordenador: {0}");
             Add("{0} players at the table, 1 deck", "Graczy przy stole: {0}, 1 talia", "{0} jugadores en la mesa, 1 baraja");
             Add("{0} players at the table, {1} decks", "Graczy przy stole: {0}, talie: {1}", "{0} jugadores en la mesa, {1} barajas");
