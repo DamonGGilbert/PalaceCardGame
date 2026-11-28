@@ -86,12 +86,13 @@ namespace Palace.Net
                     string[] parts = text.Split('|');
                     if (parts.Length < 4 || parts[0] != Prefix) continue;
                     string address = from.Address.ToString();
+                    if (!found.ContainsKey(address) && found.Count >= 24) continue; // ignore a flood of fake announcements
                     found[address] = new FoundGame
                     {
                         Address = address,
                         Port = ushort.TryParse(parts[1], out var port) ? port : NetSession.LanPort,
                         Players = int.TryParse(parts[2], out var players) ? players : 1,
-                        HostName = parts[3],
+                        HostName = PlayerNames.Clean(parts[3], "Game"),
                         LastSeen = Time.unscaledTime
                     };
                 }

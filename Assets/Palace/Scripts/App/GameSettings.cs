@@ -68,8 +68,8 @@ namespace Palace
 
         public static string PlayerName
         {
-            get => PlayerPrefs.GetString("palace.name", "You");
-            set => PlayerPrefs.SetString("palace.name", string.IsNullOrWhiteSpace(value) ? "You" : value.Trim());
+            get => PlayerNames.Clean(PlayerPrefs.GetString("palace.name", "You"), "You");
+            set => PlayerPrefs.SetString("palace.name", PlayerNames.Clean(value, "You"));
         }
 
         public static int BotCount

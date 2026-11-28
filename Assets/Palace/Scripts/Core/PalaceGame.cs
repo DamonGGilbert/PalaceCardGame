@@ -136,7 +136,6 @@ namespace Palace.Core
             return CheckValue((int)rank);
         }
 
-        public bool AceHighLegal => AceValueOptions().Count > 0;
         public bool AceBurnLegal => CheckBurn().Legal;
 
         /// <summary>
@@ -435,7 +434,7 @@ namespace Palace.Core
         {
             if (State.Phase != GamePhase.AwaitingSevenCall || player != State.PendingPlayer)
                 return CommandResult.Fail("No 7 to call");
-            if (call == SevenCall.None) return CommandResult.Fail("Choose HIGHER or LOWER");
+            if (call != SevenCall.Higher && call != SevenCall.Lower) return CommandResult.Fail("Choose HIGHER or LOWER"); // also refuses made-up values from a modified client
 
             var result = new CommandResult { Ok = true };
             State.ActiveSeven = call;

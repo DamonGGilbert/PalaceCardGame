@@ -55,7 +55,7 @@ namespace Palace
                 done?.Invoke(false);
                 return;
             }
-            Runner.Get().StartCoroutine(Ask(done));
+            CoroutineHost.Run(Ask(done));
         }
 
         private static string Title => "Shedhead";
@@ -127,20 +127,5 @@ namespace Palace
             yield break;
         }
 #endif
-
-        /// <summary>Runs the permission request (coroutines need a GameObject).</summary>
-        private sealed class Runner : MonoBehaviour
-        {
-            private static Runner instance;
-
-            public static Runner Get()
-            {
-                if (instance != null) return instance;
-                var go = new GameObject("StreakReminder");
-                UnityEngine.Object.DontDestroyOnLoad(go);
-                instance = go.AddComponent<Runner>();
-                return instance;
-            }
-        }
     }
 }

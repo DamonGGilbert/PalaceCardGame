@@ -15,6 +15,7 @@ namespace Palace
         public static WaterShimmer Create(Transform parent, Vector2 size, Vector2 position, Sprite feltMask, Texture2D caustics)
         {
             var maskImage = UIBuild.Image("Water", parent, feltMask, Color.white, size, position);
+            UIBuild.OwnCanvas(maskImage.gameObject); // the ripples move every frame (mask and ripples share this canvas)
             var mask = maskImage.gameObject.AddComponent<Mask>();
             mask.showMaskGraphic = false;
 

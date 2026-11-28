@@ -52,7 +52,6 @@ namespace Palace
 
         public CardView[] FaceDownCards => faceDownCards;
         public CardView[] FaceUpCards => faceUpCards;
-        public PlateSide CurrentPlateSide => plateSide;
         public Vector2 Size => plateSide == PlateSide.Left ? SideBySideSize : StackedSize;
 
         public void Configure(TableTheme table, CardTheme cards, CardView prefab)
@@ -149,6 +148,7 @@ namespace Palace
 
         private Image timerTrack, timerRing, timerShade;
         private TextMeshProUGUI timerText;
+        private int timerSeconds = -1;
 
         /// <summary>
         /// The countdown round this player's picture: a ring that empties (green, then amber, then red)
@@ -191,7 +191,7 @@ namespace Palace
             timerRing.fillAmount = fraction;
             Color green = new Color(0.35f, 0.85f, 0.4f), amber = new Color(1f, 0.75f, 0.2f), red = new Color(0.95f, 0.25f, 0.2f);
             timerRing.color = fraction > 0.5f ? Color.Lerp(amber, green, (fraction - 0.5f) * 2f) : Color.Lerp(red, amber, fraction * 2f);
-            timerText.text = seconds.ToString();
+            if (seconds != timerSeconds) { timerSeconds = seconds; timerText.text = seconds.ToString(); } // once a second, not every frame
             timerText.color = seconds <= 5 ? new Color(1f, 0.55f, 0.5f) : Color.white;
         }
 

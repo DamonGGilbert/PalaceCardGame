@@ -31,6 +31,15 @@ namespace Palace
             return rt;
         }
 
+        /// <summary>
+        /// Gives something that animates every frame (arrows, water, flying cards) its own canvas, so its
+        /// changes only redraw that layer instead of the whole table. Not clickable (no raycaster).
+        /// </summary>
+        public static void OwnCanvas(GameObject go)
+        {
+            if (!go.TryGetComponent(out Canvas _)) go.AddComponent<Canvas>();
+        }
+
         /// <summary>A rect that fills its parent, optionally inset by a margin.</summary>
         public static RectTransform Stretch(string name, Transform parent, float inset = 0f)
         {

@@ -105,11 +105,21 @@ namespace Palace
 
         private static float uploadAt = -1f;
 
+        /// <summary>Called every frame by CloudProgressRunner: uploads once the short batching delay has passed.</summary>
+        internal static void TickUpload()
+        {
+            if (uploadAt > 0f && Time.unscaledTime >= uploadAt && !Busy)
+            {
+                uploadAt = -1f;
+                SyncNow();
+            }
+        }
+
         private static void ScheduleUpload()
         {
             if (!Supported) return;
             uploadAt = Time.unscaledTime + 4f; // batch quick changes together
-            Runner.Ensure();
+            CloudProgressRunner.Ensure();
         }
 
         /// <summary>Download, merge and upload. Safe to call any time.</summary>
@@ -233,29 +243,6 @@ namespace Palace
         {
             Status = s;
             Changed?.Invoke();
-        }
-
-        /// <summary>Tiny helper object that performs the delayed upload.</summary>
-        private class Runner : MonoBehaviour
-        {
-            private static Runner instance;
-
-            public static void Ensure()
-            {
-                if (instance != null) return;
-                var go = new GameObject("CloudProgress");
-                DontDestroyOnLoad(go);
-                instance = go.AddComponent<Runner>();
-            }
-
-            private void Update()
-            {
-                if (uploadAt > 0f && Time.unscaledTime >= uploadAt && !Busy)
-                {
-                    uploadAt = -1f;
-                    SyncNow();
-                }
-            }
         }
     }
 }

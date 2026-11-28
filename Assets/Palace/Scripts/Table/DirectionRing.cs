@@ -33,6 +33,7 @@ namespace Palace
         public static DirectionRing Create(RectTransform table, Vector2 centre, int siblingIndex)
         {
             var rt = UIBuild.Stretch("DirectionArrows", table);
+            UIBuild.OwnCanvas(rt.gameObject); // the arrows move every frame
             rt.SetSiblingIndex(siblingIndex);
             var ring = rt.gameObject.AddComponent<DirectionRing>();
             ring.centre = centre;

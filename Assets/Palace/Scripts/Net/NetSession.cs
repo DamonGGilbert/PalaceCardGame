@@ -482,12 +482,11 @@ namespace Palace.Net
                     }
                     if (PlayerIndexOf(sender) < 0)
                     {
-                        name = string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
-                        if (name.Length > 14) name = name.Substring(0, 14);
+                        name = PlayerNames.Clean(name); // no formatting tags or invisible characters from other devices
                         look.ClientId = sender;
                         look.Token = token ?? "";
                         look.Name = name;
-                        look.Avatar = picture < AvatarArt.Count ? picture : -1;
+                        look.Avatar = picture >= 0 && picture < AvatarArt.Count ? picture : -1;
                         Seats.Add(look);
                     }
                     BroadcastLobby();
@@ -522,12 +521,18 @@ namespace Palace.Net
                     break;
                 }
                 case MsgType.Rematch:
-                    if (InGame) RelayRematch(PlayerIndexOf(sender));
+                {
+                    float now = Time.unscaledTime; // at most one rematch request every 2 seconds per device
+                    if (!InGame || (lastRematch.TryGetValue(sender, out float last) && now - last < 2f)) break;
+                    lastRematch[sender] = now;
+                    RelayRematch(PlayerIndexOf(sender));
                     break;
+                }
             }
         }
 
         private readonly Dictionary<ulong, float> lastReaction = new Dictionary<ulong, float>();
+        private readonly Dictionary<ulong, float> lastRematch = new Dictionary<ulong, float>();
 
         private void HandleAsClient(MsgType type, BinaryReader r)
         {

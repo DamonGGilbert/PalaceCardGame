@@ -49,8 +49,6 @@ namespace Palace
         public event Action<CardView> Clicked;
 
         public Card? CurrentCard => card;
-        public bool IsFaceUp => faceUp;
-        public bool IsSelected => selected;
 
         public CardTheme Theme
         {
@@ -84,12 +82,6 @@ namespace Palace
         {
             card = null;
             faceUp = false;
-            Refresh();
-        }
-
-        public void SetFaceUp(bool showFace)
-        {
-            faceUp = showFace;
             Refresh();
         }
 

@@ -66,7 +66,6 @@ namespace Palace
 
         public IReadOnlyList<SeatView> Seats => seats;
         public RectTransform HandRoot => handRoot;
-        public float LastOpponentScale => lastOpponentScale;
         public CardTheme CardTheme => cardTheme;
         public CardView CardPrefab => cardPrefab;
 
@@ -161,6 +160,7 @@ namespace Palace
                 if (fxRoot == null)
                 {
                     fxRoot = UIBuild.Stretch("Effects", transform);
+                    UIBuild.OwnCanvas(fxRoot.gameObject); // flying cards and particles move every frame
                     fxRoot.SetAsLastSibling();
                 }
                 return fxRoot;
@@ -247,6 +247,7 @@ namespace Palace
                 pileGlow = UIBuild.Image("PileGlow", discardSlot.transform.parent, sprite, Color.clear, Vector2.one, discardSlot.rectTransform.anchoredPosition);
                 pileGlow.transform.SetSiblingIndex(discardSlot.transform.GetSiblingIndex()); // behind the slot and the pile cards
             }
+            if (!on && pileGlowFade <= 0f) return; // hidden: nothing to redraw
             pileGlowFade = Mathf.MoveTowards(pileGlowFade, on ? 1f : 0f, Time.unscaledDeltaTime / 0.35f);
             float breathe = GameSettings.AnimationScale > 0f ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.6f) : 0.6f;
             Color c = tableTheme != null ? tableTheme.turnGlow : new Color(1f, 0.78f, 0.3f);

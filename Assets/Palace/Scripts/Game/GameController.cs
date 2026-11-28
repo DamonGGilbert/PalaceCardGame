@@ -176,7 +176,10 @@ namespace Palace
             }
         }
 
-        private void OnRemoteCommand(ulong client, NetCommand command) => remoteCommands.Enqueue((client, command));
+        private void OnRemoteCommand(ulong client, NetCommand command)
+        {
+            if (remoteCommands.Count < 32) remoteCommands.Enqueue((client, command)); // a flood of moves from a modified client is dropped
+        }
         private void OnClientInGame(ulong client) => clientsInGame.Add(client);
 
         /// <summary>Host: wait (up to 10 s) until every player's device has loaded the table.</summary>
@@ -571,7 +574,8 @@ namespace Palace
                 if (statusText != null) statusText.text = IsNetClient ? Loc.T("Waiting for the host to deal...") : "";
                 return;
             }
-            if (statusText != null) UpdateStatus();
+            // The status line is rebuilt ten times a second (and straight after any change), not every frame.
+            if (statusText != null && Time.unscaledTime >= nextStatusAt) { nextStatusAt = Time.unscaledTime + 0.1f; UpdateStatus(); }
             TickTurnTimer();
             HandleKeyboard();
             coach?.Tick();
@@ -1446,6 +1450,7 @@ namespace Palace
 
         private void RefreshAll()
         {
+            nextStatusAt = 0f; // show the new state in the status line on the next frame
             GameState s = Game.State;
             IReadOnlyList<SeatView> seats = table.Seats;
             bool myTurn = LocalCanAct;
@@ -1542,6 +1547,8 @@ namespace Palace
             readyButton.gameObject.SetActive(false);
         }
 
+        private float nextStatusAt;
+
         private void UpdateStatus()
         {
             if (Time.unscaledTime < toastUntil && !string.IsNullOrEmpty(toastMessage))
@@ -1603,6 +1610,7 @@ namespace Palace
             message = Loc.T(message); // rule messages come from the engine in English
             toastMessage = message;
             toastUntil = Time.unscaledTime + 2.5f;
+            nextStatusAt = 0f;
         }
 
         // ==================================================================

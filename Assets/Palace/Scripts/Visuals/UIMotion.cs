@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 namespace Palace
 {
@@ -45,7 +43,7 @@ namespace Palace
             for (int i = 0; i < items.Count; i++)
             {
                 Transform item = items[i];
-                if (item != null) Runner.Get().StartCoroutine(Pop(item));
+                if (item != null) CoroutineHost.Run(Pop(item)); // outlives the coroutine that started it
                 yield return new WaitForSecondsRealtime(gap);
             }
         }
@@ -69,92 +67,6 @@ namespace Palace
             const float s = 1.9f;
             k -= 1f;
             return k * k * ((s + 1f) * k + s) + 1f;
-        }
-
-        /// <summary>Runs pop-ins that outlive the coroutine that started them.</summary>
-        private sealed class Runner : MonoBehaviour
-        {
-            private static Runner instance;
-
-            public static Runner Get()
-            {
-                if (instance != null) return instance;
-                var go = new GameObject("UIMotion");
-                Object.DontDestroyOnLoad(go);
-                return instance = go.AddComponent<Runner>();
-            }
-        }
-    }
-
-    /// <summary>Buttons squish when pressed and grow a touch on hover (mouse).</summary>
-    public sealed class ButtonBounce : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
-    {
-        private float target = 1f, current = 1f;
-        private bool over, down;
-        private Selectable selectable;
-
-        private void Awake() => selectable = GetComponent<Selectable>();
-
-        public void OnPointerEnter(PointerEventData e) { over = true; Retarget(); }
-        public void OnPointerExit(PointerEventData e) { over = false; down = false; Retarget(); }
-        public void OnPointerDown(PointerEventData e) { down = true; Retarget(); }
-        public void OnPointerUp(PointerEventData e) { down = false; Retarget(); }
-
-        private void Retarget()
-        {
-            bool active = selectable == null || selectable.IsInteractable();
-            target = !active || !UIMotion.Enabled ? 1f : down ? 0.93f : over ? 1.05f : 1f;
-        }
-
-        private void OnDisable()
-        {
-            over = down = false;
-            target = current = 1f;
-            if (transform.localScale.x > 0.01f) transform.localScale = Vector3.one;
-        }
-
-        private void Update()
-        {
-            if (Mathf.Abs(current - target) < 0.001f) return;
-            current = Mathf.Lerp(current, target, 1f - Mathf.Exp(-Time.unscaledDeltaTime * 18f));
-            transform.localScale = Vector3.one * current;
-        }
-    }
-
-    /// <summary>A gentle bob: up and down, and/or a little rock from side to side.</summary>
-    public sealed class Bob : MonoBehaviour
-    {
-        public float Height = 6f, Degrees = 0f, Speed = 0.6f, Phase;
-        private Vector2 home;
-        private float baseAngle;
-        private RectTransform rt;
-
-        private void Start()
-        {
-            rt = (RectTransform)transform;
-            home = rt.anchoredPosition;
-            baseAngle = rt.localEulerAngles.z;
-        }
-
-        private void Update()
-        {
-            if (!UIMotion.Enabled) return;
-            float s = Mathf.Sin((Time.unscaledTime * Speed + Phase) * Mathf.PI * 2f);
-            rt.anchoredPosition = home + new Vector2(0f, s * Height);
-            if (Degrees != 0f) rt.localEulerAngles = new Vector3(0f, 0f, baseAngle + s * Degrees);
-        }
-    }
-
-    /// <summary>A soft heartbeat pulse (for things that want attention, like the challenges dot).</summary>
-    public sealed class Pulse : MonoBehaviour
-    {
-        public float Amount = 0.12f, Speed = 1.2f;
-
-        private void Update()
-        {
-            if (!UIMotion.Enabled) return;
-            float s = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Time.unscaledTime * Speed * Mathf.PI * 2f)), 4f);
-            transform.localScale = Vector3.one * (1f + s * Amount);
         }
     }
 }

@@ -159,11 +159,11 @@ namespace Palace.Net
 
         public static List<LobbySeat> ReadLobby(BinaryReader r)
         {
-            int n = r.ReadInt32();
+            int n = ReadCount(r, 64);
             var seats = new List<LobbySeat>(n);
             for (int i = 0; i < n; i++)
                 {
-                var seat = new LobbySeat { ClientId = r.ReadUInt64(), Name = r.ReadString(), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean(), Avatar = r.ReadSByte() };
+                var seat = new LobbySeat { ClientId = r.ReadUInt64(), Name = PlayerNames.Clean(r.ReadString()), IsBot = r.ReadBoolean(), Ready = r.ReadBoolean(), Avatar = r.ReadSByte() };
                 seat.ReadLook(r);
                 seats.Add(seat);
             }
@@ -194,8 +194,7 @@ namespace Palace.Net
                 Type = (NetCommandType)r.ReadByte(),
                 Source = (PlaySource)r.ReadByte()
             };
-            int n = r.ReadInt32();
-            if (n < 0 || n > 64) throw new InvalidDataException("Bad command");
+            int n = ReadCount(r, 64);
             for (int i = 0; i < n; i++) c.CardIds.Add(r.ReadInt32());
             c.Slot = r.ReadInt32();
             c.Call = (SevenCall)r.ReadByte();
@@ -218,7 +217,7 @@ namespace Palace.Net
         public static (int viewer, List<GameEvent> events, GameState state) ReadUpdate(BinaryReader r)
         {
             int viewer = r.ReadInt32();
-            int n = r.ReadInt32();
+            int n = ReadCount(r, 4096);
             var events = new List<GameEvent>(n);
             for (int i = 0; i < n; i++) events.Add(ReadEvent(r));
             return (viewer, events, ReadState(r));
@@ -249,7 +248,7 @@ namespace Palace.Net
         private static GameEvent ReadEvent(BinaryReader r)
         {
             var e = new GameEvent { Type = (GameEventType)r.ReadByte(), Player = r.ReadInt32() };
-            int n = r.ReadInt32();
+            int n = ReadCount(r, 1024);
             for (int i = 0; i < n; i++) e.Cards.Add(ReadCard(r));
             e.Slots = ReadInts(r);
             e.Players = ReadInts(r);
@@ -301,19 +300,19 @@ namespace Palace.Net
         private static GameState ReadState(BinaryReader r)
         {
             var s = new GameState();
-            int n = r.ReadInt32();
+            int n = ReadCount(r, 64);
             for (int i = 0; i < n; i++)
             {
-                var p = new PlayerState(i, r.ReadString(), r.ReadBoolean()) { FinishPosition = r.ReadInt32(), SwapReady = r.ReadBoolean() };
-                int h = r.ReadInt32();
+                var p = new PlayerState(i, PlayerNames.Clean(r.ReadString()), r.ReadBoolean()) { FinishPosition = r.ReadInt32(), SwapReady = r.ReadBoolean() };
+                int h = ReadCount(r, 1024);
                 for (int k = 0; k < h; k++) p.Hand.Add(ReadCard(r));
                 for (int k = 0; k < p.FaceUp.Length; k++) p.FaceUp[k] = ReadSlot(r);
                 for (int k = 0; k < p.FaceDown.Length; k++) p.FaceDown[k] = ReadSlot(r);
                 s.Players.Add(p);
             }
-            int deck = r.ReadInt32();
+            int deck = ReadCount(r, 1024);
             for (int i = 0; i < deck; i++) s.DrawPile.Add(Hidden());
-            int d = r.ReadInt32();
+            int d = ReadCount(r, 1024);
             for (int i = 0; i < d; i++) s.Discard.Add(ReadCard(r));
             s.FinishOrder.AddRange(ReadInts(r));
             s.TotalCards = r.ReadInt32();
@@ -328,7 +327,7 @@ namespace Palace.Net
             bool hasAce = r.ReadBoolean();
             var ace = (Rank)r.ReadByte();
             s.AceValue = hasAce ? ace : (Rank?)null;
-            int pv = r.ReadInt32();
+            int pv = ReadCount(r, 16);
             for (int i = 0; i < pv; i++) s.PendingAceValues.Add((Rank)r.ReadByte());
             s.PendingAceBurnAllowed = r.ReadBoolean();
             return s;
@@ -374,11 +373,21 @@ namespace Palace.Net
 
         private static List<int> ReadInts(BinaryReader r)
         {
-            int n = r.ReadInt32();
-            if (n < 0 || n > 4096) throw new InvalidDataException("Bad list");
+            int n = ReadCount(r, 4096);
             var list = new List<int>(n);
             for (int i = 0; i < n; i++) list.Add(r.ReadInt32());
             return list;
+        }
+
+        /// <summary>
+        /// Reads how many items follow, refusing silly numbers. Messages can come from a modified copy of the
+        /// game, and a huge count would otherwise make this device try to build millions of cards and freeze.
+        /// </summary>
+        private static int ReadCount(BinaryReader r, int max)
+        {
+            int n = r.ReadInt32();
+            if (n < 0 || n > max) throw new InvalidDataException("Bad count in a network message");
+            return n;
         }
 
         private static byte[] Build(MsgType type, Action<BinaryWriter> body)

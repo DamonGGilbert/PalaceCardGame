@@ -574,6 +574,20 @@ internal static class Program
         Check(back.Type == cmd.Type && back.Source == cmd.Source && back.CardIds.SequenceEqual(cmd.CardIds) && back.AceValue == Rank.Queen,
             "a move survives the trip to the host unchanged");
 
+        // A modified copy of the game sending a silly count must be refused, not make this device build millions of cards.
+        var evil = new MemoryStream();
+        using (var w = new BinaryWriter(evil, System.Text.Encoding.UTF8, true)) { w.Write((byte)0); w.Write((byte)0); w.Write(int.MaxValue); }
+        bool refused = false;
+        try { Palace.Net.NetProtocol.ReadCommand(new BinaryReader(new MemoryStream(evil.ToArray()))); }
+        catch (InvalidDataException) { refused = true; }
+        Check(refused, "a move claiming two billion cards is refused");
+
+        Check(Palace.PlayerNames.Clean("<size=400>BIG") == "size=400BIG", "formatting tags are stripped from names");
+        Check(Palace.PlayerNames.Clean("  Damon   G  ") == "Damon G", "spaces in names are tidied");
+        Check(Palace.PlayerNames.Clean("Abcdefghijklmnopqrst").Length == Palace.PlayerNames.MaxLength, "names are limited in length");
+        Check(Palace.PlayerNames.Clean("Da" + (char)0x200B + "mon") == "Damon", "invisible characters are removed from names");
+        Check(Palace.PlayerNames.Clean("   ") == "Player" && Palace.PlayerNames.Clean("<>") == "Player", "an empty name gets a stand-in");
+
         Check(roundTripOk, "every player's view of the table arrives intact (" + updates + " updates checked)");
         Check(privacyOk, "no other player's hand, face-down card or deck order is ever sent");
         Check(eventsOk, "cards drawn by other players stay hidden");
