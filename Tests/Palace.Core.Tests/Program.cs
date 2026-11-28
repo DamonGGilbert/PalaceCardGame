@@ -593,7 +593,14 @@ internal static class Program
         {
             "fuck", "FUCK", "Fuuuuck", "f.u.c.k", "f u c k", "f*ck", "xXfuckXx", "sh1t", "$hit", "a$$hole", "b1tch",
             "dick", "Big Dick", "d.i.c.k", "diiick", "cock", "tits", "sexy girl", "porn star", "boobs", "69",
-            "nigger", "N1gga", "hitler", "rapist", "kurwa", "KURWA", "chuj", "jebać", "dupa", "puta", "mierda", "cabrón"
+            "nigger", "N1gga", "hitler", "rapist", "kurwa", "KURWA", "chuj", "jebać", "dupa", "puta", "mierda", "cabrón",
+            // French, German, Italian, Portuguese, Dutch, Turkish, Swedish
+            "putain", "Merde", "salope", "nique", "Scheiße", "scheisse", "Arschloch", "Hurensohn", "fotze",
+            "cazzo", "vaffanculo", "stronzo", "caralho", "porra", "klootzak", "kanker", "orospu", "siktir", "fitta",
+            // Russian / Ukrainian in Cyrillic and Latin letters, and Cyrillic look-alikes inside English words
+            "хуй", "ХУЙ", "сука", "пиздец", "блять", "blyat", "suka", "fuсk" /* Cyrillic с */, "аss" /* Cyrillic а */,
+            // Hindi / Urdu, Arabic, Chinese (romanised) and hate symbols
+            "chutiya", "madarchod", "sharmouta", "caonima", "1488", "sieg heil"
         };
         var missed = rude.Where(n => !Palace.NameFilter.IsBlocked(n)).ToList();
         Check(missed.Count == 0, "rude names are blocked" + (missed.Count > 0 ? " (missed: " + string.Join(", ", missed) + ")" : ""));
@@ -601,7 +608,10 @@ internal static class Program
         {
             "Damon", "Bob", "Bobby", "Dickens", "Hancock", "Peacock", "Cassandra", "Essex", "Sexton", "Grape",
             "Therapist", "Titus", "Analise", "Cumberbatch", "Pollard", "Vergara", "Fukuda", "Pedro", "Milford",
-            "Sushi Tom", "Matt", "Ashton", "Kuba", "Zoë", "José", "Łukasz", "Grandma 2024", "Player 7"
+            "Sushi Tom", "Matt", "Ashton", "Kuba", "Zoë", "José", "Łukasz", "Grandma 2024", "Player 7",
+            // Real names from the other languages that contain a filtered word
+            "Monique", "Amina", "Randi", "Merdan", "Figaro", "Nutter", "Porras", "Nguyen Huy", "Hui", "Sebastian",
+            "Françoise", "Jürgen", "Søren", "Çağla", "Иван", "Наташа", "Олександр", "Priya", "Mohammed", "Wei"
         };
         var wrong = fine.Where(Palace.NameFilter.IsBlocked).ToList();
         Check(wrong.Count == 0, "ordinary names are allowed" + (wrong.Count > 0 ? " (blocked: " + string.Join(", ", wrong) + ")" : ""));

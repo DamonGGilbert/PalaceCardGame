@@ -117,7 +117,7 @@ namespace Palace
 
             // The first visit each day pays the streak reward (not in automated test runs).
             string[] runArgs = Environment.GetCommandLineArgs();
-            bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0;
+            bool automated = Array.IndexOf(runArgs, "-palace-autoplay") >= 0 || Array.IndexOf(runArgs, "-palace-net") >= 0 || Array.IndexOf(runArgs, "-palace-nametest") >= 0;
             int streakCoins = automated ? 0 : Progress.CheckIn();
             if (streakCoins > 0) StartCoroutine(DailyRewardWhenReady(streakCoins));
             StreakReminder.Refresh(GameSettings.StreakReminders); // moves tomorrow's reminder along, so it never nags after you've played
@@ -140,6 +140,7 @@ namespace Palace
                 StartCoroutine(multi.RunNetTest(args[netArg + 1], players));
             }
             else if (Array.IndexOf(args, "-palace-menushots") >= 0) StartCoroutine(MenuShots());
+            else if (Array.IndexOf(args, "-palace-nametest") >= 0) StartCoroutine(NameTest());
             else if (Array.IndexOf(args, "-palace-autoplay") >= 0 && netArg < 0) SceneManager.LoadScene(GameLaunch.GameScene);
         }
 
@@ -760,6 +761,51 @@ namespace Palace
         }
 
         // ------------------------------------------------------------------ testing only
+
+        /// <summary>
+        /// Testing only (-palace-nametest folder): types names into the real "Your name" boxes, as a player
+        /// would, logs what was kept and screenshots each one. Your saved name is put back afterwards.
+        /// </summary>
+        private IEnumerator NameTest()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            int i = Array.IndexOf(args, "-palace-nametest");
+            string dir = i + 1 < args.Length ? args[i + 1] : "nametest";
+            Directory.CreateDirectory(dir);
+            string original = GameSettings.PlayerName;
+
+            while (!mainPanel.activeSelf) yield return null;
+            yield return new WaitForSecondsRealtime(0.8f);
+            if (popup != null) ClosePopup();
+
+            var cases = new (string typed, bool multiplayer)[]
+            {
+                ("Damon", false), ("fuck", false), ("f.u.c.k", false), ("Sh1t Head", false), ("Big Dick", false),
+                ("Dickens", false), ("kurwa", false), ("Łukasz", false), ("mierda", false), ("José", false),
+                ("Scheiße", false), ("putain", false), ("сука", false), ("Наташа", false), ("Monique", false),
+                ("cazzo", true), ("Sushi Tom", true), ("blyat", true), ("Damon", true)
+            };
+            int shot = 0;
+            foreach (var (typed, multiplayer) in cases)
+            {
+                Show(multiplayer ? multiPanel : singlePanel);
+                if (multiplayer) multi.Open();
+                yield return new WaitForSecondsRealtime(0.3f);
+                var input = (multiplayer ? multiPanel : singlePanel).GetComponentInChildren<TMP_InputField>(true);
+                string before = GameSettings.PlayerName;
+                input.text = typed;              // as if typed...
+                input.onEndEdit.Invoke(typed);   // ...and the box left
+                yield return new WaitForSecondsRealtime(0.3f);
+                bool kept = GameSettings.PlayerName != before || GameSettings.PlayerName == typed;
+                Debug.Log($"[NameTest] {(multiplayer ? "multiplayer" : "single player")}: typed \"{typed}\" -> " +
+                          (kept ? $"saved as \"{GameSettings.PlayerName}\"" : $"refused, box shows \"{input.text}\""));
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, $"name_{shot++:00}.png"));
+                yield return new WaitForSecondsRealtime(0.3f);
+            }
+            GameSettings.PlayerName = original;
+            Debug.Log("[NameTest] done");
+            Application.Quit();
+        }
 
         private IEnumerator MenuShots()
         {
