@@ -596,8 +596,7 @@ namespace Palace
             bool computerPlays = Game.State.Players[actor].IsBot || takenOver.Contains(actor) || autoPlayLocal;
             if (!computerPlays || !BotReady()) return; // otherwise waiting for a person (here or on another device)
 
-            // A player who left (and autoplay tests) get a Normal bot; real bots play at the chosen level.
-            BotLevel level = Game.State.Players[actor].IsBot ? botLevel : BotLevel.Normal;
+            BotLevel level = LevelFor(actor);
             BotMove move = BotBrain.Decide(Game, actor, botRng, level);
             Execute(BotBrain.Execute(Game, actor, move));
         }
@@ -657,6 +656,17 @@ namespace Palace
         }
 
         private BotLevel botLevel = BotLevel.Normal;
+
+        /// <summary>
+        /// How well the computer plays a seat: real computer players at the chosen level; someone who lost
+        /// connection gets an Easy stand-in, so the game keeps moving without playing better than they would;
+        /// autoplay tests at Normal.
+        /// </summary>
+        private BotLevel LevelFor(int player)
+        {
+            if (Game.State.Players[player].IsBot) return botLevel;
+            return takenOver.Contains(player) ? BotLevel.Easy : BotLevel.Normal;
+        }
         private bool isTutorial;
         private TutorialCoach coach;
 
@@ -689,7 +699,7 @@ namespace Palace
                 if (!BotReady()) return;
 
                 var all = new CommandResult { Ok = true };
-                BotLevel level = p.IsBot ? botLevel : BotLevel.Normal;
+                BotLevel level = LevelFor(p.Index);
                 foreach (var (handId, slot) in BotBrain.DecideSwaps(p, level, botRng))
                 {
                     CommandResult r = Game.SwapCards(p.Index, handId, slot);
